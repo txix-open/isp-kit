@@ -1,0 +1,23 @@
+syntax = "proto3";
+package isp;
+// protoc --go_out=plugins=grpc:. *.proto
+
+option go_package = ".;isp";
+
+import "google/protobuf/struct.proto";
+
+message Message {
+    oneof body {
+        google.protobuf.Struct structBody = 1;
+        google.protobuf.ListValue listBody = 2;
+        google.protobuf.NullValue NullBody = 3;
+        bytes BytesBody = 4;
+    }
+}
+
+service BackendService {
+    // ===== SYSTEM =====
+    rpc Request (Message) returns (Message) {}
+
+    rpc RequestStream(stream Message) returns (stream Message) {}
+}
