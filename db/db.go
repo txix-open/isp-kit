@@ -44,17 +44,23 @@ func (db *Client) RunInTransaction(ctx context.Context, txFunc TxFunc, opts ...T
 		return errors.WithMessage(err, "begin transaction")
 	}
 	defer func() {
-		if p := recover(); p != nil { //do rollback and repanic
+		p := recover()
+		if p != nil { //do rollback and repanic
 			_ = tx.Rollback()
 			panic(p)
 		}
 
 		if err != nil {
-			if rbErr := tx.Rollback(); rbErr != nil {
+			rbErr := tx.Rollback()
+			if rbErr != nil {
 				err = errors.WithMessage(err, rbErr.Error())
 			}
-		} else {
-			err = errors.WithMessage(tx.Commit(), "commit tx")
+			return
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			err = errors.WithMessage(err, "commit tx")
 		}
 	}()
 

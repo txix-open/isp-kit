@@ -19,15 +19,17 @@ func Recovery() Middleware {
 	return func(next grpc.HandlerFunc) grpc.HandlerFunc {
 		return func(ctx context.Context, message *isp.Message) (msg *isp.Message, err error) {
 			defer func() {
-				if r := recover(); r != nil {
-					recovered, ok := r.(error)
-					if !ok {
-						err = fmt.Errorf("%v", recovered)
-					}
-					stack := make([]byte, 4<<10)
-					length := runtime.Stack(stack, false)
-					err = errors.Errorf("[PANIC RECOVER] %v %s\n", err, stack[:length])
+				r := recover()
+				if r == nil {
+					return
 				}
+				recovered, ok := r.(error)
+				if !ok {
+					err = fmt.Errorf("%v", recovered)
+				}
+				stack := make([]byte, 4<<10)
+				length := runtime.Stack(stack, false)
+				err = errors.Errorf("[PANIC RECOVER] %v %s\n", err, stack[:length])
 			}()
 			return next(ctx, message)
 		}

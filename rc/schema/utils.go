@@ -26,7 +26,8 @@ func GetNameAndRequiredFlag(field reflect.StructField) (string, bool) {
 		return "", false
 	}
 
-	if validators := getValidatorsMap(field); validators != nil {
+	validators := getValidatorsMap(field)
+	if validators != nil {
 		_, present := validators["required"]
 		return name, present
 	}
@@ -48,13 +49,15 @@ func SetProperties(field reflect.StructField, t *jsonschema.Type) {
 		}
 	}
 
-	if defaultValue, ok := field.Tag.Lookup(tagDefault); ok {
+	defaultValue, ok := field.Tag.Lookup(tagDefault)
+	if ok {
 		t.Default = defaultValue
 	}
 
 	setValidators(field, t)
 
-	if customValue, ok := field.Tag.Lookup(tagCustomSchema); ok {
+	customValue, ok := field.Tag.Lookup(tagCustomSchema)
+	if ok {
 		if f := CustomGenerators.getGeneratorByName(customValue); f != nil {
 			f(field, t)
 		}
@@ -86,33 +89,42 @@ func setValidators(field reflect.StructField, t *jsonschema.Type) {
 		case "length":
 			fallthrough
 		case "runelength":
-			if len(args) > 0 {
-				if val, err := strconv.Atoi(args[0]); err == nil {
-					t.MinLength = val
-				}
-				if len(args) > 1 {
-					if val, err := strconv.Atoi(args[1]); err == nil {
-						t.MaxLength = val
-					}
-				}
+			if len(args) == 0 {
+				continue
+			}
+			val, err := strconv.Atoi(args[0])
+			if err == nil {
+				t.MinLength = val
+			}
+			if len(args) == 1 {
+				continue
+			}
+			val, err = strconv.Atoi(args[1])
+			if err == nil {
+				t.MaxLength = val
 			}
 		case "in":
-			if len(args) > 0 {
-				vals := strings.Split(args[0], "|")
-				for _, val := range vals {
-					t.Enum = append(t.Enum, val)
-				}
+			if len(args) == 0 {
+				continue
+			}
+			vals := strings.Split(args[0], "|")
+			for _, val := range vals {
+				t.Enum = append(t.Enum, val)
 			}
 		case "range":
-			if len(args) > 0 {
-				if val, err := strconv.Atoi(args[0]); err == nil {
-					t.Minimum = val
-				}
-				if len(args) > 1 {
-					if val, err := strconv.Atoi(args[1]); err == nil {
-						t.Maximum = val
-					}
-				}
+			if len(args) == 0 {
+				continue
+			}
+			val, err := strconv.Atoi(args[0])
+			if err == nil {
+				t.Minimum = val
+			}
+			if len(args) == 1 {
+				continue
+			}
+			val, err = strconv.Atoi(args[1])
+			if err == nil {
+				t.Maximum = val
 			}
 		}
 	}
@@ -198,7 +210,8 @@ func isValidTag(s string) bool {
 func GetFieldName(fieldType reflect.StructField) (string, bool) {
 	original := fieldType.Name
 	transform := true
-	if value, ok := fieldType.Tag.Lookup("json"); ok {
+	value, ok := fieldType.Tag.Lookup("json")
+	if ok {
 		opts := strings.Split(value, ",")
 		if len(opts) > 0 {
 			if opts[0] == "-" {
