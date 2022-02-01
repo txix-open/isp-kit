@@ -7,7 +7,6 @@ import (
 	"github.com/integration-system/grmq/consumer"
 	"github.com/integration-system/grmq/publisher"
 	"github.com/integration-system/grmq/topology"
-	"github.com/integration-system/isp-kit/log"
 	"github.com/rabbitmq/amqp091-go"
 )
 
@@ -37,12 +36,11 @@ type Publisher struct {
 	RoutingKey string `schema:"Ключ маршрутизации,для публикации напрямую в очередь указывается название очереди"`
 }
 
-func (p Publisher) DefaultPublisher(logger log.Logger, restMiddlewares ...publisher.Middleware) *publisher.Publisher {
+func (p Publisher) DefaultPublisher(restMiddlewares ...publisher.Middleware) *publisher.Publisher {
 	middlewares := append(
 		[]publisher.Middleware{
 			publisher.PersistentMode(),
 			PublisherRequestId(),
-			PublisherLog(logger),
 		},
 		restMiddlewares...,
 	)
@@ -68,7 +66,7 @@ type Binding struct {
 	RoutingKey   string `valid:"required" schema:"Ключ маршрутизации"`
 }
 
-func (c Consumer) DefaultConsumer(handler consumer.Handler, logger log.Logger, restMiddlewares ...consumer.Middleware) consumer.Consumer {
+func (c Consumer) DefaultConsumer(handler consumer.Handler, restMiddlewares ...consumer.Middleware) consumer.Consumer {
 	prefetchCount := c.PrefetchCount
 	if prefetchCount <= 0 {
 		prefetchCount = 1
@@ -80,7 +78,6 @@ func (c Consumer) DefaultConsumer(handler consumer.Handler, logger log.Logger, r
 	middlewares := append(
 		[]consumer.Middleware{
 			ConsumerRequestId(),
-			ConsumerLog(logger),
 		},
 		restMiddlewares...,
 	)

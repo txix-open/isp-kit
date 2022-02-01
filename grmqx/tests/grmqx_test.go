@@ -22,14 +22,14 @@ func TestRequestIdChain(t *testing.T) {
 		Exchange:   "",
 		RoutingKey: "queue1",
 	}
-	pub1 := pubCfg1.DefaultPublisher(test.Logger())
+	pub1 := pubCfg1.DefaultPublisher(grmqx.PublisherLog(test.Logger()))
 	consumerCfg1 := grmqx.Consumer{
 		Queue: "queue1",
 	}
 	pubCfg2 := grmqx.Publisher{
 		RoutingKey: "queue2",
 	}
-	pub2 := pubCfg2.DefaultPublisher(test.Logger())
+	pub2 := pubCfg2.DefaultPublisher(grmqx.PublisherLog(test.Logger()))
 	consumerCfg2 := grmqx.Consumer{
 		Queue: "queue2",
 	}
@@ -42,7 +42,7 @@ func TestRequestIdChain(t *testing.T) {
 			return grmqx.Ack()
 		}),
 	)
-	consumer1 := consumerCfg1.DefaultConsumer(handler1, test.Logger())
+	consumer1 := consumerCfg1.DefaultConsumer(handler1, grmqx.ConsumerLog(test.Logger()))
 
 	await := make(chan struct{})
 	handler2 := grmqx.NewResultHandler(
@@ -54,7 +54,7 @@ func TestRequestIdChain(t *testing.T) {
 			return grmqx.Ack()
 		}),
 	)
-	consumer2 := consumerCfg2.DefaultConsumer(handler2, test.Logger())
+	consumer2 := consumerCfg2.DefaultConsumer(handler2, grmqx.ConsumerLog(test.Logger()))
 
 	testCli := grmqt.New(test)
 	cli := grmqx.New(test.Logger())
