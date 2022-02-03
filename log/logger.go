@@ -34,6 +34,7 @@ func New(opts ...Option) (*Adapter, error) {
 	}
 	cfg.DisableStacktrace = true
 	cfg.DisableCaller = true
+	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	if a.rotation != nil {
 		outputUrl := rotationToUrl(*a.rotation)
 		cfg.OutputPaths = append(cfg.OutputPaths, outputUrl.String())
