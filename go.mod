@@ -5,12 +5,14 @@ go 1.17
 require (
 	github.com/Masterminds/squirrel v1.5.2
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
+	github.com/go-resty/resty/v2 v2.7.0
 	github.com/golang/protobuf v1.5.2
 	github.com/iancoleman/strcase v0.2.0
 	github.com/integration-system/bellows v1.0.1
 	github.com/integration-system/grmq v1.1.0
 	github.com/integration-system/isp-etp-go/v2 v2.1.3
 	github.com/integration-system/jsonschema v1.0.1
+	github.com/jackc/pgtype v1.9.1
 	github.com/jackc/pgx/v4 v4.14.1
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/json-iterator/go v1.1.12
@@ -40,7 +42,6 @@ require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgproto3/v2 v2.2.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
-	github.com/jackc/pgtype v1.9.1 // indirect
 	github.com/klauspost/compress v1.14.2 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
