@@ -1,9 +1,14 @@
 package json
 
 import (
+	"encoding/json"
+	"io"
+
 	"github.com/json-iterator/go"
 	"github.com/modern-go/reflect2"
 )
+
+type RawMessage json.RawMessage
 
 var (
 	instance = jsoniter.ConfigDefault
@@ -27,4 +32,12 @@ func Marshal(v interface{}) ([]byte, error) {
 
 func Unmarshal(data []byte, ptr interface{}) error {
 	return instance.Unmarshal(data, ptr)
+}
+
+func NewEncoder(w io.Writer) *jsoniter.Encoder {
+	return instance.NewEncoder(w)
+}
+
+func NewDecoder(r io.Reader) *jsoniter.Decoder {
+	return instance.NewDecoder(r)
 }
