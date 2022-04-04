@@ -16,7 +16,7 @@ type Validator interface {
 }
 
 type JsonRequestExtractor struct {
-	validator Validator
+	Validator Validator
 }
 
 func (j JsonRequestExtractor) Extract(ctx context.Context, reader io.ReadCloser, reqBodyType reflect.Type) (reflect.Value, error) {
@@ -28,7 +28,7 @@ func (j JsonRequestExtractor) Extract(ctx context.Context, reader io.ReadCloser,
 
 	elem := instance.Elem()
 
-	err = j.validator.ValidateToError(elem.Interface())
+	err = j.Validator.ValidateToError(elem.Interface())
 	if err != nil {
 		return reflect.Value{}, httperrors.NewHttpError(http.StatusBadRequest, err)
 	}

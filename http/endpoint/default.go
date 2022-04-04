@@ -23,7 +23,7 @@ func DefaultWrapper(logger log.Logger, restMiddlewares ...Middleware) Wrapper {
 
 	return NewWrapper(
 		paramMappers,
-		JsonRequestExtractor{validator: validator.Default},
+		JsonRequestExtractor{Validator: validator.Default},
 		JsonResponseMapper{},
 		logger,
 	).WithMiddlewares(middlewares...)
