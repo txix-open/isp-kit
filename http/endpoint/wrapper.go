@@ -9,7 +9,7 @@ import (
 	"github.com/integration-system/isp-kit/log"
 )
 
-type httpError interface {
+type HttpError interface {
 	WriteError(w http.ResponseWriter) error
 }
 

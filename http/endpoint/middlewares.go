@@ -53,7 +53,7 @@ func ErrorHandler(logger log.Logger) Middleware {
 
 			logger.Error(ctx, err)
 
-			httpErr, ok := err.(httpError)
+			httpErr, ok := err.(HttpError)
 			if ok {
 				_ = httpErr.WriteError(w)
 				return nil
