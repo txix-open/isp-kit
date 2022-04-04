@@ -109,7 +109,7 @@ func BodyLogger(logger log.Logger, availableContentTypes []string) Middleware {
 	return func(next HandlerFunc) HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 			requestContentType := r.Header.Get("Content-Type")
-			if matchContentType(requestContentType, availableContentTypes) {
+			if r.Body != nil && matchContentType(requestContentType, availableContentTypes) {
 				bodyBytes, err := io.ReadAll(r.Body)
 				if err != nil {
 					return errors.WithMessage(err, "read request body for logging")

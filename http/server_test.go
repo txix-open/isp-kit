@@ -1,6 +1,7 @@
 package http_test
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"testing"
@@ -48,6 +49,16 @@ func TestService(t *testing.T) {
 		Post("/badGetId")
 	require.NoError(t, err)
 	require.Equal(t, http.StatusNotFound, resp.StatusCode())
+
+	response = Response{}
+	resp, err = client.R().
+		SetResult(&response).
+		Get("/noBody")
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode())
+
+	expected = Response{Result: "Test"}
+	require.Equal(t, expected, response)
 }
 
 type endpointDescriptor struct {
@@ -68,6 +79,11 @@ func prepareServer(t *testing.T) string {
 		Path: "/badGetId",
 		Handler: func(req Request) (*Response, error) {
 			return &Response{}, httperrors.New(404, errors.New("Not Found"))
+		},
+	}, {
+		Path: "/noBody",
+		Handler: func(ctx context.Context) (*Response, error) {
+			return &Response{Result: "Test"}, nil
 		},
 	}}
 
