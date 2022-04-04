@@ -108,18 +108,9 @@ var defaultAvailableContentTypes = []string{
 func BodyLogger(logger log.Logger, availableContentTypes []string) Middleware {
 	return func(next HandlerFunc) HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-			ct := r.Header.Get("Content-Type")
-
-			compatibleType := false
-			for _, content := range availableContentTypes {
-				if strings.HasPrefix(ct, content) {
-					compatibleType = true
-					break
-				}
-			}
-
-			if compatibleType {
-				bodyBytes, err := ioutil.ReadAll(r.Body)
+			requestContentType := r.Header.Get("Content-Type")
+			if matchContentType(requestContentType, availableContentTypes) {
+				bodyBytes, err := io.ReadAll(r.Body)
 				if err != nil {
 					return errors.WithMessage(err, "read request body for logging")
 				}
@@ -137,20 +128,8 @@ func BodyLogger(logger log.Logger, availableContentTypes []string) Middleware {
 
 			err := next(ctx, mw, r)
 
-			ct = mw.Header().Get("Content-Type")
-			if ct == "" {
-				return err
-			}
-
-			compatibleType = false
-			for _, content := range availableContentTypes {
-				if strings.HasPrefix(ct, content) {
-					compatibleType = true
-					break
-				}
-			}
-
-			if compatibleType {
+			responseContentType := mw.Header().Get("Content-Type")
+			if matchContentType(responseContentType, availableContentTypes) {
 				logger.Debug(ctx, "response body", log.ByteString("responseBody", mw.GetBody()))
 			}
 
@@ -161,4 +140,13 @@ func BodyLogger(logger log.Logger, availableContentTypes []string) Middleware {
 
 func DefaultBodyLogger(logger log.Logger) Middleware {
 	return BodyLogger(logger, defaultAvailableContentTypes)
+}
+
+func matchContentType(contentType string, availableContentTypes []string) bool {
+	for _, content := range availableContentTypes {
+		if strings.HasPrefix(contentType, content) {
+			return true
+		}
+	}
+	return false
 }
