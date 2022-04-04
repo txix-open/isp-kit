@@ -94,10 +94,10 @@ func prepareServer(t *testing.T) string {
 
 	listener, err := net.Listen("tcp", "127.0.0.1:")
 
+	srv := isphttp.NewServer()
+	srv.Upgrade(muxer)
 	go func() {
-		srv.Upgrade(muxer)
-		err = srv.Serve(listener)
-
+		err := srv.Serve(listener)
 		require.NoError(t, err)
 	}()
 

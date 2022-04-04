@@ -38,7 +38,7 @@ type Server struct {
 	service *service
 }
 
-func NewHttpServer(opts ...ServerOption) *Server {
+func NewServer(opts ...ServerOption) *Server {
 	s := &Server{
 		server: &http.Server{},
 		service: &service{
