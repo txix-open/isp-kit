@@ -28,7 +28,6 @@ func TestService(t *testing.T) {
 
 	client := resty.New().SetBaseURL("http://" + url)
 	resp, err := client.R().
-		SetHeader("Content-Type", "application/json").
 		SetBody(Request{Id: "man"}).
 		SetResult(&response).
 		Post("/getId")
@@ -39,14 +38,12 @@ func TestService(t *testing.T) {
 	require.Equal(t, expected, response)
 
 	resp, err = client.R().
-		SetHeader("Content-Type", "application/json").
 		SetBody(Request{Id: ""}).
 		Post("/getId")
 	require.NoError(t, err)
 	require.Equal(t, http.StatusBadRequest, resp.StatusCode())
 
 	resp, err = client.R().
-		SetHeader("Content-Type", "application/json").
 		SetBody(Request{Id: "smth"}).
 		Post("/badGetId")
 	require.NoError(t, err)
