@@ -57,14 +57,15 @@ func ErrorHandler(logger log.Logger) Middleware {
 
 			httpErr, ok := err.(HttpError)
 			if ok {
-				_ = httpErr.WriteError(w)
-				return nil
+				err = httpErr.WriteError(w)
+				return err
 			}
 
-			httpErr = httperrors.New(http.StatusInternalServerError, err)
-			_ = httpErr.WriteError(w)
+			//hide error details to prevent potential security leaks
+			err = httperrors.New(http.StatusInternalServerError, errors.New("internal service error")).
+				WriteError(w)
 
-			return nil
+			return err
 		}
 	}
 }
