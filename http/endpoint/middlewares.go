@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/integration-system/isp-kit/http/httperrors"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"runtime"
 	"strings"
+
+	"github.com/integration-system/isp-kit/http/httperrors"
 
 	"github.com/integration-system/isp-kit/http/endpoint/writer"
 	"github.com/integration-system/isp-kit/log"
@@ -86,9 +88,11 @@ func RequestId() Middleware {
 func RequestInfo() Middleware {
 	return func(next HandlerFunc) HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-			ctx = log.ToContext(ctx,
+			ctx = log.ToContext(
+				ctx,
 				log.String("httpMethod", r.Method),
-				log.String("httpUrl", r.URL.String()))
+				log.String("httpUrl", r.URL.String()),
+			)
 
 			return next(ctx, w, r)
 		}
