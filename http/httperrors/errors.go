@@ -7,23 +7,23 @@ import (
 	"github.com/integration-system/isp-kit/json"
 )
 
-type HttpError struct {
+type Error struct {
 	Code    int
 	Message string
 }
 
-func (e HttpError) Error() string {
+func (e Error) Error() string {
 	return fmt.Sprintf("code: %d, message: %s", e.Code, e.Message)
 }
 
-func (e HttpError) WriteError(w http.ResponseWriter) error {
+func (e Error) WriteError(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(e.Code)
 	return json.NewEncoder(w).Encode(e)
 }
 
-func NewHttpError(code int, err error) HttpError {
-	return HttpError{
+func New(code int, err error) Error {
+	return Error{
 		Code:    code,
 		Message: err.Error(),
 	}

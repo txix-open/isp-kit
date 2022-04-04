@@ -59,7 +59,7 @@ func ErrorHandler(logger log.Logger) Middleware {
 				return nil
 			}
 
-			httpErr = httperrors.NewHttpError(http.StatusInternalServerError, err)
+			httpErr = httperrors.New(http.StatusInternalServerError, err)
 			_ = httpErr.WriteError(w)
 
 			return nil

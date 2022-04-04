@@ -23,14 +23,14 @@ func (j JsonRequestExtractor) Extract(ctx context.Context, reader io.ReadCloser,
 	instance := reflect.New(reqBodyType)
 	err := json.NewDecoder(reader).Decode(instance.Interface())
 	if err != nil {
-		return reflect.Value{}, httperrors.NewHttpError(http.StatusBadRequest, errors.Errorf("unmarshal request body: %v", err))
+		return reflect.Value{}, httperrors.New(http.StatusBadRequest, errors.WithMessage(err, "unmarshal request body"))
 	}
 
 	elem := instance.Elem()
 
 	err = j.Validator.ValidateToError(elem.Interface())
 	if err != nil {
-		return reflect.Value{}, httperrors.NewHttpError(http.StatusBadRequest, err)
+		return reflect.Value{}, httperrors.New(http.StatusBadRequest, err)
 	}
 
 	return elem, nil

@@ -82,7 +82,7 @@ func prepareServer(t *testing.T) string {
 	}, {
 		Path: "/badGetId",
 		Handler: func(req Request) (*Response, error) {
-			return &Response{}, httperrors.NewHttpError(404, errors.New("Not Found"))
+			return &Response{}, httperrors.New(404, errors.New("Not Found"))
 		},
 	}}
 
