@@ -17,7 +17,7 @@ type HandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Reques
 type Middleware func(next HandlerFunc) HandlerFunc
 
 type RequestBodyExtractor interface {
-	Extract(ctx context.Context, reader io.ReadCloser, reqBodyType reflect.Type) (reflect.Value, error)
+	Extract(ctx context.Context, reader io.Reader, reqBodyType reflect.Type) (reflect.Value, error)
 }
 
 type ResponseBodyMapper interface {

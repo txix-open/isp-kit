@@ -19,7 +19,7 @@ type JsonRequestExtractor struct {
 	Validator Validator
 }
 
-func (j JsonRequestExtractor) Extract(ctx context.Context, reader io.ReadCloser, reqBodyType reflect.Type) (reflect.Value, error) {
+func (j JsonRequestExtractor) Extract(ctx context.Context, reader io.Reader, reqBodyType reflect.Type) (reflect.Value, error) {
 	instance := reflect.New(reqBodyType)
 	err := json.NewDecoder(reader).Decode(instance.Interface())
 	if err != nil {
