@@ -32,31 +32,24 @@ func TestService(t *testing.T) {
 		SetBody(Request{Id: "man"}).
 		SetResult(&response).
 		Post("/getId")
-
 	require.NoError(t, err)
-
 	require.Equal(t, http.StatusOK, resp.StatusCode())
 
 	expected := Response{Result: "Hello_man"}
-
 	require.Equal(t, expected, response)
 
 	resp, err = client.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(Request{Id: ""}).
 		Post("/getId")
-
 	require.NoError(t, err)
-
 	require.Equal(t, http.StatusBadRequest, resp.StatusCode())
 
 	resp, err = client.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(Request{Id: "smth"}).
 		Post("/badGetId")
-
 	require.NoError(t, err)
-
 	require.Equal(t, http.StatusNotFound, resp.StatusCode())
 }
 
@@ -67,12 +60,7 @@ type endpointDescriptor struct {
 
 func prepareServer(t *testing.T) string {
 	logger, err := log.New(log.WithLevel(log.DebugLevel))
-	if err != nil {
-		require.NoError(t, err)
-	}
-
-	mapper := endpoint.DefaultWrapper(logger, endpoint.DefaultBodyLogger(logger))
-	muxer := http.NewServeMux()
+	require.NoError(t, err)
 
 	endpoints := []endpointDescriptor{{
 		Path: "/getId",
@@ -86,13 +74,14 @@ func prepareServer(t *testing.T) string {
 		},
 	}}
 
+	mapper := endpoint.DefaultWrapper(logger, endpoint.DefaultBodyLogger(logger))
+	muxer := http.NewServeMux()
 	for _, descriptor := range endpoints {
 		muxer.Handle(descriptor.Path, mapper.Endpoint(descriptor.Handler))
 	}
 
-	srv := isphttp.NewHttpServer()
-
 	listener, err := net.Listen("tcp", "127.0.0.1:")
+	require.NoError(t, err)
 
 	srv := isphttp.NewServer()
 	srv.Upgrade(muxer)
