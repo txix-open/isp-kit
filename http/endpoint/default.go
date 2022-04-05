@@ -18,6 +18,7 @@ func DefaultWrapper(logger Logger, restMiddlewares ...Middleware) Wrapper {
 	}
 	middlewares := append(
 		[]Middleware{
+			MaxRequestBodySize(defaultMaxRequestBodySize),
 			RequestId(),
 			RequestInfo(),
 			DefaultLog(logger),
