@@ -7,7 +7,8 @@ import (
 
 type MiddlewareWriter struct {
 	http.ResponseWriter
-	body *bytes.Buffer
+	body       *bytes.Buffer
+	statusCode int
 }
 
 func NewMiddlewareWriter() *MiddlewareWriter {
@@ -16,6 +17,7 @@ func NewMiddlewareWriter() *MiddlewareWriter {
 
 func (m *MiddlewareWriter) PrepareToWork(upstream http.ResponseWriter) {
 	m.ResponseWriter = upstream
+	m.statusCode = 0
 	m.body.Reset()
 }
 
@@ -33,6 +35,18 @@ func (m *MiddlewareWriter) Write(b []byte) (int, error) {
 	return n, nil
 }
 
+func (m *MiddlewareWriter) WriteHeader(statusCode int) {
+	m.statusCode = statusCode
+	m.ResponseWriter.WriteHeader(statusCode)
+}
+
 func (m *MiddlewareWriter) GetBody() []byte {
 	return m.body.Bytes()
+}
+
+func (m *MiddlewareWriter) StatusCode() int {
+	if m.statusCode == 0 {
+		return http.StatusOK
+	}
+	return m.statusCode
 }

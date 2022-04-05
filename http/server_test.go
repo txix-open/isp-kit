@@ -87,7 +87,7 @@ func prepareServer(t *testing.T) string {
 		},
 	}}
 
-	mapper := endpoint.DefaultWrapper(logger, endpoint.DefaultBodyLogger(logger))
+	mapper := endpoint.DefaultWrapper(logger)
 	muxer := http.NewServeMux()
 	for _, descriptor := range endpoints {
 		muxer.Handle(descriptor.Path, mapper.Endpoint(descriptor.Handler))

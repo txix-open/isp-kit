@@ -83,6 +83,10 @@ func (a *Adapter) SetLevel(level Level) {
 	a.level.SetLevel(zapcore.Level(level))
 }
 
+func (a *Adapter) Enabled(level Level) bool {
+	return a.level.Enabled(zapcore.Level(level))
+}
+
 func (a *Adapter) Close() error {
 	return a.logger.Sync()
 }

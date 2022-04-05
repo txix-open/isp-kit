@@ -5,7 +5,12 @@ import (
 	"github.com/integration-system/isp-kit/validator"
 )
 
-func DefaultWrapper(logger log.Logger, restMiddlewares ...Middleware) Wrapper {
+type Logger interface {
+	log.Logger
+	Enabled(level log.Level) bool
+}
+
+func DefaultWrapper(logger Logger, restMiddlewares ...Middleware) Wrapper {
 	paramMappers := []ParamMapper{
 		ContextParam(),
 		ResponseWriterParam(),
@@ -15,6 +20,7 @@ func DefaultWrapper(logger log.Logger, restMiddlewares ...Middleware) Wrapper {
 		[]Middleware{
 			RequestId(),
 			RequestInfo(),
+			DefaultLog(logger),
 			ErrorHandler(logger),
 			Recovery(),
 		},

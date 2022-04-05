@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/integration-system/isp-kit/http/httperrors"
 
@@ -106,11 +107,17 @@ var defaultAvailableContentTypes = []string{
 	"text/html",
 }
 
-func BodyLogger(logger log.Logger, availableContentTypes []string) Middleware {
+func Log(logger Logger, availableContentTypes []string) Middleware {
 	return func(next HandlerFunc) HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+			if !logger.Enabled(log.DebugLevel) {
+				return next(ctx, w, r)
+			}
+
+			now := time.Now()
+			logFields := []log.Field{}
 			requestContentType := r.Header.Get("Content-Type")
-			if r.Body != nil && matchContentType(requestContentType, availableContentTypes) {
+			if matchContentType(requestContentType, availableContentTypes) {
 				bodyBytes, err := io.ReadAll(r.Body)
 				if err != nil {
 					return errors.WithMessage(err, "read request body for logging")
@@ -121,7 +128,7 @@ func BodyLogger(logger log.Logger, availableContentTypes []string) Middleware {
 				}
 				r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
 
-				logger.Debug(ctx, "request body", log.ByteString("requestBody", bodyBytes))
+				logFields = append(logFields, log.ByteString("requestBody", bodyBytes))
 			}
 
 			mw := writer.Acquire(w)
@@ -129,18 +136,25 @@ func BodyLogger(logger log.Logger, availableContentTypes []string) Middleware {
 
 			err := next(ctx, mw, r)
 
+			logFields = append(
+				logFields,
+				log.Int("httpStatusCode", mw.StatusCode()),
+				log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()),
+			)
 			responseContentType := mw.Header().Get("Content-Type")
 			if matchContentType(responseContentType, availableContentTypes) {
-				logger.Debug(ctx, "response body", log.ByteString("responseBody", mw.GetBody()))
+				logFields = append(logFields, log.ByteString("responseBody", mw.GetBody()))
 			}
+
+			logger.Debug(ctx, "http log", logFields...)
 
 			return err
 		}
 	}
 }
 
-func DefaultBodyLogger(logger log.Logger) Middleware {
-	return BodyLogger(logger, defaultAvailableContentTypes)
+func DefaultLog(logger Logger) Middleware {
+	return Log(logger, defaultAvailableContentTypes)
 }
 
 func matchContentType(contentType string, availableContentTypes []string) bool {
