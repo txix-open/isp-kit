@@ -19,7 +19,19 @@ import (
 	"github.com/pkg/errors"
 )
 
-const requestIdHeader = "x-request-id"
+const (
+	requestIdHeader           = "x-request-id"
+	defaultMaxRequestBodySize = 64 * 1024 * 1024
+)
+
+func MaxRequestBodySize(maxBytes int64) Middleware {
+	return func(next HandlerFunc) HandlerFunc {
+		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+			r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
+			return next(ctx, w, r)
+		}
+	}
+}
 
 func Recovery() Middleware {
 	return func(next HandlerFunc) HandlerFunc {
