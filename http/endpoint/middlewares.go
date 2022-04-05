@@ -4,16 +4,15 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"runtime"
 	"strings"
 	"time"
 
+	"github.com/integration-system/isp-kit/http/endpoint/buffer"
 	"github.com/integration-system/isp-kit/http/httperrors"
 
-	"github.com/integration-system/isp-kit/http/endpoint/writer"
 	"github.com/integration-system/isp-kit/log"
 	"github.com/integration-system/isp-kit/requestid"
 	"github.com/pkg/errors"
@@ -126,11 +125,14 @@ func Log(logger Logger, availableContentTypes []string) Middleware {
 				return next(ctx, w, r)
 			}
 
+			buf := buffer.Acquire(w)
+			defer buffer.Release(buf)
+
 			now := time.Now()
 			logFields := []log.Field{}
 			requestContentType := r.Header.Get("Content-Type")
 			if matchContentType(requestContentType, availableContentTypes) {
-				bodyBytes, err := io.ReadAll(r.Body)
+				err := buf.ReadRequestBody(r.Body)
 				if err != nil {
 					return errors.WithMessage(err, "read request body for logging")
 				}
@@ -138,24 +140,21 @@ func Log(logger Logger, availableContentTypes []string) Middleware {
 				if err != nil {
 					return errors.WithMessage(err, "close request reader")
 				}
-				r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+				r.Body = ioutil.NopCloser(bytes.NewBuffer(buf.RequestBody()))
 
-				logFields = append(logFields, log.ByteString("requestBody", bodyBytes))
+				logFields = append(logFields, log.ByteString("requestBody", buf.RequestBody()))
 			}
 
-			mw := writer.Acquire(w)
-			defer writer.Release(mw)
-
-			err := next(ctx, mw, r)
+			err := next(ctx, buf, r)
 
 			logFields = append(
 				logFields,
-				log.Int("httpStatusCode", mw.StatusCode()),
+				log.Int("httpStatusCode", buf.StatusCode()),
 				log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()),
 			)
-			responseContentType := mw.Header().Get("Content-Type")
+			responseContentType := buf.Header().Get("Content-Type")
 			if matchContentType(responseContentType, availableContentTypes) {
-				logFields = append(logFields, log.ByteString("responseBody", mw.GetBody()))
+				logFields = append(logFields, log.ByteString("responseBody", buf.ResponseBody()))
 			}
 
 			logger.Debug(ctx, "http log", logFields...)
