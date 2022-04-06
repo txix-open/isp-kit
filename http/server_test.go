@@ -1,6 +1,7 @@
 package http_test
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"testing"
@@ -28,36 +29,36 @@ func TestService(t *testing.T) {
 
 	client := resty.New().SetBaseURL("http://" + url)
 	resp, err := client.R().
-		SetHeader("Content-Type", "application/json").
 		SetBody(Request{Id: "man"}).
 		SetResult(&response).
 		Post("/getId")
-
 	require.NoError(t, err)
-
 	require.Equal(t, http.StatusOK, resp.StatusCode())
 
 	expected := Response{Result: "Hello_man"}
-
 	require.Equal(t, expected, response)
 
 	resp, err = client.R().
-		SetHeader("Content-Type", "application/json").
 		SetBody(Request{Id: ""}).
 		Post("/getId")
-
 	require.NoError(t, err)
-
 	require.Equal(t, http.StatusBadRequest, resp.StatusCode())
 
 	resp, err = client.R().
-		SetHeader("Content-Type", "application/json").
 		SetBody(Request{Id: "smth"}).
 		Post("/badGetId")
-
 	require.NoError(t, err)
-
 	require.Equal(t, http.StatusNotFound, resp.StatusCode())
+
+	response = Response{}
+	resp, err = client.R().
+		SetResult(&response).
+		Get("/noBody")
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode())
+
+	expected = Response{Result: "Test"}
+	require.Equal(t, expected, response)
 }
 
 type endpointDescriptor struct {
@@ -67,12 +68,7 @@ type endpointDescriptor struct {
 
 func prepareServer(t *testing.T) string {
 	logger, err := log.New(log.WithLevel(log.DebugLevel))
-	if err != nil {
-		require.NoError(t, err)
-	}
-
-	mapper := endpoint.DefaultWrapper(logger, endpoint.DefaultBodyLogger(logger))
-	muxer := http.NewServeMux()
+	require.NoError(t, err)
 
 	endpoints := []endpointDescriptor{{
 		Path: "/getId",
@@ -82,22 +78,28 @@ func prepareServer(t *testing.T) string {
 	}, {
 		Path: "/badGetId",
 		Handler: func(req Request) (*Response, error) {
-			return &Response{}, httperrors.NewHttpError(404, errors.New("Not Found"))
+			return &Response{}, httperrors.New(404, errors.New("Not Found"))
+		},
+	}, {
+		Path: "/noBody",
+		Handler: func(ctx context.Context) (*Response, error) {
+			return &Response{Result: "Test"}, nil
 		},
 	}}
 
+	mapper := endpoint.DefaultWrapper(logger)
+	muxer := http.NewServeMux()
 	for _, descriptor := range endpoints {
 		muxer.Handle(descriptor.Path, mapper.Endpoint(descriptor.Handler))
 	}
 
-	srv := isphttp.NewHttpServer()
-
 	listener, err := net.Listen("tcp", "127.0.0.1:")
+	require.NoError(t, err)
 
+	srv := isphttp.NewServer()
+	srv.Upgrade(muxer)
 	go func() {
-		srv.Upgrade(muxer)
-		err = srv.Serve(listener)
-
+		err := srv.Serve(listener)
 		require.NoError(t, err)
 	}()
 

@@ -17,7 +17,7 @@ type service struct {
 func (s *service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	value, ok := s.delegate.Load().(http.Handler)
 	if !ok {
-		_ = httperrors.NewHttpError(501, errors.New("handler is not initialized")).
+		_ = httperrors.New(http.StatusNotImplemented, errors.New("handler is not initialized")).
 			WriteError(w)
 		return
 	}
@@ -38,7 +38,7 @@ type Server struct {
 	service *service
 }
 
-func NewHttpServer(opts ...ServerOption) *Server {
+func NewServer(opts ...ServerOption) *Server {
 	s := &Server{
 		server: &http.Server{},
 		service: &service{

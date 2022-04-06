@@ -4,19 +4,33 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/integration-system/isp-kit/http/httperrors"
 	"io/ioutil"
 	"net/http"
 	"runtime"
 	"strings"
+	"time"
 
-	"github.com/integration-system/isp-kit/http/endpoint/writer"
+	"github.com/integration-system/isp-kit/http/endpoint/buffer"
+	"github.com/integration-system/isp-kit/http/httperrors"
+
 	"github.com/integration-system/isp-kit/log"
 	"github.com/integration-system/isp-kit/requestid"
 	"github.com/pkg/errors"
 )
 
-const requestIdHeader = "x-request-id"
+const (
+	requestIdHeader           = "x-request-id"
+	defaultMaxRequestBodySize = 64 * 1024 * 1024
+)
+
+func MaxRequestBodySize(maxBytes int64) Middleware {
+	return func(next HandlerFunc) HandlerFunc {
+		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+			r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
+			return next(ctx, w, r)
+		}
+	}
+}
 
 func Recovery() Middleware {
 	return func(next HandlerFunc) HandlerFunc {
@@ -53,16 +67,17 @@ func ErrorHandler(logger log.Logger) Middleware {
 
 			logger.Error(ctx, err)
 
-			httpErr, ok := err.(httpError)
+			httpErr, ok := err.(HttpError)
 			if ok {
-				_ = httpErr.WriteError(w)
-				return nil
+				err = httpErr.WriteError(w)
+				return err
 			}
 
-			httpErr = httperrors.NewHttpError(http.StatusInternalServerError, err)
-			_ = httpErr.WriteError(w)
+			//hide error details to prevent potential security leaks
+			err = httperrors.New(http.StatusInternalServerError, errors.New("internal service error")).
+				WriteError(w)
 
-			return nil
+			return err
 		}
 	}
 }
@@ -86,9 +101,11 @@ func RequestId() Middleware {
 func RequestInfo() Middleware {
 	return func(next HandlerFunc) HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-			ctx = log.ToContext(ctx,
+			ctx = log.ToContext(
+				ctx,
 				log.String("httpMethod", r.Method),
-				log.String("httpUrl", r.URL.String()))
+				log.String("httpUrl", r.URL.String()),
+			)
 
 			return next(ctx, w, r)
 		}
@@ -101,21 +118,21 @@ var defaultAvailableContentTypes = []string{
 	"text/html",
 }
 
-func BodyLogger(logger log.Logger, availableContentTypes []string) Middleware {
+func Log(logger Logger, availableContentTypes []string) Middleware {
 	return func(next HandlerFunc) HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-			ct := r.Header.Get("Content-Type")
-
-			compatibleType := false
-			for _, content := range availableContentTypes {
-				if strings.HasPrefix(ct, content) {
-					compatibleType = true
-					break
-				}
+			if !logger.Enabled(log.DebugLevel) {
+				return next(ctx, w, r)
 			}
 
-			if compatibleType {
-				bodyBytes, err := ioutil.ReadAll(r.Body)
+			buf := buffer.Acquire(w)
+			defer buffer.Release(buf)
+
+			now := time.Now()
+			logFields := []log.Field{}
+			requestContentType := r.Header.Get("Content-Type")
+			if matchContentType(requestContentType, availableContentTypes) {
+				err := buf.ReadRequestBody(r.Body)
 				if err != nil {
 					return errors.WithMessage(err, "read request body for logging")
 				}
@@ -123,38 +140,39 @@ func BodyLogger(logger log.Logger, availableContentTypes []string) Middleware {
 				if err != nil {
 					return errors.WithMessage(err, "close request reader")
 				}
-				r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+				r.Body = ioutil.NopCloser(bytes.NewBuffer(buf.RequestBody()))
 
-				logger.Debug(ctx, "request body", log.ByteString("requestBody", bodyBytes))
+				logFields = append(logFields, log.ByteString("requestBody", buf.RequestBody()))
 			}
 
-			mw := writer.Acquire(w)
-			defer writer.Release(mw)
+			err := next(ctx, buf, r)
 
-			err := next(ctx, mw, r)
-
-			ct = mw.Header().Get("Content-Type")
-			if ct == "" {
-				return err
+			logFields = append(
+				logFields,
+				log.Int("httpStatusCode", buf.StatusCode()),
+				log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()),
+			)
+			responseContentType := buf.Header().Get("Content-Type")
+			if matchContentType(responseContentType, availableContentTypes) {
+				logFields = append(logFields, log.ByteString("responseBody", buf.ResponseBody()))
 			}
 
-			compatibleType = false
-			for _, content := range availableContentTypes {
-				if strings.HasPrefix(ct, content) {
-					compatibleType = true
-					break
-				}
-			}
-
-			if compatibleType {
-				logger.Debug(ctx, "response body", log.ByteString("responseBody", mw.GetBody()))
-			}
+			logger.Debug(ctx, "http log", logFields...)
 
 			return err
 		}
 	}
 }
 
-func DefaultBodyLogger(logger log.Logger) Middleware {
-	return BodyLogger(logger, defaultAvailableContentTypes)
+func DefaultLog(logger Logger) Middleware {
+	return Log(logger, defaultAvailableContentTypes)
+}
+
+func matchContentType(contentType string, availableContentTypes []string) bool {
+	for _, content := range availableContentTypes {
+		if strings.HasPrefix(contentType, content) {
+			return true
+		}
+	}
+	return false
 }
