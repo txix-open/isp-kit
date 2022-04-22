@@ -67,44 +67,48 @@ func (c *Client) ConnectionConfig() grmqx.Connection {
 }
 
 func (c *Client) QueueLength(queue string) int {
-	ch, err := c.conn.Channel()
-	c.t.Assert().NoError(err)
-	defer func() {
-		err := ch.Close()
+	var (
+		q   amqp091.Queue
+		err error
+	)
+	c.useChannel(func(ch *amqp091.Channel) {
+		q, err = ch.QueueInspect(queue)
 		c.t.Assert().NoError(err)
-	}()
-
-	q, err := ch.QueueInspect(queue)
-	c.t.Assert().NoError(err)
+	})
 	return q.Messages
 }
 
 func (c *Client) Publish(exchange string, routingKey string, messages ...amqp091.Publishing) {
-	ch, err := c.conn.Channel()
-	c.t.Assert().NoError(err)
-	defer func() {
-		err := ch.Close()
-		c.t.Assert().NoError(err)
-	}()
-
-	for _, message := range messages {
-		err := ch.Publish(exchange, routingKey, true, false, message)
-		c.t.Assert().NoError(err)
-	}
+	c.useChannel(func(ch *amqp091.Channel) {
+		for _, message := range messages {
+			err := ch.Publish(exchange, routingKey, true, false, message)
+			c.t.Assert().NoError(err)
+		}
+	})
 }
 
 func (c *Client) DrainMessage(queue string) amqp091.Delivery {
-	ch, err := c.conn.Channel()
-	c.t.Assert().NoError(err)
-	defer func() {
-		err := ch.Close()
+	var (
+		msg amqp091.Delivery
+		got bool
+		err error
+	)
+	c.useChannel(func(ch *amqp091.Channel) {
+		msg, got, err = ch.Get(queue, true)
 		c.t.Assert().NoError(err)
-	}()
-
-	msg, got, err := ch.Get(queue, true)
-	c.t.Assert().NoError(err)
+	})
 
 	c.t.Assert().True(got, "at least 1 message is expected")
 
 	return msg
+}
+
+func (c *Client) useChannel(f func(ch *amqp091.Channel)) {
+	ch, err := c.conn.Channel()
+	c.t.Assert().NoError(err)
+	defer func() {
+		err := ch.Close()
+		c.t.Assert().NoError(err)
+	}()
+	f(ch)
 }
