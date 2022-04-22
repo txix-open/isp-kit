@@ -86,3 +86,9 @@ func (m must) SelectRow(resultPtr interface{}, query string, args ...interface{}
 	err := m.db.SelectRow(context.Background(), resultPtr, query, args...)
 	m.assert.NoError(err)
 }
+
+func (m must) ExecNamed(query string, arg interface{}) sql.Result {
+	res, err := m.db.ExecNamed(context.Background(), query, arg)
+	m.assert.NoError(err)
+	return res
+}
