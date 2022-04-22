@@ -29,7 +29,7 @@ func New(t *test.Test) *Client {
 	req.SetBasicAuth(user, pass)
 	resp, err := http.DefaultClient.Do(req)
 	t.Assert().NoError(err)
-	t.Assert().EqualValues(201, resp.StatusCode)
+	t.Assert().EqualValues(http.StatusCreated, resp.StatusCode)
 
 	t.T().Cleanup(func() {
 		req, err := http.NewRequest(http.MethodDelete, vhostUrl, nil)
@@ -37,7 +37,7 @@ func New(t *test.Test) *Client {
 		req.SetBasicAuth(user, pass)
 		resp, err := http.DefaultClient.Do(req)
 		t.Assert().NoError(err)
-		t.Assert().EqualValues(204, resp.StatusCode)
+		t.Assert().EqualValues(http.StatusNoContent, resp.StatusCode)
 	})
 
 	cfg := grmqx.Connection{
