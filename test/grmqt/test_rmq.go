@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/integration-system/isp-kit/grmqx"
+	"github.com/integration-system/isp-kit/json"
 	"github.com/integration-system/isp-kit/test"
 	"github.com/rabbitmq/amqp091-go"
 )
@@ -76,6 +77,16 @@ func (c *Client) QueueLength(queue string) int {
 		c.t.Assert().NoError(err)
 	})
 	return q.Messages
+}
+
+func (c *Client) PublishJson(exchange string, routingKey string, data interface{}) {
+	body, err := json.Marshal(data)
+	c.t.Assert().NoError(err)
+	pub := amqp091.Publishing{
+		Body:        body,
+		ContentType: "application/json",
+	}
+	c.Publish(exchange, routingKey, pub)
 }
 
 func (c *Client) Publish(exchange string, routingKey string, messages ...amqp091.Publishing) {
