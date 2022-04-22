@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"runtime"
-	"strings"
 	"time"
 
 	"github.com/integration-system/isp-kit/db"
@@ -23,7 +22,7 @@ type TestDb struct {
 
 func New(t *test.Test, opts ...dbx.Option) *TestDb {
 	cfg := t.Config()
-	schema := fmt.Sprintf("test_%s_%s", t.Id(), strings.ToLower(t.T().Name())) //name must start from none digit
+	schema := fmt.Sprintf("test_%s", t.Id()) //name must start from none digit
 	dbConfig := dbx.Config{
 		Host:        cfg.Optional().String("PG_HOST", "127.0.0.1"),
 		Port:        cfg.Optional().Int("PG_PORT", 5432),
