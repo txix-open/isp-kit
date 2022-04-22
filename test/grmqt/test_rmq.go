@@ -3,7 +3,6 @@ package grmqt
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/integration-system/isp-kit/grmqx"
 	"github.com/integration-system/isp-kit/test"
@@ -21,7 +20,7 @@ func New(t *test.Test) *Client {
 	port := t.Config().Optional().Int("RMQ_PORT", 5672)
 	user := t.Config().Optional().String("RMQ_USER", "guest")
 	pass := t.Config().Optional().String("RMQ_PASS", "guest")
-	vhost := fmt.Sprintf("test_%s_%s", t.Id(), strings.ToLower(t.T().Name()))
+	vhost := fmt.Sprintf("test_%s", t.Id())
 
 	vhostUrl := fmt.Sprintf("http://%s:15672/api/vhosts/%s", host, vhost)
 
