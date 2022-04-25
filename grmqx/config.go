@@ -33,7 +33,7 @@ func (c Connection) Url() string {
 
 type Publisher struct {
 	Exchange   string `schema:"Точка обмена"`
-	RoutingKey string `schema:"Ключ маршрутизации,для публикации напрямую в очередь указывается название очереди"`
+	RoutingKey string `valid:"required" schema:"Ключ маршрутизации,для публикации напрямую в очередь указывается название очереди"`
 }
 
 func (p Publisher) DefaultPublisher(restMiddlewares ...publisher.Middleware) *publisher.Publisher {
