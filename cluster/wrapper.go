@@ -39,11 +39,16 @@ func (w *clientWrapper) On(event string, handler func(data []byte)) {
 		copied := make([]byte, len(data))
 		copy(copied, data)
 
+		configHideSecrets, err := HideSecrets(copied)
+		if err != nil {
+			w.logger.Error(w.ctx, "error: can not replacement secrets in config for log", log.Any("error", err))
+		}
+
 		w.logger.Info(
 			w.ctx,
 			"event received",
 			log.String("event", event),
-			log.Any("data", json2.RawMessage(copied)),
+			log.Any("data", json2.RawMessage(configHideSecrets)),
 		)
 		handler(copied)
 	})
