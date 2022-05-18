@@ -21,6 +21,10 @@ const (
 	ModuleConnectionSuffix = "MODULE_CONNECTED"
 )
 
+var (
+	TagConfigSecrets = []string{"password", "secret", "token"}
+)
+
 func ModuleConnectedEvent(moduleName string) string {
 	return fmt.Sprintf("%s_%s", moduleName, ModuleConnectionSuffix)
 }
