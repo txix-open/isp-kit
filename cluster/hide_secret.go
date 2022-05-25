@@ -8,6 +8,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+var (
+	tagConfigSecrets = []string{"password", "secret", "token"}
+)
+
 func HideSecrets(data []byte) ([]byte, error) {
 	config := make(map[string]interface{})
 	err := json.Unmarshal(data, &config)
@@ -21,7 +25,7 @@ func HideSecrets(data []byte) ([]byte, error) {
 		if flattenConf[key] == "" {
 			continue
 		}
-		for _, tag := range TagConfigSecrets {
+		for _, tag := range tagConfigSecrets {
 			if strings.Contains(strings.ToLower(key), tag) {
 				flattenConf[key] = "***"
 			}
