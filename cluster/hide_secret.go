@@ -9,7 +9,11 @@ import (
 )
 
 var (
-	tagConfigSecrets = []string{"password", "secret", "token"}
+	tagConfigSecrets    = []string{"password", "secret", "token"}
+	hidingSecretsEvents = map[string]bool{
+		ConfigSendConfigWhenConnected: true,
+		ConfigSendConfigChanged:       true,
+	}
 )
 
 func HideSecrets(data []byte) ([]byte, error) {
