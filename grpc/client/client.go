@@ -79,6 +79,10 @@ func (cli *Client) Close() error {
 	return cli.grpcCli.Close()
 }
 
+func (cli *Client) BackendClient() isp.BackendServiceClient {
+	return cli.backendCli
+}
+
 func (cli *Client) do(ctx context.Context, message *isp.Message) (*isp.Message, error) {
 	return cli.backendCli.Request(ctx, message)
 }
