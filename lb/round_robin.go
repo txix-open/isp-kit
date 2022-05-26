@@ -20,10 +20,14 @@ type RoundRobin struct {
 
 func NewRoundRobin(hosts []string) *RoundRobin {
 	rand := rand.New(rand.NewSource(time.Now().UnixNano()))
+	current := 0
+	if len(hosts) > 0 {
+		current = rand.Intn(len(hosts))
+	}
 	return &RoundRobin{
 		hosts:   hosts,
 		rand:    rand,
-		current: rand.Intn(len(hosts)),
+		current: current,
 		locker:  &sync.Mutex{},
 	}
 }
@@ -33,7 +37,11 @@ func (b *RoundRobin) Upgrade(hosts []string) {
 	defer b.locker.Unlock()
 
 	b.hosts = hosts
-	b.current = rand.Intn(len(hosts))
+	current := 0
+	if len(hosts) > 0 {
+		current = rand.Intn(len(hosts))
+	}
+	b.current = current
 }
 
 func (b *RoundRobin) Size() int {

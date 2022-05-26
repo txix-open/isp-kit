@@ -2,7 +2,6 @@ package cluster
 
 import (
 	"context"
-	json2 "encoding/json"
 	"time"
 
 	etpclient "github.com/integration-system/isp-etp-go/v2/client"
@@ -29,7 +28,7 @@ func newClientWrapper(ctx context.Context, cli etpclient.Client, logger log.Logg
 	w.errorChan = errorChan
 	w.configErrorChan = configErrorChan
 	cli.OnDefault(func(event string, data []byte) {
-		logger.Error(ctx, "unexpected event from config service", log.String("event", event), log.Any("data", json2.RawMessage(data)))
+		logger.Error(ctx, "unexpected event from config service", log.String("event", event), log.String("data", string(data)))
 	})
 	return w
 }
@@ -39,16 +38,20 @@ func (w *clientWrapper) On(event string, handler func(data []byte)) {
 		copied := make([]byte, len(data))
 		copy(copied, data)
 
-		configHideSecrets, err := HideSecrets(copied)
-		if err != nil {
-			w.logger.Error(w.ctx, "error: can not replacement secrets in config for log", log.Any("error", err))
+		dataToLog := copied
+		var err error
+		if hidingSecretsEvents[event] {
+			dataToLog, err = HideSecrets(copied)
+			if err != nil {
+				w.logger.Error(w.ctx, "can not hide secrets in config for log", log.Any("error", err))
+			}
 		}
 
 		w.logger.Info(
 			w.ctx,
 			"event received",
 			log.String("event", event),
-			log.Any("data", json2.RawMessage(configHideSecrets)),
+			log.String("data", string(dataToLog)),
 		)
 		handler(copied)
 	})
@@ -59,7 +62,7 @@ func (w *clientWrapper) EmitWithAck(ctx context.Context, event string, data []by
 	w.logger.Info(
 		ctx,
 		"send event",
-		log.Any("data", json2.RawMessage(data)),
+		log.String("data", string(data)),
 	)
 
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)

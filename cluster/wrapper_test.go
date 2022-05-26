@@ -8,25 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestConfig_Log_Replace(t *testing.T) {
-	require := require.New(t)
-	configData := []byte(ConfigData)
-	expectData := []byte(ExpectData)
-
-	actualData, err := cluster.HideSecrets(configData)
-	require.NoError(err)
-
-	expectConfig := make(map[string]interface{})
-	actualConfig := make(map[string]interface{})
-
-	err = json.Unmarshal(expectData, &expectConfig)
-	require.NoError(err)
-	err = json.Unmarshal(actualData, &actualConfig)
-	require.NoError(err)
-
-	require.Equal(expectConfig, actualConfig)
-}
-
 const ExpectData = `
 {
 	"secret": {
@@ -84,3 +65,22 @@ const ConfigData = `
 	"token":"***" 
 }
 `
+
+func TestHideSecrets(t *testing.T) {
+	require := require.New(t)
+	configData := []byte(ConfigData)
+	expectData := []byte(ExpectData)
+
+	actualData, err := cluster.HideSecrets(configData)
+	require.NoError(err)
+
+	expectConfig := make(map[string]interface{})
+	actualConfig := make(map[string]interface{})
+
+	err = json.Unmarshal(expectData, &expectConfig)
+	require.NoError(err)
+	err = json.Unmarshal(actualData, &actualConfig)
+	require.NoError(err)
+
+	require.Equal(expectConfig, actualConfig)
+}
