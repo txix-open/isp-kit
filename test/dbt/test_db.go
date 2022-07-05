@@ -49,12 +49,15 @@ func New(t *test.Test, opts ...dbx.Option) *TestDb {
 		err := db.Close()
 		t.Assert().NoError(err)
 	})
-
 	return db
 }
 
-func (db *TestDb) Must() *must { //for test purposes
-	return &db.must
+func (db *TestDb) DB() (*dbx.Client, error) {
+	return db.Client, nil
+}
+
+func (db *TestDb) Must() must { //for test purposes
+	return db.must
 }
 
 func (db *TestDb) Close() error {
@@ -62,7 +65,7 @@ func (db *TestDb) Close() error {
 	if err != nil {
 		return errors.WithMessage(err, "drop schema")
 	}
-	err = db.DB.Close()
+	err = db.Client.Close()
 	return errors.WithMessage(err, "close db")
 }
 

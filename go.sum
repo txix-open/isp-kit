@@ -289,6 +289,8 @@ github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6/go.mod h1:
 github.com/ianlancetaylor/demangle v0.0.0-20200824232613-28f6c0f3b639/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/integration-system/bellows v1.0.1 h1:7g1lhD/6EcvsSo9iuiFqw98XGS78Sko6kUKPzfte/SY=
 github.com/integration-system/bellows v1.0.1/go.mod h1:qHPg1ptN3AHHr0f/wvoicfA2LOCprOyrbXnIa5QIRe0=
+github.com/integration-system/bgjob v1.2.0 h1:32xHZ1dczVwiwPYFd15MIUh8bLId4vwL18pmuIbVJ7I=
+github.com/integration-system/bgjob v1.2.0/go.mod h1:KYaolHZc3OYhtY+lPN71M0y+1DJXEzRanaya1MU0KvU=
 github.com/integration-system/grmq v1.1.0 h1:yFXCpmFPTA6uO2vd2QYcNAKHU4kNtD4FpzvuEFHo/2Y=
 github.com/integration-system/grmq v1.1.0/go.mod h1:hdiknZZJsTzoXxx5mZMGJGrQTIHHD9tZgGnk22e98Us=
 github.com/integration-system/isp-etp-go/v2 v2.1.3 h1:vcHP/PE7p1G3rxqoVKrKtXzoSxFA4ryxigd+zPkAb3w=
@@ -580,6 +582,7 @@ golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e/go.mod h1:GvvjBRRGRdwPK5y
 golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=
 golang.org/x/crypto v0.0.0-20211108221036-ceb1ce70b4fa/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=
 golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4/go.mod h1:IxCIyHEi3zRg3s0A5j5BB6A9Jmi73HwBIUl50j+osU4=
+golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e/go.mod h1:IxCIyHEi3zRg3s0A5j5BB6A9Jmi73HwBIUl50j+osU4=
 golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d h1:sK3txAijHtOK88l68nt020reeT1ZdKLIYetKl95FzVY=
 golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d/go.mod h1:IxCIyHEi3zRg3s0A5j5BB6A9Jmi73HwBIUl50j+osU4=
 golang.org/x/exp v0.0.0-20190121172915-509febef88a4/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=

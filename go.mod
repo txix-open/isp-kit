@@ -9,6 +9,7 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/iancoleman/strcase v0.2.0
 	github.com/integration-system/bellows v1.0.1
+	github.com/integration-system/bgjob v1.2.0
 	github.com/integration-system/grmq v1.1.0
 	github.com/integration-system/isp-etp-go/v2 v2.1.3
 	github.com/integration-system/jsonschema v1.0.1
