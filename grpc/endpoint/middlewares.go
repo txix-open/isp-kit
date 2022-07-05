@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"runtime"
+	"time"
 
 	"github.com/integration-system/isp-kit/grpc"
 	"github.com/integration-system/isp-kit/grpc/isp"
@@ -81,10 +82,15 @@ func BodyLogger(logger log.Logger) Middleware {
 	return func(next grpc.HandlerFunc) grpc.HandlerFunc {
 		return func(ctx context.Context, message *isp.Message) (*isp.Message, error) {
 			logger.Debug(ctx, "request body", log.ByteString("requestBody", message.GetBytesBody()))
+			now := time.Now()
 
 			response, err := next(ctx, message)
 			if err == nil {
-				logger.Debug(ctx, "response body", log.ByteString("responseBody", response.GetBytesBody()))
+				logger.Debug(ctx,
+					"response body",
+					log.ByteString("responseBody", response.GetBytesBody()),
+					log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()),
+				)
 			}
 
 			return response, err
