@@ -1,6 +1,7 @@
 package grmqt
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -11,9 +12,10 @@ import (
 )
 
 type Client struct {
-	cfg  grmqx.Connection
-	t    *test.Test
-	conn *amqp091.Connection
+	connCfg  grmqx.Connection
+	t        *test.Test
+	conn     *amqp091.Connection
+	grmqxCli *grmqx.Client
 }
 
 func New(t *test.Test) *Client {
@@ -41,7 +43,7 @@ func New(t *test.Test) *Client {
 		t.Assert().EqualValues(http.StatusNoContent, resp.StatusCode)
 	})
 
-	cfg := grmqx.Connection{
+	connCfg := grmqx.Connection{
 		Host:     host,
 		Port:     port,
 		Username: user,
@@ -49,22 +51,28 @@ func New(t *test.Test) *Client {
 		Vhost:    vhost,
 	}
 
-	conn, err := amqp091.Dial(cfg.Url())
+	conn, err := amqp091.Dial(connCfg.Url())
 	t.Assert().NoError(err)
 	t.T().Cleanup(func() {
 		err := conn.Close()
 		t.Assert().NoError(err)
 	})
 
+	grmqxCli := grmqx.New(t.Logger())
+	t.T().Cleanup(func() {
+		grmqxCli.Close()
+	})
+
 	return &Client{
-		cfg:  cfg,
-		t:    t,
-		conn: conn,
+		connCfg:  connCfg,
+		t:        t,
+		conn:     conn,
+		grmqxCli: grmqxCli,
 	}
 }
 
 func (c *Client) ConnectionConfig() grmqx.Connection {
-	return c.cfg
+	return c.connCfg
 }
 
 func (c *Client) QueueLength(queue string) int {
@@ -77,6 +85,12 @@ func (c *Client) QueueLength(queue string) int {
 		c.t.Assert().NoError(err)
 	})
 	return q.Messages
+}
+
+func (c *Client) Upgrade(config grmqx.Config) {
+	config.Url = c.connCfg.Url()
+	err := c.grmqxCli.Upgrade(context.Background(), config)
+	c.t.Assert().NoError(err)
 }
 
 func (c *Client) PublishJson(exchange string, routingKey string, data interface{}) {
