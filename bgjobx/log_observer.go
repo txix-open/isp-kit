@@ -13,7 +13,7 @@ type LogObserver struct {
 }
 
 func (o LogObserver) JobStarted(ctx context.Context, job bgjob.Job) {
-	o.log.Debug(ctx, "bgjob: job started", log.String("id", job.Id), log.String("type", job.Type), log.ByteString("arg", job.Arg))
+	o.log.Debug(ctx, "bgjob: job started", log.String("id", job.Id), log.String("type", job.Type))
 }
 
 func (o LogObserver) JobCompleted(ctx context.Context, job bgjob.Job) {
