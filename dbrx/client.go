@@ -8,6 +8,8 @@ import (
 
 	"github.com/integration-system/isp-kit/db"
 	"github.com/integration-system/isp-kit/dbx"
+	"github.com/integration-system/isp-kit/metrics"
+	"github.com/integration-system/isp-kit/metrics/db_metrics"
 	"github.com/pkg/errors"
 )
 
@@ -49,6 +51,8 @@ func (c *Client) Upgrade(ctx context.Context, config dbx.Config) error {
 
 	c.cli = cli
 	c.prevCfg = config
+
+	db_metrics.Register(metrics.DefaultRegistry, c.cli.Client.DB.DB, config.Database)
 
 	return nil
 }
