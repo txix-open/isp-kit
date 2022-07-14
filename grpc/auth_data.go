@@ -45,14 +45,14 @@ func (i AuthData) DeviceId() (int, error) {
 }
 
 func (i AuthData) UserToken() (string, error) {
-	return stringFromMd(UserTokenHeader, metadata.MD(i))
+	return StringFromMd(UserTokenHeader, metadata.MD(i))
 }
 
 func (i AuthData) DeviceToken() (string, error) {
-	return stringFromMd(DeviceTokenHeader, metadata.MD(i))
+	return StringFromMd(DeviceTokenHeader, metadata.MD(i))
 }
 
-func stringFromMd(key string, md metadata.MD) (string, error) {
+func StringFromMd(key string, md metadata.MD) (string, error) {
 	values := md[key]
 	if len(values) == 0 {
 		return "", errors.Errorf("'%s' is expected id metadata", key)
@@ -61,7 +61,7 @@ func stringFromMd(key string, md metadata.MD) (string, error) {
 }
 
 func intFromMd(key string, md metadata.MD) (int, error) {
-	value, err := stringFromMd(key, md)
+	value, err := StringFromMd(key, md)
 	if err != nil {
 		return 0, err
 	}
