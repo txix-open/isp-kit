@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"sync/atomic"
 	"time"
 
 	"github.com/integration-system/isp-kit/lb"
@@ -11,11 +12,12 @@ import (
 )
 
 type Client struct {
-	moduleInfo   ModuleInfo
-	configData   ConfigData
-	lb           *lb.RoundRobin
-	eventHandler *EventHandler
-	logger       log.Logger
+	moduleInfo      ModuleInfo
+	configData      ConfigData
+	lb              *lb.RoundRobin
+	eventHandler    *EventHandler
+	logger          log.Logger
+	sessionIsActive int32
 
 	close context.CancelFunc
 }
@@ -55,7 +57,16 @@ func (c *Client) Close() error {
 	return nil
 }
 
+func (c *Client) Healthcheck(ctx context.Context) error {
+	if atomic.LoadInt32(&c.sessionIsActive) == int32(1) {
+		return nil
+	}
+	return errors.New("session inactive")
+}
+
 func (c *Client) runSession(ctx context.Context) error {
+	defer atomic.StoreInt32(&c.sessionIsActive, 0)
+
 	host, err := c.lb.Next()
 	if err != nil {
 		return errors.WithMessage(err, "peek config service host")
@@ -118,6 +129,8 @@ func (c *Client) runSession(ctx context.Context) error {
 			c.logger.Error(ctx, errors.WithMessage(err, "handle routes"), log.String("event", ConfigSendRoutesChanged))
 		}
 	})
+
+	atomic.StoreInt32(&c.sessionIsActive, 1)
 
 	for {
 		err := c.waitAndPing(ctx, cli)
