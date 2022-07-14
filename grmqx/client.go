@@ -7,6 +7,7 @@ import (
 
 	"github.com/integration-system/grmq"
 	"github.com/integration-system/isp-kit/log"
+	"github.com/pkg/errors"
 )
 
 type Client struct {
@@ -60,6 +61,19 @@ func (c *Client) Upgrade(ctx context.Context, config Config) error {
 
 	return nil
 
+}
+
+func (c *Client) Healthcheck(ctx context.Context) error {
+	if c.prevCfg.Url == "" {
+		return errors.New("client is not initialized")
+	}
+	cli := grmq.New(c.prevCfg.Url)
+	err := cli.Run(ctx)
+	if err != nil {
+		return errors.WithMessage(err, "connect to rabbit mq")
+	}
+	cli.Shutdown()
+	return nil
 }
 
 func (c *Client) Close() {
