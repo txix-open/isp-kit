@@ -2,6 +2,8 @@ package endpoint
 
 import (
 	"github.com/integration-system/isp-kit/log"
+	"github.com/integration-system/isp-kit/metrics"
+	"github.com/integration-system/isp-kit/metrics/http_metrics"
 	"github.com/integration-system/isp-kit/validator"
 )
 
@@ -22,6 +24,7 @@ func DefaultWrapper(logger Logger, restMiddlewares ...Middleware) Wrapper {
 			RequestId(),
 			RequestInfo(),
 			DefaultLog(logger),
+			Metrics(http_metrics.NewStorage(metrics.DefaultRegistry)),
 			ErrorHandler(logger),
 			Recovery(),
 		},

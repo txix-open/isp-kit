@@ -9,6 +9,7 @@ type LocalConfig struct {
 	MigrationsDirPath       string
 	RemoteConfigOverride    string
 	LogFile                 LogFile
+	InfraServerPort         int
 }
 
 type LogFile struct {

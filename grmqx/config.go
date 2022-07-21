@@ -7,6 +7,8 @@ import (
 	"github.com/integration-system/grmq/consumer"
 	"github.com/integration-system/grmq/publisher"
 	"github.com/integration-system/grmq/topology"
+	"github.com/integration-system/isp-kit/metrics"
+	rabbitmq_metircs "github.com/integration-system/isp-kit/metrics/rabbitmq_metrics"
 	"github.com/rabbitmq/amqp091-go"
 )
 
@@ -41,6 +43,7 @@ func (p Publisher) DefaultPublisher(restMiddlewares ...publisher.Middleware) *pu
 		[]publisher.Middleware{
 			publisher.PersistentMode(),
 			PublisherRequestId(),
+			PublisherMetrics(rabbitmq_metircs.NewPublisherStorage(metrics.DefaultRegistry)),
 		},
 		restMiddlewares...,
 	)

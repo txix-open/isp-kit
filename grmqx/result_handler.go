@@ -6,7 +6,17 @@ import (
 
 	"github.com/integration-system/grmq/consumer"
 	"github.com/integration-system/isp-kit/log"
+	"github.com/integration-system/isp-kit/metrics"
+	rabbitmq_metircs "github.com/integration-system/isp-kit/metrics/rabbitmq_metrics"
 )
+
+type ConsumerMetricStorage interface {
+	ObserveConsumeDuration(exchange string, routingKey string, t time.Duration)
+	ObserveConsumeMsgSize(exchange string, routingKey string, size int)
+	IncRequeueCount(exchange string, routingKey string)
+	IncDlqCount(exchange string, routingKey string)
+	IncSuccessCount(exchange string, routingKey string)
+}
 
 type Result struct {
 	ack            bool
@@ -41,28 +51,36 @@ func MoveToDlq(err error) Result {
 }
 
 type ResultHandler struct {
-	logger  log.Logger
-	adapter HandlerAdapter
+	logger        log.Logger
+	adapter       HandlerAdapter
+	metricStorage ConsumerMetricStorage
 }
 
 func NewResultHandler(logger log.Logger, adapter HandlerAdapter) ResultHandler {
 	return ResultHandler{
-		logger:  logger,
-		adapter: adapter,
+		logger:        logger,
+		adapter:       adapter,
+		metricStorage: rabbitmq_metircs.NewConsumerStorage(metrics.DefaultRegistry),
 	}
 }
 
 func (r ResultHandler) Handle(ctx context.Context, delivery *consumer.Delivery) {
+	exchange := delivery.Source().Exchange
+	routingKey := delivery.Source().RoutingKey
+	start := time.Now()
 	result := r.adapter.Handle(ctx, delivery.Source().Body)
+	r.metricStorage.ObserveConsumeDuration(exchange, routingKey, time.Since(start))
 
 	switch {
 	case result.ack:
+		r.metricStorage.IncSuccessCount(exchange, routingKey)
 		r.logger.Debug(ctx, "rmq client: message will be acknowledged")
 		err := delivery.Ack()
 		if err != nil {
 			r.logger.Error(ctx, "rmq client: ack message error", log.Any("error", err))
 		}
 	case result.requeue:
+		r.metricStorage.IncRequeueCount(exchange, routingKey)
 		r.logger.Error(
 			ctx,
 			"rmq client: message will be requeued",
@@ -78,6 +96,7 @@ func (r ResultHandler) Handle(ctx context.Context, delivery *consumer.Delivery) 
 			r.logger.Error(ctx, "rmq client: nack message error", log.Any("error", err))
 		}
 	case result.moveToDlq:
+		r.metricStorage.IncDlqCount(exchange, routingKey)
 		r.logger.Error(
 			ctx,
 			"rmq client: message will be moved to DLQ or dropped",

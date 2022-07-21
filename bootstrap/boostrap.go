@@ -1,8 +1,10 @@
 package bootstrap
 
 import (
+	"context"
 	json2 "encoding/json"
-	"log"
+	"fmt"
+	stdlog "log"
 	"net"
 	"os"
 	"path"
@@ -12,7 +14,11 @@ import (
 	"github.com/integration-system/isp-kit/app"
 	"github.com/integration-system/isp-kit/cluster"
 	"github.com/integration-system/isp-kit/config"
+	"github.com/integration-system/isp-kit/healthcheck"
+	"github.com/integration-system/isp-kit/infra"
 	"github.com/integration-system/isp-kit/json"
+	"github.com/integration-system/isp-kit/log"
+	"github.com/integration-system/isp-kit/metrics"
 	"github.com/integration-system/isp-kit/rc"
 	"github.com/integration-system/isp-kit/rc/schema"
 	"github.com/integration-system/isp-kit/validator"
@@ -20,19 +26,22 @@ import (
 )
 
 type Bootstrap struct {
-	App            *app.Application
-	ClusterCli     *cluster.Client
-	RemoteConfig   *rc.Config
-	BindingAddress string
-	MigrationsDir  string
-	ModuleName     string
+	App                 *app.Application
+	ClusterCli          *cluster.Client
+	RemoteConfig        *rc.Config
+	MetricsRegistry     *metrics.Registry
+	InfraServer         *infra.Server
+	HealthcheckRegistry *healthcheck.Registry
+	BindingAddress      string
+	MigrationsDir       string
+	ModuleName          string
 }
 
 func New(moduleVersion string, remoteConfig interface{}, endpoints []cluster.EndpointDescriptor) *Bootstrap {
 	isDev := strings.ToLower(os.Getenv("APP_MODE")) == "dev"
 	localConfigPath, err := configFilePath(isDev)
 	if err != nil {
-		log.Fatal(errors.WithMessage(err, "resolve local config path"))
+		stdlog.Fatal(errors.WithMessage(err, "resolve local config path"))
 		return nil
 	}
 	app, err := app.New(
@@ -41,7 +50,7 @@ func New(moduleVersion string, remoteConfig interface{}, endpoints []cluster.End
 		config.WithReadingFromFile(localConfigPath),
 	)
 	if err != nil {
-		log.Fatal(errors.WithMessage(err, "create app"))
+		stdlog.Fatal(errors.WithMessage(err, "create app"))
 		return nil
 	}
 
@@ -53,9 +62,9 @@ func New(moduleVersion string, remoteConfig interface{}, endpoints []cluster.End
 	return boot
 }
 
-func bootstrap(isDev bool, app *app.Application, moduleVersion string, remoteConfig interface{}, endpoints []cluster.EndpointDescriptor) (*Bootstrap, error) {
+func bootstrap(isDev bool, application *app.Application, moduleVersion string, remoteConfig interface{}, endpoints []cluster.EndpointDescriptor) (*Bootstrap, error) {
 	localConfig := LocalConfig{}
-	err := app.Config().Read(&localConfig)
+	err := application.Config().Read(&localConfig)
 	if err != nil {
 		return nil, errors.WithMessage(err, "read local config")
 	}
@@ -105,7 +114,7 @@ func bootstrap(isDev bool, app *app.Application, moduleVersion string, remoteCon
 		moduleInfo,
 		configData,
 		configServiceHosts,
-		app.Logger(),
+		application.Logger(),
 	)
 
 	rc := rc.New(validator.Default, []byte(localConfig.RemoteConfigOverride))
@@ -117,13 +126,29 @@ func bootstrap(isDev bool, app *app.Application, moduleVersion string, remoteCon
 		return nil, errors.WithMessage(err, "resolve migrations dir path")
 	}
 
+	healthcheckRegistry := healthcheck.NewRegistry()
+	healthcheckRegistry.Register("configServiceConnection", clusterCli)
+
+	infraServer := infraServer(localConfig, application)
+	metricsRegistry := metrics.DefaultRegistry
+	infraServer.Handle("/internal/metrics", metricsRegistry.MetricsHandler())
+	infraServer.Handle("/internal/metrics/descriptions", metricsRegistry.MetricsDescriptionHandler())
+	infraServer.Handle("/internal/health", healthcheckRegistry.Handler())
+	application.Logger().Info(application.Context(),
+		"infra server handlers",
+		log.Any("infraServerHandlers", []string{"/internal/metrics", "/internal/metrics/descriptions", "/internal/health"}),
+	)
+
 	return &Bootstrap{
-		App:            app,
-		ClusterCli:     clusterCli,
-		RemoteConfig:   rc,
-		BindingAddress: bindingAddress,
-		ModuleName:     localConfig.ModuleName,
-		MigrationsDir:  migrationsDir,
+		App:                 application,
+		ClusterCli:          clusterCli,
+		RemoteConfig:        rc,
+		BindingAddress:      bindingAddress,
+		ModuleName:          localConfig.ModuleName,
+		MigrationsDir:       migrationsDir,
+		InfraServer:         infraServer,
+		MetricsRegistry:     metricsRegistry,
+		HealthcheckRegistry: healthcheckRegistry,
 	}, nil
 }
 
@@ -213,4 +238,25 @@ func relativePathFromBin(part string) (string, error) {
 		return "", errors.WithMessage(err, "get executable path")
 	}
 	return path.Join(path.Dir(ex), part), nil
+}
+
+func infraServer(localConfig LocalConfig, application *app.Application) *infra.Server {
+	infraServer := infra.NewServer()
+	infraServerPort := localConfig.GrpcInnerAddress.Port + 1
+	if localConfig.InfraServerPort != 0 {
+		infraServerPort = localConfig.InfraServerPort
+	}
+	infraServerAddress := fmt.Sprintf(":%d", infraServerPort)
+	application.AddRunners(app.RunnerFunc(func(ctx context.Context) error {
+		application.Logger().Info(ctx, "run infra server", log.String("infraServerAddress", infraServerAddress))
+		err := infraServer.ListenAndServe(infraServerAddress)
+		if err != nil {
+			return errors.WithMessagef(err, "run infra server on %s", infraServerAddress)
+		}
+		return nil
+	}))
+	application.AddClosers(app.CloserFunc(func() error {
+		return infraServer.Shutdown()
+	}))
+	return infraServer
 }

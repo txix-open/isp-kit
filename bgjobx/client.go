@@ -7,6 +7,8 @@ import (
 	"github.com/integration-system/bgjob"
 	"github.com/integration-system/isp-kit/dbx"
 	"github.com/integration-system/isp-kit/log"
+	"github.com/integration-system/isp-kit/metrics"
+	"github.com/integration-system/isp-kit/metrics/bgjob_metrics"
 	"github.com/pkg/errors"
 )
 
@@ -42,14 +44,15 @@ func (c *Client) Upgrade(ctx context.Context, workerConfigs []WorkerConfig) erro
 	cli := bgjob.NewClient(bgjob.NewPgStore(db.DB.DB))
 
 	workers := make([]*bgjob.Worker, 0)
+	metricStorage := bgjob_metrics.NewStorage(metrics.DefaultRegistry)
 	for _, config := range workerConfigs {
 		worker := bgjob.NewWorker(
 			cli,
 			config.Queue,
-			config.Handle,
+			WithDurationMeasure(metricStorage, config.Handle),
 			bgjob.WithConcurrency(config.GetConcurrency()),
 			bgjob.WithPollInterval(config.GetPollInterval()),
-			bgjob.WithObserver(LogObserver{c.logger}),
+			bgjob.WithObserver(Observer{log: c.logger, metricStorage: metricStorage}),
 		)
 		workers = append(workers, worker)
 	}

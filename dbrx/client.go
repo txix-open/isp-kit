@@ -5,9 +5,12 @@ import (
 	"database/sql"
 	"reflect"
 	"sync"
+	"time"
 
 	"github.com/integration-system/isp-kit/db"
 	"github.com/integration-system/isp-kit/dbx"
+	"github.com/integration-system/isp-kit/metrics"
+	"github.com/integration-system/isp-kit/metrics/db_metrics"
 	"github.com/pkg/errors"
 )
 
@@ -49,6 +52,8 @@ func (c *Client) Upgrade(ctx context.Context, config dbx.Config) error {
 
 	c.cli = cli
 	c.prevCfg = config
+
+	db_metrics.Register(metrics.DefaultRegistry, c.cli.Client.DB.DB, config.Database)
 
 	return nil
 }
@@ -124,6 +129,16 @@ func (c *Client) Close() error {
 	c.cli = nil
 	if cli != nil {
 		return cli.Close()
+	}
+	return nil
+}
+
+func (c *Client) Healthcheck(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
+	defer cancel()
+	_, err := c.Exec(ctx, "SELECT 1")
+	if err != nil {
+		return errors.WithMessage(err, "exec")
 	}
 	return nil
 }

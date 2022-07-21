@@ -2,6 +2,7 @@ package grmqx
 
 import (
 	"context"
+	"time"
 
 	"github.com/integration-system/grmq/consumer"
 	"github.com/integration-system/grmq/publisher"
@@ -41,6 +42,27 @@ func PublisherRequestId() publisher.Middleware {
 			}
 			msg.Headers[RequestIdHeader] = requestId
 			return next.Publish(ctx, exchange, routingKey, msg)
+		})
+	}
+}
+
+type PublisherMetricStorage interface {
+	ObservePublishDuration(exchange string, routingKey string, t time.Duration)
+	ObservePublishMsgSize(exchange string, routingKey string, size int)
+	IncPublishError(exchange string, routingKey string)
+}
+
+func PublisherMetrics(storage PublisherMetricStorage) publisher.Middleware {
+	return func(next publisher.RoundTripper) publisher.RoundTripper {
+		return publisher.RoundTripperFunc(func(ctx context.Context, exchange string, routingKey string, msg *amqp091.Publishing) error {
+			storage.ObservePublishMsgSize(exchange, routingKey, len(msg.Body))
+			start := time.Now()
+			err := next.Publish(ctx, exchange, routingKey, msg)
+			if err != nil {
+				storage.IncPublishError(exchange, routingKey)
+			}
+			storage.ObservePublishDuration(exchange, routingKey, time.Since(start))
+			return err
 		})
 	}
 }
