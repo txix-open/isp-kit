@@ -70,6 +70,7 @@ func (r ResultHandler) Handle(ctx context.Context, delivery *consumer.Delivery) 
 	start := time.Now()
 	result := r.adapter.Handle(ctx, delivery.Source().Body)
 	r.metricStorage.ObserveConsumeDuration(exchange, routingKey, time.Since(start))
+	r.metricStorage.ObserveConsumeMsgSize(exchange, routingKey, len(delivery.Source().Body))
 
 	switch {
 	case result.ack:
