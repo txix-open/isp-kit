@@ -8,7 +8,7 @@ import (
 )
 
 type Storage struct {
-	duration           *prometheus.HistogramVec
+	duration           *prometheus.SummaryVec
 	dlqCount           *prometheus.CounterVec
 	retryCount         *prometheus.CounterVec
 	successCount       *prometheus.CounterVec
@@ -17,11 +17,11 @@ type Storage struct {
 
 func NewStorage(reg *metrics.Registry) *Storage {
 	s := &Storage{
-		duration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Subsystem: "bgjob",
-			Name:      "execute_duration",
-			Help:      "The latency of execution single job from queue",
-			Buckets:   metrics.DefaultDurationMsBuckets,
+		duration: prometheus.NewSummaryVec(prometheus.SummaryOpts{
+			Subsystem:  "bgjob",
+			Name:       "execute_duration_ms",
+			Help:       "The latency of execution single job from queue",
+			Objectives: metrics.DefaultObjectives,
 		}, []string{"queue", "job_type"}),
 		dlqCount: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Subsystem: "bgjob",
@@ -44,7 +44,7 @@ func NewStorage(reg *metrics.Registry) *Storage {
 			Help:      "Count of internal worker errors",
 		}),
 	}
-	s.duration = reg.GetOrRegister(s.duration).(*prometheus.HistogramVec)
+	s.duration = reg.GetOrRegister(s.duration).(*prometheus.SummaryVec)
 	s.retryCount = reg.GetOrRegister(s.retryCount).(*prometheus.CounterVec)
 	s.dlqCount = reg.GetOrRegister(s.dlqCount).(*prometheus.CounterVec)
 	s.successCount = reg.GetOrRegister(s.successCount).(*prometheus.CounterVec)
