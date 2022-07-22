@@ -8,8 +8,8 @@ import (
 )
 
 type ConsumerStorage struct {
-	consumeMsgDuration *prometheus.HistogramVec
-	consumeMsgBodySize *prometheus.HistogramVec
+	consumeMsgDuration *prometheus.SummaryVec
+	consumeMsgBodySize *prometheus.SummaryVec
 	dlqCount           *prometheus.CounterVec
 	requeueCount       *prometheus.CounterVec
 	successCount       *prometheus.CounterVec
@@ -17,17 +17,17 @@ type ConsumerStorage struct {
 
 func NewConsumerStorage(reg *metrics.Registry) *ConsumerStorage {
 	s := &ConsumerStorage{
-		consumeMsgDuration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Subsystem: "rabbitmq",
-			Name:      "consume_duration_ms",
-			Help:      "The latency of handling single message from queue",
-			Buckets:   metrics.DefaultDurationMsBuckets,
+		consumeMsgDuration: prometheus.NewSummaryVec(prometheus.SummaryOpts{
+			Subsystem:  "rabbitmq",
+			Name:       "consume_duration_ms",
+			Help:       "The latency of handling single message from queue",
+			Objectives: metrics.DefaultObjectives,
 		}, []string{"exchange", "routing_key"}),
-		consumeMsgBodySize: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Subsystem: "rabbitmq",
-			Name:      "consume_body_size",
-			Help:      "The size of message body from queue",
-			Buckets:   prometheus.ExponentialBuckets(100, 10, 8),
+		consumeMsgBodySize: prometheus.NewSummaryVec(prometheus.SummaryOpts{
+			Subsystem:  "rabbitmq",
+			Name:       "consume_body_size",
+			Help:       "The size of message body from queue",
+			Objectives: metrics.DefaultObjectives,
 		}, []string{"exchange", "routing_key"}),
 		requeueCount: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Subsystem: "rabbitmq",
@@ -45,8 +45,8 @@ func NewConsumerStorage(reg *metrics.Registry) *ConsumerStorage {
 			Help:      "Count of successful messages",
 		}, []string{"exchange", "routing_key"}),
 	}
-	s.consumeMsgDuration = reg.GetOrRegister(s.consumeMsgDuration).(*prometheus.HistogramVec)
-	s.consumeMsgBodySize = reg.GetOrRegister(s.consumeMsgBodySize).(*prometheus.HistogramVec)
+	s.consumeMsgDuration = reg.GetOrRegister(s.consumeMsgDuration).(*prometheus.SummaryVec)
+	s.consumeMsgBodySize = reg.GetOrRegister(s.consumeMsgBodySize).(*prometheus.SummaryVec)
 	s.requeueCount = reg.GetOrRegister(s.requeueCount).(*prometheus.CounterVec)
 	s.dlqCount = reg.GetOrRegister(s.dlqCount).(*prometheus.CounterVec)
 	s.successCount = reg.GetOrRegister(s.successCount).(*prometheus.CounterVec)

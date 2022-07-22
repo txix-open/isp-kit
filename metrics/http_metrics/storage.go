@@ -9,35 +9,35 @@ import (
 )
 
 type Storage struct {
-	duration         *prometheus.HistogramVec
-	requestBodySize  *prometheus.HistogramVec
-	responseBodySize *prometheus.HistogramVec
+	duration         *prometheus.SummaryVec
+	requestBodySize  *prometheus.SummaryVec
+	responseBodySize *prometheus.SummaryVec
 }
 
 func NewStorage(reg *metrics.Registry) *Storage {
 	s := &Storage{
-		duration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Subsystem: "http",
-			Name:      "request_duration_ms",
-			Help:      "The latency of the HTTP requests",
-			Buckets:   metrics.DefaultDurationMsBuckets,
+		duration: prometheus.NewSummaryVec(prometheus.SummaryOpts{
+			Subsystem:  "http",
+			Name:       "request_duration_ms",
+			Help:       "The latency of the HTTP requests",
+			Objectives: metrics.DefaultObjectives,
 		}, []string{"method", "path", "code"}),
-		requestBodySize: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Subsystem: "http",
-			Name:      "request_body_size",
-			Help:      "The size of request body",
-			Buckets:   prometheus.ExponentialBuckets(100, 10, 8),
+		requestBodySize: prometheus.NewSummaryVec(prometheus.SummaryOpts{
+			Subsystem:  "http",
+			Name:       "request_body_size",
+			Help:       "The size of request body",
+			Objectives: metrics.DefaultObjectives,
 		}, []string{"method", "path"}),
-		responseBodySize: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Subsystem: "http",
-			Name:      "response_body_size",
-			Help:      "The size of response body",
-			Buckets:   prometheus.ExponentialBuckets(100, 10, 8),
+		responseBodySize: prometheus.NewSummaryVec(prometheus.SummaryOpts{
+			Subsystem:  "http",
+			Name:       "response_body_size",
+			Help:       "The size of response body",
+			Objectives: metrics.DefaultObjectives,
 		}, []string{"method", "path"}),
 	}
-	s.duration = reg.GetOrRegister(s.duration).(*prometheus.HistogramVec)
-	s.requestBodySize = reg.GetOrRegister(s.requestBodySize).(*prometheus.HistogramVec)
-	s.responseBodySize = reg.GetOrRegister(s.responseBodySize).(*prometheus.HistogramVec)
+	s.duration = reg.GetOrRegister(s.duration).(*prometheus.SummaryVec)
+	s.requestBodySize = reg.GetOrRegister(s.requestBodySize).(*prometheus.SummaryVec)
+	s.responseBodySize = reg.GetOrRegister(s.responseBodySize).(*prometheus.SummaryVec)
 	return s
 }
 
