@@ -12,6 +12,7 @@ type Storage struct {
 	duration         *prometheus.SummaryVec
 	requestBodySize  *prometheus.SummaryVec
 	responseBodySize *prometheus.SummaryVec
+	statusCounter    *prometheus.CounterVec
 }
 
 func NewStorage(reg *metrics.Registry) *Storage {
@@ -21,7 +22,7 @@ func NewStorage(reg *metrics.Registry) *Storage {
 			Name:       "request_duration_ms",
 			Help:       "The latency of the GRPC requests",
 			Objectives: metrics.DefaultObjectives,
-		}, []string{"endpoint", "code"}),
+		}, []string{"endpoint"}),
 		requestBodySize: prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Subsystem:  "grpc",
 			Name:       "request_body_size",
@@ -34,15 +35,21 @@ func NewStorage(reg *metrics.Registry) *Storage {
 			Help:       "The size of response body",
 			Objectives: metrics.DefaultObjectives,
 		}, []string{"endpoint"}),
+		statusCounter: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Subsystem: "grpc",
+			Name:      "status_code_count",
+			Help:      "Counter of statuses codes",
+		}, []string{"endpoint", "code"}),
 	}
 	s.duration = reg.GetOrRegister(s.duration).(*prometheus.SummaryVec)
 	s.requestBodySize = reg.GetOrRegister(s.requestBodySize).(*prometheus.SummaryVec)
 	s.responseBodySize = reg.GetOrRegister(s.responseBodySize).(*prometheus.SummaryVec)
+	s.statusCounter = reg.GetOrRegister(s.statusCounter).(*prometheus.CounterVec)
 	return s
 }
 
-func (s *Storage) ObserveDuration(endpoint string, statusCode codes.Code, duration time.Duration) {
-	s.duration.WithLabelValues(endpoint, statusCode.String()).Observe(float64(duration.Milliseconds()))
+func (s *Storage) ObserveDuration(endpoint string, duration time.Duration) {
+	s.duration.WithLabelValues(endpoint).Observe(float64(duration.Milliseconds()))
 }
 
 func (s *Storage) ObserveRequestBodySize(endpoint string, size int) {
@@ -51,4 +58,8 @@ func (s *Storage) ObserveRequestBodySize(endpoint string, size int) {
 
 func (s *Storage) ObserveResponseBodySize(endpoint string, size int) {
 	s.responseBodySize.WithLabelValues(endpoint).Observe(float64(size))
+}
+
+func (s *Storage) CountStatusCode(endpoint string, code codes.Code) {
+	s.statusCounter.WithLabelValues(endpoint, code.String()).Inc()
 }

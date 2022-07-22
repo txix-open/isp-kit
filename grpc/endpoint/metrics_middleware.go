@@ -12,26 +12,28 @@ import (
 )
 
 type MetricStorage interface {
-	ObserveDuration(method string, statusCode codes.Code, duration time.Duration)
+	ObserveDuration(method string, duration time.Duration)
 	ObserveRequestBodySize(method string, size int)
 	ObserveResponseBodySize(method string, size int)
+	CountStatusCode(endpoint string, code codes.Code)
 }
 
 func Metrics(storage MetricStorage) Middleware {
 	return func(next grpc.HandlerFunc) grpc.HandlerFunc {
 		return func(ctx context.Context, message *isp.Message) (*isp.Message, error) {
 			md, _ := metadata.FromIncomingContext(ctx)
-			method, err := grpc.StringFromMd(grpc.ProxyMethodNameHeader, md)
+			endpoint, err := grpc.StringFromMd(grpc.ProxyMethodNameHeader, md)
 			if err != nil {
 				return nil, err
 			}
 
-			storage.ObserveRequestBodySize(method, len(message.GetBytesBody()))
+			storage.ObserveRequestBodySize(endpoint, len(message.GetBytesBody()))
 			start := time.Now()
 			response, err := next(ctx, message)
-			storage.ObserveDuration(method, status.Code(err), time.Since(start))
+			storage.ObserveDuration(endpoint, time.Since(start))
+			storage.CountStatusCode(endpoint, status.Code(err))
 			if response != nil {
-				storage.ObserveResponseBodySize(method, len(response.GetBytesBody()))
+				storage.ObserveResponseBodySize(endpoint, len(response.GetBytesBody()))
 			}
 
 			return response, err

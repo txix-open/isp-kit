@@ -9,9 +9,10 @@ import (
 )
 
 type MetricStorage interface {
-	ObserveDuration(method string, path string, statusCode int, duration time.Duration)
+	ObserveDuration(method string, path string, duration time.Duration)
 	ObserveRequestBodySize(method string, path string, size int)
 	ObserveResponseBodySize(method string, path string, size int)
+	CountStatusCode(method string, path string, code int)
 }
 
 type scSource interface {
@@ -48,7 +49,8 @@ func Metrics(storage MetricStorage) Middleware {
 
 			start := time.Now()
 			err := next(ctx, w, r)
-			storage.ObserveDuration(r.Method, r.URL.Path, scSrc.StatusCode(), time.Since(start))
+			storage.ObserveDuration(r.Method, r.URL.Path, time.Since(start))
+			storage.CountStatusCode(r.Method, r.URL.Path, scSrc.StatusCode())
 			if isBuffer {
 				storage.ObserveRequestBodySize(r.Method, r.URL.Path, len(buf.RequestBody()))
 				storage.ObserveResponseBodySize(r.Method, r.URL.Path, len(buf.ResponseBody()))

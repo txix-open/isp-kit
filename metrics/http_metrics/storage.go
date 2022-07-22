@@ -12,6 +12,7 @@ type Storage struct {
 	duration         *prometheus.SummaryVec
 	requestBodySize  *prometheus.SummaryVec
 	responseBodySize *prometheus.SummaryVec
+	statusCounter    *prometheus.CounterVec
 }
 
 func NewStorage(reg *metrics.Registry) *Storage {
@@ -21,7 +22,7 @@ func NewStorage(reg *metrics.Registry) *Storage {
 			Name:       "request_duration_ms",
 			Help:       "The latency of the HTTP requests",
 			Objectives: metrics.DefaultObjectives,
-		}, []string{"method", "path", "code"}),
+		}, []string{"method", "path"}),
 		requestBodySize: prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Subsystem:  "http",
 			Name:       "request_body_size",
@@ -34,15 +35,22 @@ func NewStorage(reg *metrics.Registry) *Storage {
 			Help:       "The size of response body",
 			Objectives: metrics.DefaultObjectives,
 		}, []string{"method", "path"}),
+		statusCounter: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Subsystem:   "http",
+			Name:        "status_code_count",
+			Help:        "Counter of statuses codes",
+			ConstLabels: nil,
+		}, []string{"method", "path", "code"}),
 	}
 	s.duration = reg.GetOrRegister(s.duration).(*prometheus.SummaryVec)
 	s.requestBodySize = reg.GetOrRegister(s.requestBodySize).(*prometheus.SummaryVec)
 	s.responseBodySize = reg.GetOrRegister(s.responseBodySize).(*prometheus.SummaryVec)
+	s.statusCounter = reg.GetOrRegister(s.statusCounter).(*prometheus.CounterVec)
 	return s
 }
 
-func (s *Storage) ObserveDuration(method string, path string, statusCode int, duration time.Duration) {
-	s.duration.WithLabelValues(method, path, strconv.Itoa(statusCode)).Observe(float64(duration.Milliseconds()))
+func (s *Storage) ObserveDuration(method string, path string, duration time.Duration) {
+	s.duration.WithLabelValues(method, path).Observe(float64(duration.Milliseconds()))
 }
 
 func (s *Storage) ObserveRequestBodySize(method string, path string, size int) {
@@ -51,4 +59,8 @@ func (s *Storage) ObserveRequestBodySize(method string, path string, size int) {
 
 func (s *Storage) ObserveResponseBodySize(method string, path string, size int) {
 	s.responseBodySize.WithLabelValues(method, path).Observe(float64(size))
+}
+
+func (s *Storage) CountStatusCode(method string, path string, code int) {
+	s.statusCounter.WithLabelValues(method, path, strconv.Itoa(code)).Inc()
 }
