@@ -3,6 +3,8 @@ package infra
 import (
 	"context"
 	"net/http"
+
+	"github.com/pkg/errors"
 )
 
 type Server struct {
@@ -24,7 +26,14 @@ func (s *Server) Handle(pattern string, handler http.Handler) {
 
 func (s *Server) ListenAndServe(address string) error {
 	s.s.Addr = address
-	return s.s.ListenAndServe()
+	err := s.s.ListenAndServe()
+	if err == http.ErrServerClosed {
+		return nil
+	}
+	if err != nil {
+		return errors.WithMessagef(err, "listen and serve on %s", address)
+	}
+	return nil
 }
 
 func (s *Server) Shutdown() error {

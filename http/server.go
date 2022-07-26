@@ -74,9 +74,11 @@ func (s *Server) ListenAndServe(address string) error {
 
 func (s *Server) Serve(listener net.Listener) error {
 	err := s.server.Serve(listener)
+	if err == http.ErrServerClosed {
+		return nil
+	}
 	if err != nil {
 		return errors.WithMessage(err, "serve http")
 	}
-
 	return nil
 }
