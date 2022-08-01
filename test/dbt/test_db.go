@@ -60,6 +60,10 @@ func (db *TestDb) Must() must { //for test purposes
 	return db.must
 }
 
+func (db *TestDb) Schema() string {
+	return db.schema
+}
+
 func (db *TestDb) Close() error {
 	_, err := db.Exec(context.Background(), fmt.Sprintf("DROP SCHEMA %s CASCADE", db.schema))
 	if err != nil {
