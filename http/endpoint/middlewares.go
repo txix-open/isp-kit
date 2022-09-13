@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"runtime"
 	"strings"
@@ -140,7 +140,7 @@ func Log(logger Logger, availableContentTypes []string) Middleware {
 				if err != nil {
 					return errors.WithMessage(err, "close request reader")
 				}
-				r.Body = ioutil.NopCloser(bytes.NewBuffer(buf.RequestBody()))
+				r.Body = io.NopCloser(bytes.NewBuffer(buf.RequestBody()))
 
 				logFields = append(logFields, log.ByteString("requestBody", buf.RequestBody()))
 			}
