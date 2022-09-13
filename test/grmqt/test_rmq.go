@@ -106,7 +106,7 @@ func (c *Client) PublishJson(exchange string, routingKey string, data interface{
 func (c *Client) Publish(exchange string, routingKey string, messages ...amqp091.Publishing) {
 	c.useChannel(func(ch *amqp091.Channel) {
 		for _, message := range messages {
-			err := ch.Publish(exchange, routingKey, true, false, message)
+			err := ch.PublishWithContext(context.Background(), exchange, routingKey, true, false, message)
 			c.t.Assert().NoError(err)
 		}
 	})
