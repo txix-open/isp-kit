@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/integration-system/grmq/consumer"
+	"github.com/integration-system/grmq/publisher"
 	"github.com/integration-system/isp-kit/log"
 )
 
@@ -42,4 +43,24 @@ func (l LogObserver) ShutdownStarted() {
 
 func (l LogObserver) ShutdownDone() {
 	l.logger.Info(l.ctx, "rmq client: shutdown was done")
+}
+
+func (l LogObserver) PublisherError(publisher *publisher.Publisher, err error) {
+	l.logger.Error(
+		l.ctx,
+		"rmq client: unexpected publisher error",
+		log.String("exchange", publisher.Exchange),
+		log.String("routingKey", publisher.RoutingKey),
+		log.Any("error", err),
+	)
+}
+
+func (l LogObserver) PublishingFlow(publisher *publisher.Publisher, flow bool) {
+	l.logger.Info(
+		l.ctx,
+		"rmq client: publishing flow",
+		log.String("exchange", publisher.Exchange),
+		log.String("routingKey", publisher.RoutingKey),
+		log.Bool("running", flow),
+	)
 }
