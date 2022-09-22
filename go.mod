@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/Masterminds/squirrel v1.5.3
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
+	github.com/cenkalti/backoff/v4 v4.1.3
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/golang/protobuf v1.5.2
 	github.com/iancoleman/strcase v0.2.0
@@ -28,7 +29,7 @@ require (
 	github.com/stretchr/testify v1.8.0
 	go.uber.org/zap v1.23.0
 	golang.org/x/sync v0.0.0-20220907140024-f12130a52804
-	google.golang.org/genproto v0.0.0-20220909194730-69f6226f97e5
+	google.golang.org/genproto v0.0.0-20220921223823-23cae91e6737
 	google.golang.org/grpc v1.49.0
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
@@ -47,7 +48,7 @@ require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgproto3/v2 v2.3.1 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
-	github.com/klauspost/compress v1.15.9 // indirect
+	github.com/klauspost/compress v1.15.10 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/lib/pq v1.10.3 // indirect
@@ -69,9 +70,9 @@ require (
 	github.com/subosito/gotenv v1.4.1 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
-	golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90 // indirect
-	golang.org/x/net v0.0.0-20220909164309-bea034e7d591 // indirect
-	golang.org/x/sys v0.0.0-20220909162455-aba9fc2a8ff2 // indirect
+	golang.org/x/crypto v0.0.0-20220919173607-35f4265a4bc0 // indirect
+	golang.org/x/net v0.0.0-20220921203646-d300de134e69 // indirect
+	golang.org/x/sys v0.0.0-20220919091848-fb04ddd9f9c8 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
