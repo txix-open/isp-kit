@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	defaultMaxSizeByte = 10 * 1024 * 1024
+	defaultMaxSizeByte = 64 * 1024 * 1024
 )
 
 func Default() (*Client, error) {
