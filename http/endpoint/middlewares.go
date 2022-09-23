@@ -98,20 +98,6 @@ func RequestId() Middleware {
 	}
 }
 
-func RequestInfo() Middleware {
-	return func(next HandlerFunc) HandlerFunc {
-		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-			ctx = log.ToContext(
-				ctx,
-				log.String("httpMethod", r.Method),
-				log.String("httpUrl", r.URL.String()),
-			)
-
-			return next(ctx, w, r)
-		}
-	}
-}
-
 var defaultAvailableContentTypes = []string{
 	"application/json",
 	"application/xml",
@@ -129,7 +115,10 @@ func Log(logger Logger, availableContentTypes []string) Middleware {
 			defer buffer.Release(buf)
 
 			now := time.Now()
-			logFields := []log.Field{}
+			requestLogFields := []log.Field{
+				log.String("method", r.Method),
+				log.String("url", r.URL.String()),
+			}
 			requestContentType := r.Header.Get("Content-Type")
 			if matchContentType(requestContentType, availableContentTypes) {
 				err := buf.ReadRequestBody(r.Body)
@@ -142,22 +131,23 @@ func Log(logger Logger, availableContentTypes []string) Middleware {
 				}
 				r.Body = io.NopCloser(bytes.NewBuffer(buf.RequestBody()))
 
-				logFields = append(logFields, log.ByteString("requestBody", buf.RequestBody()))
+				requestLogFields = append(requestLogFields, log.ByteString("requestBody", buf.RequestBody()))
 			}
+
+			logger.Debug(ctx, "http handler: request", requestLogFields...)
 
 			err := next(ctx, buf, r)
 
-			logFields = append(
-				logFields,
-				log.Int("httpStatusCode", buf.StatusCode()),
+			responseLogFields := []log.Field{
+				log.Int("statusCode", buf.StatusCode()),
 				log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()),
-			)
+			}
 			responseContentType := buf.Header().Get("Content-Type")
 			if matchContentType(responseContentType, availableContentTypes) {
-				logFields = append(logFields, log.ByteString("responseBody", buf.ResponseBody()))
+				responseLogFields = append(responseLogFields, log.ByteString("responseBody", buf.ResponseBody()))
 			}
 
-			logger.Debug(ctx, "http log", logFields...)
+			logger.Debug(ctx, "http handler: response", responseLogFields...)
 
 			return err
 		}
