@@ -12,7 +12,7 @@ import (
 
 func RequestId() Middleware {
 	return func(next RoundTripper) RoundTripper {
-		return func(ctx context.Context, message *isp.Message) (*isp.Message, error) {
+		return func(ctx context.Context, builder *RequestBuilder, message *isp.Message) (*isp.Message, error) {
 			requestId := requestid.FromContext(ctx)
 			if requestId == "" {
 				requestId = requestid.Next()
@@ -26,7 +26,7 @@ func RequestId() Middleware {
 
 func DefaultTimeout(timeout time.Duration) Middleware {
 	return func(next RoundTripper) RoundTripper {
-		return func(ctx context.Context, message *isp.Message) (*isp.Message, error) {
+		return func(ctx context.Context, builder *RequestBuilder, message *isp.Message) (*isp.Message, error) {
 			ctx, cancel := context.WithTimeout(ctx, timeout)
 			defer cancel()
 

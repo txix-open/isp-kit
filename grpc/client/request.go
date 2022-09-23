@@ -57,7 +57,7 @@ func (req *RequestBuilder) Do(ctx context.Context) error {
 	}
 	message := &isp.Message{Body: &isp.Message_BytesBody{BytesBody: body}}
 
-	resp, err := req.roundTripper(ctx, message)
+	resp, err := req.roundTripper(ctx, req, message)
 	if err != nil {
 		return err
 	}

@@ -27,7 +27,7 @@ type Client struct {
 	currentHosts []string
 }
 
-type RoundTripper func(ctx context.Context, message *isp.Message) (*isp.Message, error)
+type RoundTripper func(ctx context.Context, builder *RequestBuilder, message *isp.Message) (*isp.Message, error)
 
 type Middleware func(next RoundTripper) RoundTripper
 
@@ -87,7 +87,7 @@ func (cli *Client) BackendClient() isp.BackendServiceClient {
 	return cli.backendCli
 }
 
-func (cli *Client) do(ctx context.Context, message *isp.Message) (*isp.Message, error) {
+func (cli *Client) do(ctx context.Context, _ *RequestBuilder, message *isp.Message) (*isp.Message, error) {
 	if len(cli.currentHosts) == 0 {
 		return nil, errors.New("grpc client: client is not initialized properly: empty hosts array")
 	}
