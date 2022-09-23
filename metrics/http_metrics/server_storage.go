@@ -8,15 +8,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type Storage struct {
+type ServerStorage struct {
 	duration         *prometheus.SummaryVec
 	requestBodySize  *prometheus.SummaryVec
 	responseBodySize *prometheus.SummaryVec
 	statusCounter    *prometheus.CounterVec
 }
 
-func NewStorage(reg *metrics.Registry) *Storage {
-	s := &Storage{
+func NewServerStorage(reg *metrics.Registry) *ServerStorage {
+	s := &ServerStorage{
 		duration: prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Subsystem:  "http",
 			Name:       "request_duration_ms",
@@ -49,18 +49,18 @@ func NewStorage(reg *metrics.Registry) *Storage {
 	return s
 }
 
-func (s *Storage) ObserveDuration(method string, path string, duration time.Duration) {
+func (s *ServerStorage) ObserveDuration(method string, path string, duration time.Duration) {
 	s.duration.WithLabelValues(method, path).Observe(float64(duration.Milliseconds()))
 }
 
-func (s *Storage) ObserveRequestBodySize(method string, path string, size int) {
+func (s *ServerStorage) ObserveRequestBodySize(method string, path string, size int) {
 	s.requestBodySize.WithLabelValues(method, path).Observe(float64(size))
 }
 
-func (s *Storage) ObserveResponseBodySize(method string, path string, size int) {
+func (s *ServerStorage) ObserveResponseBodySize(method string, path string, size int) {
 	s.responseBodySize.WithLabelValues(method, path).Observe(float64(size))
 }
 
-func (s *Storage) CountStatusCode(method string, path string, code int) {
+func (s *ServerStorage) CountStatusCode(method string, path string, code int) {
 	s.statusCounter.WithLabelValues(method, path, strconv.Itoa(code)).Inc()
 }
