@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"runtime"
+	"time"
 
 	"github.com/integration-system/isp-kit/db"
 	"github.com/integration-system/isp-kit/dbx/migration"
@@ -43,7 +44,13 @@ func Open(ctx context.Context, config Config, opts ...Option) (*Client, error) {
 	if config.MaxOpenConn > 0 {
 		maxOpenConn = config.MaxOpenConn
 	}
+	maxIdleConns := maxOpenConn / 2
+	if maxIdleConns < 2 {
+		maxIdleConns = 2
+	}
 	dbCli.SetMaxOpenConns(maxOpenConn)
+	dbCli.SetMaxIdleConns(maxIdleConns)
+	dbCli.SetConnMaxIdleTime(90 * time.Second)
 
 	if cli.withMigration {
 		err = migration.NewRunner(dbCli.DB.DB, cli.migrationDir).Run()
