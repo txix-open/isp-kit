@@ -8,15 +8,15 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-type Storage struct {
+type ServerStorage struct {
 	duration         *prometheus.SummaryVec
 	requestBodySize  *prometheus.SummaryVec
 	responseBodySize *prometheus.SummaryVec
 	statusCounter    *prometheus.CounterVec
 }
 
-func NewStorage(reg *metrics.Registry) *Storage {
-	s := &Storage{
+func NewServerStorage(reg *metrics.Registry) *ServerStorage {
+	s := &ServerStorage{
 		duration: prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Subsystem:  "grpc",
 			Name:       "request_duration_ms",
@@ -48,18 +48,18 @@ func NewStorage(reg *metrics.Registry) *Storage {
 	return s
 }
 
-func (s *Storage) ObserveDuration(endpoint string, duration time.Duration) {
+func (s *ServerStorage) ObserveDuration(endpoint string, duration time.Duration) {
 	s.duration.WithLabelValues(endpoint).Observe(float64(duration.Milliseconds()))
 }
 
-func (s *Storage) ObserveRequestBodySize(endpoint string, size int) {
+func (s *ServerStorage) ObserveRequestBodySize(endpoint string, size int) {
 	s.requestBodySize.WithLabelValues(endpoint).Observe(float64(size))
 }
 
-func (s *Storage) ObserveResponseBodySize(endpoint string, size int) {
+func (s *ServerStorage) ObserveResponseBodySize(endpoint string, size int) {
 	s.responseBodySize.WithLabelValues(endpoint).Observe(float64(size))
 }
 
-func (s *Storage) CountStatusCode(endpoint string, code codes.Code) {
+func (s *ServerStorage) CountStatusCode(endpoint string, code codes.Code) {
 	s.statusCounter.WithLabelValues(endpoint, code.String()).Inc()
 }
