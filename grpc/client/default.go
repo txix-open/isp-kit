@@ -3,6 +3,8 @@ package client
 import (
 	"time"
 
+	"github.com/integration-system/isp-kit/metrics"
+	"github.com/integration-system/isp-kit/metrics/grpc_metrics"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -11,7 +13,15 @@ const (
 	defaultMaxSizeByte = 64 * 1024 * 1024
 )
 
-func Default() (*Client, error) {
+func Default(restMiddlewares ...Middleware) (*Client, error) {
+	middlewares := append(
+		[]Middleware{
+			RequestId(),
+			DefaultTimeout(15 * time.Second),
+			Metrics(grpc_metrics.NewClientStorage(metrics.DefaultRegistry)),
+		},
+		restMiddlewares...,
+	)
 	return New(
 		nil,
 		WithDialOptions(
@@ -22,9 +32,6 @@ func Default() (*Client, error) {
 				grpc.MaxCallRecvMsgSize(defaultMaxSizeByte),
 			),
 		),
-		WithMiddlewares(
-			RequestId(),
-			DefaultTimeout(15*time.Second),
-		),
+		WithMiddlewares(middlewares...),
 	)
 }
