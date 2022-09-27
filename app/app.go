@@ -7,7 +7,6 @@ import (
 	"github.com/integration-system/isp-kit/config"
 	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
-	"golang.org/x/sync/errgroup"
 )
 
 type Application struct {
@@ -16,7 +15,6 @@ type Application struct {
 	logger *log.Adapter
 
 	cancel  context.CancelFunc
-	group   *errgroup.Group
 	runners []Runner
 	closers []Closer
 }
@@ -48,13 +46,11 @@ func New(isDev bool, cfgOpts ...config.Option) (*Application, error) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	group, ctx := errgroup.WithContext(ctx)
 
 	return &Application{
 		ctx:     ctx,
 		cfg:     cfg,
 		logger:  logger,
-		group:   group,
 		closers: []Closer{logger},
 		cancel:  cancel,
 	}, nil
@@ -81,17 +77,27 @@ func (a *Application) AddClosers(closers ...Closer) {
 }
 
 func (a *Application) Run() error {
+	errChan := make(chan error)
+
 	for i := range a.runners {
-		runner := a.runners[i]
-		a.group.Go(func() error {
+		go func(runner Runner) {
 			err := runner.Run(a.ctx)
 			if err != nil {
-				return errors.WithMessagef(err, "start runner[%T]", runner)
+				select {
+				case errChan <- errors.WithMessagef(err, "start runner[%T]", runner):
+				default:
+					a.logger.Error(a.ctx, errors.WithMessagef(err, "start runner[%T]", runner))
+				}
 			}
-			return nil
-		})
+		}(a.runners[i])
 	}
-	return a.group.Wait()
+
+	select {
+	case err := <-errChan:
+		return err
+	case <-a.ctx.Done():
+		return nil
+	}
 }
 
 func (a *Application) Shutdown() {
