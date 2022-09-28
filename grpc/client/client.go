@@ -23,6 +23,8 @@ type Client struct {
 	hostsResolver *manual.Resolver
 	grpcCli       *grpc.ClientConn
 	backendCli    isp.BackendServiceClient
+
+	currentHosts []string
 }
 
 type RoundTripper func(ctx context.Context, message *isp.Message) (*isp.Message, error)
