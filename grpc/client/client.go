@@ -88,6 +88,9 @@ func (cli *Client) BackendClient() isp.BackendServiceClient {
 }
 
 func (cli *Client) do(ctx context.Context, message *isp.Message) (*isp.Message, error) {
+	if len(cli.currentHosts) == 0 {
+		return nil, errors.New("grpc client: client is not initialized properly: empty hosts array")
+	}
 	return cli.backendCli.Request(ctx, message)
 }
 
