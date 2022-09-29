@@ -23,6 +23,8 @@ type Client struct {
 	hostsResolver *manual.Resolver
 	grpcCli       *grpc.ClientConn
 	backendCli    isp.BackendServiceClient
+
+	currentHosts []string
 }
 
 type RoundTripper func(ctx context.Context, message *isp.Message) (*isp.Message, error)
@@ -52,6 +54,7 @@ func New(initialHosts []string, opts ...Option) (*Client, error) {
 	}
 	backendCli := isp.NewBackendServiceClient(grpcCli)
 
+	cli.currentHosts = initialHosts
 	cli.hostsResolver = hostsResolver
 	cli.backendCli = backendCli
 	cli.grpcCli = grpcCli
@@ -70,6 +73,7 @@ func (cli *Client) Invoke(endpoint string) *RequestBuilder {
 }
 
 func (cli *Client) Upgrade(hosts []string) {
+	cli.currentHosts = hosts
 	cli.hostsResolver.UpdateState(resolver.State{
 		Addresses: toAddresses(hosts),
 	})
@@ -84,6 +88,9 @@ func (cli *Client) BackendClient() isp.BackendServiceClient {
 }
 
 func (cli *Client) do(ctx context.Context, message *isp.Message) (*isp.Message, error) {
+	if len(cli.currentHosts) == 0 {
+		return nil, errors.New("grpc client: client is not initialized properly: empty hosts array")
+	}
 	return cli.backendCli.Request(ctx, message)
 }
 
