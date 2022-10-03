@@ -12,7 +12,7 @@ func DefaultWrapper(logger log.Logger, restMiddlewares ...Middleware) Wrapper {
 		ContextParam(),
 		AuthDataParam(),
 	}
-	metricStorage := grpc_metrics.NewStorage(metrics.DefaultRegistry)
+	metricStorage := grpc_metrics.NewServerStorage(metrics.DefaultRegistry)
 	middlewares := append(
 		[]Middleware{
 			Metrics(metricStorage),

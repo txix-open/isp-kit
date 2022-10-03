@@ -8,7 +8,7 @@ type Option func(cli *Client)
 
 func WithMiddlewares(middlewares ...Middleware) Option {
 	return func(cli *Client) {
-		cli.middlewares = middlewares
+		cli.middlewares = append(cli.middlewares, middlewares...)
 	}
 }
 

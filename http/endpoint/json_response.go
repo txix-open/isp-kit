@@ -17,7 +17,7 @@ func (j JsonResponseMapper) Map(result interface{}, w http.ResponseWriter) error
 
 	w.Header().Set("Content-Type", "application/json")
 
-	err := json.NewEncoder(w).Encode(result)
+	err := json.EncodeInto(w, result)
 	if err != nil {
 		return errors.WithMessage(err, "marshal json")
 	}

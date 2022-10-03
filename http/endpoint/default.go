@@ -22,9 +22,8 @@ func DefaultWrapper(logger Logger, restMiddlewares ...Middleware) Wrapper {
 		[]Middleware{
 			MaxRequestBodySize(defaultMaxRequestBodySize),
 			RequestId(),
-			RequestInfo(),
 			DefaultLog(logger),
-			Metrics(http_metrics.NewStorage(metrics.DefaultRegistry)),
+			Metrics(http_metrics.NewServerStorage(metrics.DefaultRegistry)),
 			ErrorHandler(logger),
 			Recovery(),
 		},

@@ -81,13 +81,13 @@ func RequestId() Middleware {
 func BodyLogger(logger log.Logger) Middleware {
 	return func(next grpc.HandlerFunc) grpc.HandlerFunc {
 		return func(ctx context.Context, message *isp.Message) (*isp.Message, error) {
-			logger.Debug(ctx, "request body", log.ByteString("requestBody", message.GetBytesBody()))
+			logger.Debug(ctx, "grpc handler: request", log.ByteString("requestBody", message.GetBytesBody()))
 			now := time.Now()
 
 			response, err := next(ctx, message)
 			if err == nil {
 				logger.Debug(ctx,
-					"response body",
+					"grpc handler: response",
 					log.ByteString("responseBody", response.GetBytesBody()),
 					log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()),
 				)

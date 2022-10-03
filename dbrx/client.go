@@ -134,9 +134,13 @@ func (c *Client) Close() error {
 }
 
 func (c *Client) Healthcheck(ctx context.Context) error {
+	cli, err := c.db()
+	if err != nil {
+		return err
+	}
 	ctx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
 	defer cancel()
-	_, err := c.Exec(ctx, "SELECT 1")
+	_, err = cli.Exec(ctx, "SELECT 1")
 	if err != nil {
 		return errors.WithMessage(err, "exec")
 	}

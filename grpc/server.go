@@ -10,6 +10,10 @@ import (
 	"google.golang.org/grpc"
 )
 
+const (
+	DefaultMaxSizeByte = 64 * 1024 * 1024
+)
+
 type service struct {
 	delegate atomic.Value
 }
@@ -33,6 +37,14 @@ func (s *service) RequestStream(server isp.BackendService_RequestStreamServer) e
 type Server struct {
 	server  *grpc.Server
 	service *service
+}
+
+func DefaultServer(restOptions ...grpc.ServerOption) *Server {
+	opts := append([]grpc.ServerOption{
+		grpc.MaxRecvMsgSize(DefaultMaxSizeByte),
+		grpc.MaxSendMsgSize(DefaultMaxSizeByte),
+	}, restOptions...)
+	return NewServer(opts...)
 }
 
 func NewServer(opts ...grpc.ServerOption) *Server {

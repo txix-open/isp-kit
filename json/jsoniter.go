@@ -41,3 +41,12 @@ func NewEncoder(w io.Writer) *jsoniter.Encoder {
 func NewDecoder(r io.Reader) *jsoniter.Decoder {
 	return instance.NewDecoder(r)
 }
+
+func EncodeInto(w io.Writer, value any) error {
+	stream := instance.BorrowStream(w)
+	defer instance.ReturnStream(stream)
+	stream.WriteVal(value)
+	stream.WriteRaw("\n")
+	stream.Flush()
+	return stream.Error
+}
