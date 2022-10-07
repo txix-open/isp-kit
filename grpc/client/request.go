@@ -17,6 +17,7 @@ type RequestBuilder struct {
 	applicationId int
 	endpoint      string
 	roundTripper  RoundTripper
+	metadata      map[string][]string
 }
 
 func NewRequestBuilder(roundTripper RoundTripper, endpoint string) *RequestBuilder {
@@ -41,10 +42,21 @@ func (req *RequestBuilder) ReadJsonResponse(respPtr interface{}) *RequestBuilder
 	return req
 }
 
+func (req *RequestBuilder) AppendMetadata(k string, v ...string) *RequestBuilder {
+	if req.metadata == nil {
+		req.metadata = make(map[string][]string)
+	}
+	req.metadata[k] = v
+	return req
+}
+
 func (req *RequestBuilder) Do(ctx context.Context) error {
 	md := metadata.Pairs(grpc.ProxyMethodNameHeader, req.endpoint)
 	if req.applicationId != 0 {
 		md.Set(grpc.ApplicationIdHeader, strconv.Itoa(req.applicationId))
+	}
+	for k, v := range req.metadata {
+		md.Append(k, v...)
 	}
 	ctx = metadata.NewOutgoingContext(ctx, md)
 	var body []byte
