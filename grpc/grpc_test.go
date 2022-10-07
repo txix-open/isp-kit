@@ -13,6 +13,7 @@ import (
 	"github.com/integration-system/isp-kit/requestid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -111,6 +112,43 @@ func TestRequestIdChain(t *testing.T) {
 	err = cli1.Invoke("endpoint1").Do(ctx)
 	require.NoError(err)
 	require.EqualValues(1, atomic.LoadInt32(&callCount))
+}
+
+func TestGrpcAppendMetadata(t *testing.T) {
+	require, srv, cli := prepareTest(t)
+	reqId := requestid.Next()
+	testKey := "test-key"
+	testValue := "testValue"
+	ctx := requestid.ToContext(context.Background(), reqId)
+
+	handler := func(ctx context.Context, data grpc.AuthData) (*respBody, error) {
+		receivedReqId := requestid.FromContext(ctx)
+		require.EqualValues(reqId, receivedReqId)
+
+		appId, err := data.ApplicationId()
+		require.NoError(err)
+		require.EqualValues(123, appId)
+
+		value, err := grpc.StringFromMd(testKey, metadata.MD(data))
+		require.NoError(err)
+		require.Equal(testValue, value)
+
+		return &respBody{Ok: true}, nil
+	}
+	logger, err := log.New()
+	require.NoError(err)
+	wrapper := endpoint.DefaultWrapper(logger)
+	srv.Upgrade(grpc.NewMux().Handle("endpoint", wrapper.Endpoint(handler)))
+
+	resp := respBody{}
+
+	err = cli.Invoke("endpoint").
+		ApplicationId(123).
+		AppendMetadata(testKey, testValue).
+		ReadJsonResponse(&resp).
+		Do(ctx)
+	require.NoError(err)
+	require.True(resp.Ok)
 }
 
 func prepareTest(t *testing.T) (*require.Assertions, *grpc.Server, *grpcCli.Client) {
