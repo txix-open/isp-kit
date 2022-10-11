@@ -39,7 +39,7 @@ func New(opts ...Option) (*Adapter, error) {
 		outputUrl := rotationToUrl(*a.rotation)
 		cfg.OutputPaths = append(cfg.OutputPaths, outputUrl.String())
 	}
-	level := zap.NewAtomicLevelAt(zapcore.Level(a.initialLevel))
+	level := zap.NewAtomicLevelAt(a.initialLevel)
 	cfg.Level = level
 	logger, err := cfg.Build()
 	if err != nil {
@@ -68,23 +68,19 @@ func (a *Adapter) Fatal(ctx context.Context, message interface{}, fields ...Fiel
 }
 
 func (a *Adapter) Log(ctx context.Context, level Level, message interface{}, fields ...Field) {
-	entry := a.logger.Check(zapcore.Level(level), fmt.Sprintf("%v", message))
+	entry := a.logger.Check(level, fmt.Sprintf("%v", message))
 	if entry != nil {
 		arr := append(ContextLogValues(ctx), fields...)
-		zapFields := make([]zap.Field, len(arr))
-		for i := range arr {
-			zapFields[i] = zap.Field(arr[i])
-		}
-		entry.Write(zapFields...)
+		entry.Write(arr...)
 	}
 }
 
 func (a *Adapter) SetLevel(level Level) {
-	a.level.SetLevel(zapcore.Level(level))
+	a.level.SetLevel(level)
 }
 
 func (a *Adapter) Enabled(level Level) bool {
-	return a.level.Enabled(zapcore.Level(level))
+	return a.level.Enabled(level)
 }
 
 func (a *Adapter) Close() error {
