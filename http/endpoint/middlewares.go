@@ -100,17 +100,14 @@ func RequestId() Middleware {
 
 var defaultAvailableContentTypes = []string{
 	"application/json",
-	"application/xml",
-	"text/html",
+	`application/json; charset="utf-8"`,
+	"text/xml",
+	`text/xml; charset="utf-8"`,
 }
 
-func Log(logger Logger, availableContentTypes []string) Middleware {
+func Log(logger log.Logger, availableContentTypes []string) Middleware {
 	return func(next HandlerFunc) HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-			if !logger.Enabled(log.DebugLevel) {
-				return next(ctx, w, r)
-			}
-
 			buf := buffer.Acquire(w)
 			defer buffer.Release(buf)
 
@@ -154,7 +151,7 @@ func Log(logger Logger, availableContentTypes []string) Middleware {
 	}
 }
 
-func DefaultLog(logger Logger) Middleware {
+func DefaultLog(logger log.Logger) Middleware {
 	return Log(logger, defaultAvailableContentTypes)
 }
 
