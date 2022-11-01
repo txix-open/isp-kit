@@ -8,7 +8,7 @@ import (
 	"github.com/modern-go/reflect2"
 )
 
-type RawMessage json.RawMessage
+type RawMessage = json.RawMessage
 
 var (
 	instance = jsoniter.ConfigDefault

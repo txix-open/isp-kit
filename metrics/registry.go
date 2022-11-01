@@ -3,6 +3,7 @@ package metrics
 import (
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -16,13 +17,15 @@ type Metric interface {
 }
 
 type Registry struct {
+	lock sync.Locker
 	reg  *prometheus.Registry
 	list []Metric
 }
 
 func NewRegistry() *Registry {
 	r := &Registry{
-		reg: prometheus.NewRegistry(),
+		reg:  prometheus.NewRegistry(),
+		lock: &sync.Mutex{},
 	}
 	r.GetOrRegister(collectors.NewGoCollector())
 	r.GetOrRegister(collectors.NewBuildInfoCollector())
@@ -31,6 +34,9 @@ func NewRegistry() *Registry {
 }
 
 func (r *Registry) GetOrRegister(metric Metric) Metric {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
 	err := r.reg.Register(metric)
 	alreadyExist := prometheus.AlreadyRegisteredError{}
 	if errors.As(err, &alreadyExist) {
