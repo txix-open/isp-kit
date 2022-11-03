@@ -21,7 +21,7 @@ type wrapper struct {
 
 func (a Adapter) Validate(v interface{}) (ok bool, details map[string]string) {
 	ok, err := govalidator.ValidateStruct(wrapper{v}) //hack
-	if ok {
+	if ok || err == nil {
 		return true, nil
 	}
 
