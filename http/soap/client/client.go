@@ -24,7 +24,7 @@ func (c Client) Invoke(
 	url string,
 	soapAction string,
 	extraHeaders map[string]string,
-	requestBody RequestBody,
+	requestBody any,
 ) (*Response, error) {
 	builder := c.cli.Post(url)
 	builder.Header("content-type", soap.ContentType)
@@ -36,12 +36,14 @@ func (c Client) Invoke(
 	}
 
 	if requestBody != nil {
-		data, err := requestBody.Body()
-		if err != nil {
-			return nil, errors.WithMessage(err, "xml marshal request body")
+		var toMarshal any
+		switch r := requestBody.(type) {
+		case PlainXml:
+			toMarshal = embedEnvelope{Body: embedBody{Content: r.Value}}
+		default:
+			toMarshal = soap.Envelope{Body: soap.Body{Content: requestBody}}
 		}
-		reqEnv := soap.Envelope{Body: soap.Body{Content: data}}
-		reqBody, err := xml.Marshal(reqEnv)
+		reqBody, err := xml.Marshal(toMarshal)
 		if err != nil {
 			return nil, errors.WithMessage(err, "xml marshal envelope")
 		}

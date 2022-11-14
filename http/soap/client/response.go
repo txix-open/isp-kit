@@ -21,21 +21,36 @@ func (r *Response) UnmarshalPayload(responseBody any) error {
 	if err != nil {
 		return errors.WithMessage(err, "read response body")
 	}
-	resEnv := soap.Envelope{}
-	err = xml.Unmarshal(resBody, &resEnv)
-	if err != nil {
-		return errors.WithMessage(err, "xml unmarshal envelope")
-	}
 
-	plain, ok := responseBody.(*PlainXml)
-	if ok {
-		plain.Value = resEnv.Body.Content
-	} else {
-		err = xml.Unmarshal(resEnv.Body.Content, &responseBody)
+	switch r := responseBody.(type) {
+	case *PlainXml:
+		resEnv := embedEnvelope{Body: embedBody{}}
+		err := xml.Unmarshal(resBody, &resEnv)
 		if err != nil {
-			return errors.WithMessage(err, "xml response response body")
+			return errors.WithMessage(err, "xml unmarshal envelope")
+		}
+		r.Value = resEnv.Body.Content
+	default:
+		resEnv := soap.Envelope{Body: soap.Body{Content: responseBody}}
+		err = xml.Unmarshal(resBody, &resEnv)
+		if err != nil {
+			return errors.WithMessage(err, "xml unmarshal envelope")
 		}
 	}
 
 	return nil
+}
+
+func (r *Response) Fault() (*soap.Fault, error) {
+	resBody, err := r.Http.Body()
+	if err != nil {
+		return nil, errors.WithMessage(err, "read response body")
+	}
+	fault := soap.Fault{}
+	resEnv := soap.Envelope{Body: soap.Body{Fault: &fault}}
+	err = xml.Unmarshal(resBody, &resEnv)
+	if err != nil {
+		return nil, errors.WithMessage(err, "xml unmarshal envelope")
+	}
+	return &fault, nil
 }

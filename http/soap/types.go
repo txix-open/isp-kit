@@ -27,8 +27,60 @@ type Header struct {
 type Body struct {
 	XMLName xml.Name `xml:"http://schemas.xmlsoap.org/soap/envelope/ Body"`
 
-	Content []byte `xml:",innerxml"`
-	Fault   *Fault `xml:",omitempty"`
+	Content interface{} `xml:",omitempty"`
+
+	// faultOccurred indicates whether the XML body included a fault;
+	// we cannot simply store SOAPFault as a pointer to indicate this, since
+	// fault is initialized to non-nil with user-provided detail type.
+	faultOccurred bool
+	Fault         *Fault `xml:",omitempty"`
+}
+
+// UnmarshalXML copied from https://github.com/hooklift/gowsdl/blob/master/soap/soap.go
+func (b *Body) UnmarshalXML(d *xml.Decoder, _ xml.StartElement) error {
+	var (
+		token    xml.Token
+		err      error
+		consumed bool
+	)
+
+Loop:
+	for {
+		if token, err = d.Token(); err != nil {
+			return err
+		}
+
+		if token == nil {
+			break
+		}
+
+		switch se := token.(type) {
+		case xml.StartElement:
+			if consumed {
+				return xml.UnmarshalError("Found multiple elements inside SOAP body; not wrapped-document/literal WS-I compliant")
+			} else if se.Name.Space == "http://schemas.xmlsoap.org/soap/envelope/" && se.Name.Local == "Fault" {
+				b.Content = nil
+
+				b.faultOccurred = true
+				err = d.DecodeElement(b.Fault, &se)
+				if err != nil {
+					return err
+				}
+
+				consumed = true
+			} else {
+				if err = d.DecodeElement(b.Content, &se); err != nil {
+					return err
+				}
+
+				consumed = true
+			}
+		case xml.EndElement:
+			break Loop
+		}
+	}
+
+	return nil
 }
 
 type Fault struct {

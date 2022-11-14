@@ -32,7 +32,7 @@ func TestClient_Invoke(t *testing.T) {
 
 	req := Book{Id: 123, Name: "test"}
 	res := Book{}
-	resp, err := cli.Invoke(context.Background(), srv.URL, "test", nil, client.Any{Value: req})
+	resp, err := cli.Invoke(context.Background(), srv.URL, "test", nil, req)
 	require.NoError(err)
 	require.True(resp.Http.IsSuccess())
 	require.NoError(resp.UnmarshalPayload(&res))
@@ -49,10 +49,10 @@ func TestClient_Invoke(t *testing.T) {
 
 	req = Book{Id: 123, Name: "test"}
 	res = Book{}
-	resp, err = cli.Invoke(context.Background(), srv.URL, "unknown_action", nil, client.Any{Value: req})
+	resp, err = cli.Invoke(context.Background(), srv.URL, "unknown_action", nil, req)
 	require.NoError(err)
 	require.EqualValues(http.StatusInternalServerError, resp.Http.StatusCode())
-	fault := soap.Fault{}
-	require.NoError(resp.UnmarshalPayload(&fault))
+	fault, err := resp.Fault()
+	require.NoError(err)
 	require.EqualValues("Client", fault.Code)
 }
