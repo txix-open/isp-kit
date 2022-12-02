@@ -8,6 +8,7 @@ import (
 
 	"github.com/integration-system/isp-kit/db"
 	"github.com/integration-system/isp-kit/dbx/migration"
+	"github.com/jackc/pgx/v5"
 	"github.com/pkg/errors"
 )
 
@@ -20,6 +21,8 @@ type Client struct {
 
 	withMigration bool
 	migrationDir  string
+
+	tracer pgx.QueryTracer
 }
 
 func Open(ctx context.Context, config Config, opts ...Option) (*Client, error) {
@@ -35,7 +38,7 @@ func Open(ctx context.Context, config Config, opts ...Option) (*Client, error) {
 		}
 	}
 
-	dbCli, err := db.Open(ctx, config.Dsn())
+	dbCli, err := db.Open(ctx, config.Dsn(), db.WithTracer(cli.tracer))
 	if err != nil {
 		return nil, errors.WithMessage(err, "open db")
 	}
