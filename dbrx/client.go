@@ -11,6 +11,7 @@ import (
 	"github.com/integration-system/isp-kit/dbx"
 	"github.com/integration-system/isp-kit/metrics"
 	"github.com/integration-system/isp-kit/metrics/db_metrics"
+	"github.com/integration-system/isp-kit/metrics/sql_metrics"
 	"github.com/pkg/errors"
 )
 
@@ -41,7 +42,10 @@ func (c *Client) Upgrade(ctx context.Context, config dbx.Config) error {
 		return nil
 	}
 
-	cli, err := dbx.Open(ctx, config, c.options...)
+	tracer := sql_metrics.NewTracer(metrics.DefaultRegistry)
+	opts := append([]dbx.Option{dbx.WithTracer(tracer)}, c.options...)
+
+	cli, err := dbx.Open(ctx, config, opts...)
 	if err != nil {
 		return errors.WithMessage(err, "open new client")
 	}
