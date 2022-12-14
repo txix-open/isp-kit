@@ -6,8 +6,8 @@ import (
 
 type Option func(db *Client)
 
-func WithTracer(tracer pgx.QueryTracer) Option {
+func WithQueryTracer(tracer pgx.QueryTracer) Option {
 	return func(db *Client) {
-		db.t = tracer
+		db.queryTracer = tracer
 	}
 }

@@ -13,7 +13,7 @@ import (
 
 type Client struct {
 	*sqlx.DB
-	t pgx.QueryTracer
+	queryTracer pgx.QueryTracer
 }
 
 func Open(ctx context.Context, dsn string, opts ...Option) (*Client, error) {
@@ -27,7 +27,7 @@ func Open(ctx context.Context, dsn string, opts ...Option) (*Client, error) {
 		return nil, errors.WithMessage(err, "parse config")
 	}
 
-	cfg.Tracer = db.t
+	cfg.Tracer = db.queryTracer
 	sqlDb := stdlib.OpenDB(*cfg)
 
 	pgDb := sqlx.NewDb(sqlDb, "pgx")

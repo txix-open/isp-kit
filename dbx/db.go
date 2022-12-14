@@ -38,7 +38,7 @@ func Open(ctx context.Context, config Config, opts ...Option) (*Client, error) {
 		}
 	}
 
-	dbCli, err := db.Open(ctx, config.Dsn(), db.WithTracer(cli.tracer))
+	dbCli, err := db.Open(ctx, config.Dsn(), db.WithQueryTracer(cli.tracer))
 	if err != nil {
 		return nil, errors.WithMessage(err, "open db")
 	}
