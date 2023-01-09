@@ -32,6 +32,10 @@ func (o Observer) JobMovedToDlq(ctx context.Context, job bgjob.Job, err error) {
 	o.metricStorage.IncDlqCount(job.Queue, job.Type)
 }
 
+func (o Observer) JobRescheduled(ctx context.Context, job bgjob.Job, after time.Duration) {
+	o.log.Debug(ctx, "bgjob: job rescheduled", log.String("id", job.Id), log.Any("next run at", after.String()))
+}
+
 func (o Observer) QueueIsEmpty(ctx context.Context) {
 }
 
