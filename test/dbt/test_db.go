@@ -78,24 +78,30 @@ type must struct {
 	assert *require.Assertions
 }
 
-func (m must) Exec(query string, args ...interface{}) sql.Result {
+func (m must) Exec(query string, args ...any) sql.Result {
 	res, err := m.db.Exec(context.Background(), query, args...)
 	m.assert.NoError(err)
 	return res
 }
 
-func (m must) Select(resultPtr interface{}, query string, args ...interface{}) {
+func (m must) Select(resultPtr any, query string, args ...any) {
 	err := m.db.Select(context.Background(), resultPtr, query, args...)
 	m.assert.NoError(err)
 }
 
-func (m must) SelectRow(resultPtr interface{}, query string, args ...interface{}) {
+func (m must) SelectRow(resultPtr any, query string, args ...any) {
 	err := m.db.SelectRow(context.Background(), resultPtr, query, args...)
 	m.assert.NoError(err)
 }
 
-func (m must) ExecNamed(query string, arg interface{}) sql.Result {
+func (m must) ExecNamed(query string, arg any) sql.Result {
 	res, err := m.db.ExecNamed(context.Background(), query, arg)
 	m.assert.NoError(err)
 	return res
+}
+
+func (m must) Count(query string, args ...any) int {
+	value := 0
+	m.SelectRow(&value, query, args...)
+	return value
 }
