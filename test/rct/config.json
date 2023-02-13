@@ -1,0 +1,7 @@
+{
+  "string": "value",
+  "integer": 122,
+  "child": {
+    "value": "123"
+  }
+}
