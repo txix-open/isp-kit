@@ -7,6 +7,7 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
 	github.com/cenkalti/backoff/v4 v4.2.0
 	github.com/go-resty/resty/v2 v2.7.0
+	github.com/go-stomp/stomp/v3 v3.0.5
 	github.com/golang/protobuf v1.5.2
 	github.com/iancoleman/strcase v0.2.0
 	github.com/integration-system/bellows v1.0.1

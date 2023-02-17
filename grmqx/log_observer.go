@@ -3,18 +3,20 @@ package grmqx
 import (
 	"context"
 
+	"github.com/integration-system/grmq"
 	"github.com/integration-system/grmq/consumer"
 	"github.com/integration-system/grmq/publisher"
 	"github.com/integration-system/isp-kit/log"
 )
 
 type LogObserver struct {
+	grmq.NoopObserver
 	ctx    context.Context
 	logger log.Logger
 }
 
-func NewLogObserver(ctx context.Context, logger log.Logger) *LogObserver {
-	return &LogObserver{
+func NewLogObserver(ctx context.Context, logger log.Logger) LogObserver {
+	return LogObserver{
 		ctx:    ctx,
 		logger: logger,
 	}

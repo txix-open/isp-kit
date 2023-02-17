@@ -81,7 +81,7 @@ func (c *Client) QueueLength(queue string) int {
 		err error
 	)
 	c.useChannel(func(ch *amqp091.Channel) {
-		q, err = ch.QueueInspect(queue)
+		q, err = ch.QueueInspect(queue) //nolint
 		c.t.Assert().NoError(err)
 	})
 	return q.Messages
