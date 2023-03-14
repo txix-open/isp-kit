@@ -8,5 +8,5 @@ import (
 )
 
 func Register(reg *metrics.Registry, db *sql.DB, dbName string) {
-	reg.GetOrRegister(collectors.NewDBStatsCollector(db, dbName))
+	metrics.GetOrRegister(reg, collectors.NewDBStatsCollector(db, dbName))
 }

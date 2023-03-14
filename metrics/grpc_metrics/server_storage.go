@@ -17,34 +17,30 @@ type ServerStorage struct {
 
 func NewServerStorage(reg *metrics.Registry) *ServerStorage {
 	s := &ServerStorage{
-		duration: prometheus.NewSummaryVec(prometheus.SummaryOpts{
+		duration: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Subsystem:  "grpc",
 			Name:       "request_duration_ms",
 			Help:       "The latency of the GRPC requests",
 			Objectives: metrics.DefaultObjectives,
-		}, []string{"endpoint"}),
-		requestBodySize: prometheus.NewSummaryVec(prometheus.SummaryOpts{
+		}, []string{"endpoint"})),
+		requestBodySize: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Subsystem:  "grpc",
 			Name:       "request_body_size",
 			Help:       "The size of request body",
 			Objectives: metrics.DefaultObjectives,
-		}, []string{"endpoint"}),
-		responseBodySize: prometheus.NewSummaryVec(prometheus.SummaryOpts{
+		}, []string{"endpoint"})),
+		responseBodySize: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Subsystem:  "grpc",
 			Name:       "response_body_size",
 			Help:       "The size of response body",
 			Objectives: metrics.DefaultObjectives,
-		}, []string{"endpoint"}),
-		statusCounter: prometheus.NewCounterVec(prometheus.CounterOpts{
+		}, []string{"endpoint"})),
+		statusCounter: metrics.GetOrRegister(reg, prometheus.NewCounterVec(prometheus.CounterOpts{
 			Subsystem: "grpc",
 			Name:      "status_code_count",
 			Help:      "Counter of statuses codes",
-		}, []string{"endpoint", "code"}),
+		}, []string{"endpoint", "code"})),
 	}
-	s.duration = reg.GetOrRegister(s.duration).(*prometheus.SummaryVec)
-	s.requestBodySize = reg.GetOrRegister(s.requestBodySize).(*prometheus.SummaryVec)
-	s.responseBodySize = reg.GetOrRegister(s.responseBodySize).(*prometheus.SummaryVec)
-	s.statusCounter = reg.GetOrRegister(s.statusCounter).(*prometheus.CounterVec)
 	return s
 }
 

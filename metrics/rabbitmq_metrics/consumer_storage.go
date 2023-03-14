@@ -17,39 +17,34 @@ type ConsumerStorage struct {
 
 func NewConsumerStorage(reg *metrics.Registry) *ConsumerStorage {
 	s := &ConsumerStorage{
-		consumeMsgDuration: prometheus.NewSummaryVec(prometheus.SummaryOpts{
+		consumeMsgDuration: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Subsystem:  "rabbitmq",
 			Name:       "consume_duration_ms",
 			Help:       "The latency of handling single message from queue",
 			Objectives: metrics.DefaultObjectives,
-		}, []string{"exchange", "routing_key"}),
-		consumeMsgBodySize: prometheus.NewSummaryVec(prometheus.SummaryOpts{
+		}, []string{"exchange", "routing_key"})),
+		consumeMsgBodySize: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Subsystem:  "rabbitmq",
 			Name:       "consume_body_size",
 			Help:       "The size of message body from queue",
 			Objectives: metrics.DefaultObjectives,
-		}, []string{"exchange", "routing_key"}),
-		requeueCount: prometheus.NewCounterVec(prometheus.CounterOpts{
+		}, []string{"exchange", "routing_key"})),
+		requeueCount: metrics.GetOrRegister(reg, prometheus.NewCounterVec(prometheus.CounterOpts{
 			Subsystem: "rabbitmq",
 			Name:      "consume_requeue_count",
 			Help:      "Count of requeued messages",
-		}, []string{"exchange", "routing_key"}),
-		dlqCount: prometheus.NewCounterVec(prometheus.CounterOpts{
+		}, []string{"exchange", "routing_key"})),
+		dlqCount: metrics.GetOrRegister(reg, prometheus.NewCounterVec(prometheus.CounterOpts{
 			Subsystem: "rabbitmq",
 			Name:      "consume_dlq_count",
 			Help:      "Count of messages moved to DLQ",
-		}, []string{"exchange", "routing_key"}),
-		successCount: prometheus.NewCounterVec(prometheus.CounterOpts{
+		}, []string{"exchange", "routing_key"})),
+		successCount: metrics.GetOrRegister(reg, prometheus.NewCounterVec(prometheus.CounterOpts{
 			Subsystem: "rabbitmq",
 			Name:      "consume_success_count",
 			Help:      "Count of successful messages",
-		}, []string{"exchange", "routing_key"}),
+		}, []string{"exchange", "routing_key"})),
 	}
-	s.consumeMsgDuration = reg.GetOrRegister(s.consumeMsgDuration).(*prometheus.SummaryVec)
-	s.consumeMsgBodySize = reg.GetOrRegister(s.consumeMsgBodySize).(*prometheus.SummaryVec)
-	s.requeueCount = reg.GetOrRegister(s.requeueCount).(*prometheus.CounterVec)
-	s.dlqCount = reg.GetOrRegister(s.dlqCount).(*prometheus.CounterVec)
-	s.successCount = reg.GetOrRegister(s.successCount).(*prometheus.CounterVec)
 	return s
 }
 

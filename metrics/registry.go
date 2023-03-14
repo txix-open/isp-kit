@@ -70,3 +70,8 @@ func (r *Registry) MetricsDescriptionHandler() http.Handler {
 		}
 	}), 1*time.Second, "timeout")
 }
+
+func GetOrRegister[M Metric](registry *Registry, metric M) M {
+	m := registry.GetOrRegister(metric)
+	return m.(M)
+}

@@ -22,15 +22,12 @@ type QueryDurationMetrics struct {
 }
 
 func NewTracer(reg *metrics.Registry) QueryDurationMetrics {
-	sqlQueryDuration := reg.GetOrRegister(
-		prometheus.NewSummaryVec(prometheus.SummaryOpts{
-			Subsystem:  "sql",
-			Name:       "query_duration_ms",
-			Help:       "The latencies of sql query",
-			Objectives: metrics.DefaultObjectives,
-		}, []string{"operation"}),
-	).(*prometheus.SummaryVec)
-
+	sqlQueryDuration := metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
+		Subsystem:  "sql",
+		Name:       "query_duration_ms",
+		Help:       "The latencies of sql query",
+		Objectives: metrics.DefaultObjectives,
+	}, []string{"operation"}))
 	return QueryDurationMetrics{
 		duration: sqlQueryDuration,
 	}

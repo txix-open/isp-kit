@@ -17,38 +17,33 @@ type Storage struct {
 
 func NewStorage(reg *metrics.Registry) *Storage {
 	s := &Storage{
-		duration: prometheus.NewSummaryVec(prometheus.SummaryOpts{
+		duration: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Subsystem:  "bgjob",
 			Name:       "execute_duration_ms",
 			Help:       "The latency of execution single job from queue",
 			Objectives: metrics.DefaultObjectives,
-		}, []string{"queue", "job_type"}),
-		dlqCount: prometheus.NewCounterVec(prometheus.CounterOpts{
+		}, []string{"queue", "job_type"})),
+		dlqCount: metrics.GetOrRegister(reg, prometheus.NewCounterVec(prometheus.CounterOpts{
 			Subsystem: "bgjob",
 			Name:      "execute_dlq_count",
 			Help:      "Count of jobs moved to DLQ",
-		}, []string{"queue", "job_type"}),
-		retryCount: prometheus.NewCounterVec(prometheus.CounterOpts{
+		}, []string{"queue", "job_type"})),
+		retryCount: metrics.GetOrRegister(reg, prometheus.NewCounterVec(prometheus.CounterOpts{
 			Subsystem: "bgjob",
 			Name:      "execute_retry_count",
 			Help:      "Count of retried jobs",
-		}, []string{"queue", "job_type"}),
-		successCount: prometheus.NewCounterVec(prometheus.CounterOpts{
+		}, []string{"queue", "job_type"})),
+		successCount: metrics.GetOrRegister(reg, prometheus.NewCounterVec(prometheus.CounterOpts{
 			Subsystem: "bgjob",
 			Name:      "execute_success_count",
 			Help:      "Count of successful jobs",
-		}, []string{"queue", "job_type"}),
-		internalErrorCount: prometheus.NewCounter(prometheus.CounterOpts{
+		}, []string{"queue", "job_type"})),
+		internalErrorCount: metrics.GetOrRegister(reg, prometheus.NewCounter(prometheus.CounterOpts{
 			Subsystem: "bgjob",
 			Name:      "worker_error_count",
 			Help:      "Count of internal worker errors",
-		}),
+		})),
 	}
-	s.duration = reg.GetOrRegister(s.duration).(*prometheus.SummaryVec)
-	s.retryCount = reg.GetOrRegister(s.retryCount).(*prometheus.CounterVec)
-	s.dlqCount = reg.GetOrRegister(s.dlqCount).(*prometheus.CounterVec)
-	s.successCount = reg.GetOrRegister(s.successCount).(*prometheus.CounterVec)
-	s.internalErrorCount = reg.GetOrRegister(s.internalErrorCount).(prometheus.Counter)
 	return s
 }
 

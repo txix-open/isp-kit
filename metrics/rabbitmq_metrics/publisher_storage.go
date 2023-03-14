@@ -15,27 +15,24 @@ type PublisherStorage struct {
 
 func NewPublisherStorage(reg *metrics.Registry) *PublisherStorage {
 	s := &PublisherStorage{
-		publishMsgDuration: prometheus.NewSummaryVec(prometheus.SummaryOpts{
+		publishMsgDuration: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Subsystem:  "rabbitmq",
 			Name:       "publish_duration_ms",
 			Help:       "The latency of publishing single message to queue",
 			Objectives: metrics.DefaultObjectives,
-		}, []string{"exchange", "routing_key"}),
-		publishMsgBodySize: prometheus.NewSummaryVec(prometheus.SummaryOpts{
+		}, []string{"exchange", "routing_key"})),
+		publishMsgBodySize: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Subsystem:  "rabbitmq",
 			Name:       "publish_body_size",
 			Help:       "The size of published message body to queue",
 			Objectives: metrics.DefaultObjectives,
-		}, []string{"exchange", "routing_key"}),
-		publishErrorCount: prometheus.NewCounterVec(prometheus.CounterOpts{
+		}, []string{"exchange", "routing_key"})),
+		publishErrorCount: metrics.GetOrRegister(reg, prometheus.NewCounterVec(prometheus.CounterOpts{
 			Subsystem: "rabbitmq",
 			Name:      "publish_error_count",
 			Help:      "Count error on publishing",
-		}, []string{"exchange", "routing_key"}),
+		}, []string{"exchange", "routing_key"})),
 	}
-	s.publishMsgDuration = reg.GetOrRegister(s.publishMsgDuration).(*prometheus.SummaryVec)
-	s.publishMsgBodySize = reg.GetOrRegister(s.publishMsgBodySize).(*prometheus.SummaryVec)
-	s.publishErrorCount = reg.GetOrRegister(s.publishErrorCount).(*prometheus.CounterVec)
 	return s
 }
 

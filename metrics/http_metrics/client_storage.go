@@ -13,14 +13,13 @@ type ClientStorage struct {
 
 func NewClientStorage(reg *metrics.Registry) *ClientStorage {
 	s := &ClientStorage{
-		duration: prometheus.NewSummaryVec(prometheus.SummaryOpts{
+		duration: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Subsystem:  "http",
 			Name:       "client_request_duration_ms",
 			Help:       "The latencies of calling external services via HTTP",
 			Objectives: metrics.DefaultObjectives,
-		}, []string{"url"}),
+		}, []string{"url"})),
 	}
-	s.duration = reg.GetOrRegister(s.duration).(*prometheus.SummaryVec)
 	return s
 }
 
