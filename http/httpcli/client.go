@@ -33,7 +33,7 @@ type Client struct {
 
 var (
 	StdClient = &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout: 15 * time.Second,
 		Transport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
 			DialContext: defaultTransportDialContext(&net.Dialer{
