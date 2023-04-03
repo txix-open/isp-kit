@@ -16,12 +16,28 @@ import (
 	"github.com/integration-system/isp-kit/http/httpcli"
 	"github.com/integration-system/isp-kit/json"
 	"github.com/integration-system/isp-kit/retry"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 )
 
 type example struct {
 	Data string
+}
+
+func TestRequestBuilder_DoWithoutResponse(t *testing.T) {
+	require := require.New(t)
+	url := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
+		http.Error(writer, "some error", http.StatusBadRequest)
+	})).URL
+	err := httpcli.New().Get(url).StatusCodeToError().DoWithoutResponse(context.Background())
+	require.Error(err)
+	httpErr := httpcli.ErrorResponse{}
+	ok := errors.As(err, &httpErr)
+	require.True(ok)
+	require.EqualValues("some error\n", string(httpErr.Body))
+	require.EqualValues(http.StatusBadRequest, httpErr.StatusCode)
+	t.Log(httpErr.Error())
 }
 
 func TestRequestBuilder_Header(t *testing.T) {

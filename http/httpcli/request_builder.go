@@ -6,16 +6,17 @@ import (
 )
 
 type RequestBuilder struct {
-	method        string
-	url           string
-	headers       map[string]string
-	cookies       []*http.Cookie
-	requestBody   RequestBodyWriter
-	responseBody  ResponseBodyReader
-	multipartData *MultipartData
-	basicAuth     *BasicAuth
-	queryParams   map[string]any
-	retryOptions  *retryOptions
+	method            string
+	url               string
+	headers           map[string]string
+	cookies           []*http.Cookie
+	requestBody       RequestBodyWriter
+	responseBody      ResponseBodyReader
+	multipartData     *MultipartData
+	basicAuth         *BasicAuth
+	queryParams       map[string]any
+	retryOptions      *retryOptions
+	statusCodeToError bool
 
 	execute func(ctx context.Context, req *RequestBuilder) (*Response, error)
 }
@@ -97,8 +98,54 @@ func (b *RequestBuilder) MultipartRequestBody(data *MultipartData) *RequestBuild
 	return b
 }
 
+// StatusCodeToError
+// If set and Response.IsSuccess is false, Do return ErrorResponse as error
+func (b *RequestBuilder) StatusCodeToError() *RequestBuilder {
+	b.statusCodeToError = true
+	return b
+}
+
 func (b *RequestBuilder) Do(ctx context.Context) (*Response, error) {
 	resp, err := b.execute(ctx, b)
 	b.execute = nil
+	if err != nil {
+		return nil, err
+	}
+
+	if !resp.IsSuccess() && b.statusCodeToError {
+		body, err := resp.BodyCopy()
+		if err != nil {
+			return nil, err
+		}
+		return nil, ErrorResponse{
+			Url:        resp.Raw.Request.URL,
+			StatusCode: resp.StatusCode(),
+			Body:       body,
+		}
+	}
 	return resp, err
+}
+
+func (b *RequestBuilder) DoWithoutResponse(ctx context.Context) error {
+	resp, err := b.Do(ctx)
+	if err != nil {
+		return err
+	}
+	resp.Close()
+	return nil
+}
+
+func (b *RequestBuilder) DoAndReadBody(ctx context.Context) ([]byte, int, error) {
+	resp, err := b.Do(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer resp.Close()
+
+	body, err := resp.BodyCopy()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return body, resp.StatusCode(), nil
 }

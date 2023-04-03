@@ -50,3 +50,18 @@ func (r *Response) IsSuccess() bool {
 func (r *Response) StatusCode() int {
 	return r.Raw.StatusCode
 }
+
+// BodyCopy
+// Return copy of response body
+// Slice is available after calling Close
+func (r *Response) BodyCopy() ([]byte, error) {
+	body, err := r.Body()
+	if err != nil {
+		return nil, err
+	}
+
+	copied := make([]byte, len(body))
+	copy(copied, body)
+
+	return copied, nil
+}
