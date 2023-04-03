@@ -7,7 +7,7 @@ import (
 )
 
 type Child struct {
-	Value string
+	Value string `valid:"required"`
 }
 
 type Config struct {
