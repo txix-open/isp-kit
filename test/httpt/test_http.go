@@ -5,18 +5,9 @@ import (
 	"net/http/httptest"
 
 	"github.com/integration-system/isp-kit/http/endpoint"
-	"github.com/integration-system/isp-kit/log"
 	"github.com/integration-system/isp-kit/test"
 	"github.com/julienschmidt/httprouter"
 )
-
-type logger struct {
-	log.Logger
-}
-
-func (l logger) Enabled(level log.Level) bool {
-	return true
-}
 
 type MockServer struct {
 	wrapper endpoint.Wrapper
@@ -30,7 +21,7 @@ func NewMock(t *test.Test) *MockServer {
 	t.T().Cleanup(func() {
 		srv.Close()
 	})
-	wrapper := endpoint.DefaultWrapper(logger{t.Logger()})
+	wrapper := endpoint.DefaultWrapper(t.Logger())
 	return &MockServer{
 		wrapper: wrapper,
 		srv:     srv,
