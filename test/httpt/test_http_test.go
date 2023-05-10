@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/go-resty/resty/v2"
 	"github.com/integration-system/isp-kit/test"
 	"github.com/integration-system/isp-kit/test/httpt"
 )
@@ -23,17 +22,21 @@ func Test(t *testing.T) {
 		return resp{Ok: false}
 	})
 
-	resty := resty.NewWithClient(mock.Client()).SetBaseURL(mock.BaseURL())
+	client := mock.Client()
 
 	resp1 := resp{}
-	r, err := resty.R().SetResult(&resp1).Post("/endpoint1")
+	r, err := client.Post("/endpoint1").JsonResponseBody(&resp1).Do(context.Background())
 	assert.NoError(err)
 	assert.EqualValues(http.StatusOK, r.StatusCode())
 	assert.EqualValues(resp{Ok: true}, resp1)
 
 	resp2 := resp{}
-	r, err = resty.R().SetResult(&resp2).Get("/endpoint2")
+	r, err = client.Get("/endpoint2").JsonResponseBody(&resp2).Do(context.Background())
 	assert.NoError(err)
 	assert.EqualValues(http.StatusOK, r.StatusCode())
 	assert.EqualValues(resp{Ok: false}, resp2)
+
+	r, err = client.Get("endpoint2").Do(context.Background())
+	assert.NoError(err)
+	assert.EqualValues(http.StatusOK, r.StatusCode())
 }

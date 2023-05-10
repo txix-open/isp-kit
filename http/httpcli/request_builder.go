@@ -3,11 +3,13 @@ package httpcli
 import (
 	"context"
 	"net/http"
+	"strings"
 )
 
 type RequestBuilder struct {
 	method            string
 	url               string
+	baseUrl           string
 	headers           map[string]string
 	cookies           []*http.Cookie
 	requestBody       RequestBodyWriter
@@ -148,4 +150,25 @@ func (b *RequestBuilder) DoAndReadBody(ctx context.Context) ([]byte, int, error)
 	}
 
 	return body, resp.StatusCode(), nil
+}
+
+func (b *RequestBuilder) newHttpRequest(ctx context.Context) (*http.Request, error) {
+	targetUrl := b.baseUrl
+	if targetUrl == "" {
+		targetUrl = b.url
+	}
+
+	request, err := http.NewRequestWithContext(ctx, b.method, targetUrl, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if b.baseUrl != "" {
+		if !strings.HasSuffix(request.URL.Path, "/") {
+			request.URL.Path += "/"
+		}
+		request.URL = request.URL.JoinPath(b.url)
+	}
+
+	return request, nil
 }

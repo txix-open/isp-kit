@@ -92,7 +92,7 @@ func (c *Client) Patch(url string) *RequestBuilder {
 }
 
 func (c *Client) execute(ctx context.Context, builder *RequestBuilder) (*Response, error) {
-	request, err := http.NewRequestWithContext(ctx, builder.method, builder.url, nil)
+	request, err := builder.newHttpRequest(ctx)
 	if err != nil {
 		return nil, err
 	}
