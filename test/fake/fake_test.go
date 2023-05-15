@@ -2,6 +2,7 @@ package fake_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/integration-system/isp-kit/test/fake"
 	"github.com/stretchr/testify/require"
@@ -24,4 +25,7 @@ func Test(t *testing.T) {
 	structSlice := fake.It[[]SomeStruct]()
 	t.Log(structSlice)
 	require.NotEmpty(structSlice)
+
+	time := fake.It[time.Time]()
+	require.False(time.IsZero())
 }

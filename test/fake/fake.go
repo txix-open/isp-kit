@@ -7,10 +7,18 @@ import (
 
 type Option = options.OptionFunc
 
+func MinSliceSize(value uint) Option {
+	return options.WithRandomMapAndSliceMinSize(value)
+}
+
+func MaxSliceSize(value uint) Option {
+	return options.WithRandomMapAndSliceMaxSize(value)
+}
+
 func It[T any](opts ...Option) T {
 	allOpts := []Option{
-		options.WithRandomMapAndSliceMinSize(1),
-		options.WithRandomMapAndSliceMaxSize(1),
+		MinSliceSize(1),
+		MaxSliceSize(1),
 	}
 	allOpts = append(allOpts, opts...)
 	var result T
