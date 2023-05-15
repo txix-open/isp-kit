@@ -6,6 +6,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/cenkalti/backoff/v4 v4.2.1
+	github.com/go-faker/faker/v4 v4.1.0
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/go-stomp/stomp/v3 v3.0.5
 	github.com/golang/protobuf v1.5.3
