@@ -13,7 +13,7 @@ require (
 	github.com/iancoleman/strcase v0.2.0
 	github.com/integration-system/bellows v1.0.1
 	github.com/integration-system/bgjob v1.3.0
-	github.com/integration-system/grmq v1.3.0
+	github.com/integration-system/grmq v1.4.0
 	github.com/integration-system/isp-etp-go/v2 v2.1.3
 	github.com/integration-system/jsonschema v1.0.1
 	github.com/jackc/pgx/v5 v5.3.1
@@ -27,7 +27,7 @@ require (
 	github.com/prometheus/client_golang v1.15.1
 	github.com/rabbitmq/amqp091-go v1.8.1
 	github.com/spf13/viper v1.15.0
-	github.com/stretchr/testify v1.8.2
+	github.com/stretchr/testify v1.8.3
 	github.com/xeipuuv/gojsonschema v1.2.0
 	go.uber.org/zap v1.24.0
 	golang.org/x/sync v0.2.0

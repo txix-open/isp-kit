@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -10,10 +11,12 @@ import (
 	"github.com/integration-system/isp-kit/requestid"
 	"github.com/integration-system/isp-kit/test"
 	"github.com/integration-system/isp-kit/test/grmqt"
+	"github.com/pkg/errors"
 	"github.com/rabbitmq/amqp091-go"
 )
 
 func TestRequestIdChain(t *testing.T) {
+	t.Parallel()
 	test, require := test.New(t)
 
 	expectedRequestId := requestid.Next()
@@ -80,4 +83,47 @@ func TestRequestIdChain(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		require.Fail("handler wasn't called")
 	}
+}
+
+func TestRetry(t *testing.T) {
+	t.Parallel()
+	test, require := test.New(t)
+
+	pub := grmqx.Publisher{
+		RoutingKey: "test",
+	}.DefaultPublisher()
+	callCount := atomic.Int32{}
+	handler := grmqx.NewResultHandler(
+		test.Logger(),
+		grmqx.AdapterFunc(func(ctx context.Context, body []byte) grmqx.Result {
+			callCount.Add(1)
+			return grmqx.Retry(errors.New("some error"))
+		}),
+	)
+	consumerCfg := grmqx.Consumer{
+		Queue: "test",
+		RetryPolicy: &grmqx.RetryPolicy{
+			FinallyMoveToDlq: true,
+			Retries: []grmqx.RetryConfig{{
+				DelayInMs:   300,
+				MaxAttempts: 3,
+			}},
+		},
+	}
+	consumer := consumerCfg.DefaultConsumer(handler, grmqx.ConsumerLog(test.Logger()))
+	cli := grmqt.New(test)
+	config := grmqx.NewConfig("",
+		grmqx.WithConsumers(consumer),
+		grmqx.WithPublishers(pub),
+		grmqx.WithDeclarations(grmqx.TopologyFromConsumers(consumerCfg)),
+	)
+	cli.Upgrade(config)
+
+	err := pub.Publish(context.Background(), &amqp091.Publishing{})
+	require.NoError(err)
+
+	time.Sleep(2 * time.Second)
+
+	require.EqualValues(4, callCount.Load())
+	require.EqualValues(1, cli.QueueLength("test.DLQ"))
 }

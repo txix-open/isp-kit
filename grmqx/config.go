@@ -3,9 +3,11 @@ package grmqx
 import (
 	"fmt"
 	"net/url"
+	"time"
 
 	"github.com/integration-system/grmq/consumer"
 	"github.com/integration-system/grmq/publisher"
+	"github.com/integration-system/grmq/retry"
 	"github.com/integration-system/grmq/topology"
 	"github.com/integration-system/isp-kit/metrics"
 	rabbitmq_metircs "github.com/integration-system/isp-kit/metrics/rabbitmq_metrics"
@@ -54,13 +56,24 @@ func (p Publisher) DefaultPublisher(restMiddlewares ...publisher.Middleware) *pu
 	)
 }
 
+type RetryConfig struct {
+	DelayInMs   int `valid:"required" schema:"Задержка в миллисекундах"`
+	MaxAttempts int `valid:"required" schema:"Количество попыток,-1 = бесконечно"`
+}
+
+type RetryPolicy struct {
+	FinallyMoveToDlq bool          `schema:"Отправить в DLQ,отправить сообщение в DLQ в случае последней неудавшеймся попытки обработки"`
+	Retries          []RetryConfig `schema:"Настройки"`
+}
+
 type Consumer struct {
-	Queue              string   `valid:"required" schema:"Наименование очереди"`
-	Dlq                bool     `schema:"Создать очередь DLQ"`
-	PrefetchCount      int      `schema:"Количество предзагруженных сообщений,по умолчанию - 1"`
-	Concurrency        int      `schema:"Количество обработчиков,по умолчанию - 1, рекомендовано использовать значение = prefetchCount"`
-	DisableAutoDeclare bool     `schema:"Отключить автоматическое объявление,по умолчанию  exchange, queue и binding будут созданы автоматически"`
-	Binding            *Binding `schema:"Настройки топологии"`
+	Queue              string       `valid:"required" schema:"Наименование очереди"`
+	Dlq                bool         `schema:"Создать очередь DLQ"`
+	PrefetchCount      int          `schema:"Количество предзагруженных сообщений,по умолчанию - 1"`
+	Concurrency        int          `schema:"Количество обработчиков,по умолчанию - 1, рекомендовано использовать значение = prefetchCount"`
+	DisableAutoDeclare bool         `schema:"Отключить автоматическое объявление,по умолчанию  exchange, queue и binding будут созданы автоматически"`
+	Binding            *Binding     `schema:"Настройки топологии"`
+	RetryPolicy        *RetryPolicy `schema:"Политика повторной обработки"`
 }
 
 type Binding struct {
@@ -84,12 +97,19 @@ func (c Consumer) DefaultConsumer(handler consumer.Handler, restMiddlewares ...c
 		},
 		restMiddlewares...,
 	)
-	return consumer.New(
-		handler,
-		c.Queue,
+	opts := []consumer.Option{
 		consumer.WithPrefetchCount(prefetchCount),
 		consumer.WithConcurrency(concurrency),
 		consumer.WithMiddlewares(middlewares...),
+	}
+	if c.RetryPolicy != nil {
+		policy := retryPolicyFromConfig(*c.RetryPolicy)
+		opts = append(opts, consumer.WithRetryPolicy(policy))
+	}
+	return consumer.New(
+		handler,
+		c.Queue,
+		opts...,
 	)
 }
 
@@ -100,7 +120,15 @@ func TopologyFromConsumers(consumers ...Consumer) topology.Declarations {
 			continue
 		}
 
-		opts = append(opts, topology.WithQueue(consumer.Queue, topology.WithDLQ(consumer.Dlq)))
+		queueOpts := []topology.QueueOption{
+			topology.WithDLQ(consumer.Dlq),
+		}
+		if consumer.RetryPolicy != nil {
+			policy := retryPolicyFromConfig(*consumer.RetryPolicy)
+			queueOpts = append(queueOpts, topology.WithRetryPolicy(policy))
+		}
+
+		opts = append(opts, topology.WithQueue(consumer.Queue, queueOpts...))
 		binding := consumer.Binding
 		if binding != nil {
 			switch binding.ExchangeType {
@@ -134,4 +162,18 @@ func NewConfig(url string, opts ...ConfigOption) Config {
 		opt(cfg)
 	}
 	return *cfg
+}
+
+func retryPolicyFromConfig(policy RetryPolicy) retry.Policy {
+	retries := make([]retry.Retry, 0)
+	for _, r := range policy.Retries {
+		retries = append(retries, retry.Retry{
+			Delay:       time.Duration(r.DelayInMs) * time.Millisecond,
+			MaxAttempts: r.MaxAttempts,
+		})
+	}
+	return retry.Policy{
+		Retries:          retries,
+		FinallyMoveToDlq: policy.FinallyMoveToDlq,
+	}
 }

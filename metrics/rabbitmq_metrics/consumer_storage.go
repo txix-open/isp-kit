@@ -12,6 +12,7 @@ type ConsumerStorage struct {
 	consumeMsgBodySize *prometheus.SummaryVec
 	dlqCount           *prometheus.CounterVec
 	requeueCount       *prometheus.CounterVec
+	retryCount         *prometheus.CounterVec
 	successCount       *prometheus.CounterVec
 }
 
@@ -44,6 +45,11 @@ func NewConsumerStorage(reg *metrics.Registry) *ConsumerStorage {
 			Name:      "consume_success_count",
 			Help:      "Count of successful messages",
 		}, []string{"exchange", "routing_key"})),
+		retryCount: metrics.GetOrRegister(reg, prometheus.NewCounterVec(prometheus.CounterOpts{
+			Subsystem: "rabbitmq",
+			Name:      "consume_retry_count",
+			Help:      "Count of retried messages",
+		}, []string{"exchange", "routing_key"})),
 	}
 	return s
 }
@@ -66,4 +72,8 @@ func (c *ConsumerStorage) IncDlqCount(exchange string, routingKey string) {
 
 func (c *ConsumerStorage) IncSuccessCount(exchange string, routingKey string) {
 	c.successCount.WithLabelValues(exchange, routingKey).Inc()
+}
+
+func (c *ConsumerStorage) IncRetryCount(exchange string, routingKey string) {
+	c.retryCount.WithLabelValues(exchange, routingKey).Inc()
 }

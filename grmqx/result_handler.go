@@ -16,11 +16,13 @@ type ConsumerMetricStorage interface {
 	IncRequeueCount(exchange string, routingKey string)
 	IncDlqCount(exchange string, routingKey string)
 	IncSuccessCount(exchange string, routingKey string)
+	IncRetryCount(exchange string, routingKey string)
 }
 
 type Result struct {
 	ack            bool
 	requeue        bool
+	retry          bool
 	requeueTimeout time.Duration
 	moveToDlq      bool
 	err            error
@@ -40,6 +42,8 @@ func Ack() Result {
 	return Result{ack: true}
 }
 
+// Requeue
+// Deprecated Use Retry and RetryPolicy instead
 func Requeue(after time.Duration, err error) Result {
 	return Result{requeue: true, requeueTimeout: after, err: err}
 }
@@ -48,6 +52,10 @@ func Requeue(after time.Duration, err error) Result {
 // if there is no DLQ, the message will be dropped
 func MoveToDlq(err error) Result {
 	return Result{moveToDlq: true, err: err}
+}
+
+func Retry(err error) Result {
+	return Result{retry: true, err: err}
 }
 
 type ResultHandler struct {
@@ -95,6 +103,17 @@ func (r ResultHandler) Handle(ctx context.Context, delivery *consumer.Delivery) 
 		err := delivery.Nack(true)
 		if err != nil {
 			r.logger.Error(ctx, "rmq client: nack message error", log.Any("error", err))
+		}
+	case result.retry:
+		r.metricStorage.IncRetryCount(exchange, routingKey)
+		r.logger.Error(
+			ctx,
+			"rmq client: message will be retried",
+			log.Any("error", result.err),
+		)
+		err := delivery.Retry()
+		if err != nil {
+			r.logger.Error(ctx, "rmq client: retry message error", log.Any("error", err))
 		}
 	case result.moveToDlq:
 		r.metricStorage.IncDlqCount(exchange, routingKey)
