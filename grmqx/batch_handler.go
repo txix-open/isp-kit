@@ -30,6 +30,8 @@ type BatchHandler struct {
 	batch         []BatchItem
 	c             chan BatchItem
 	runner        *sync.Once
+	closed        bool
+	lock          sync.Locker
 }
 
 func NewBatchHandler(
@@ -43,10 +45,18 @@ func NewBatchHandler(
 		maxSize:       maxSize,
 		c:             make(chan BatchItem),
 		runner:        &sync.Once{},
+		lock:          &sync.Mutex{},
 	}
 }
 
 func (r *BatchHandler) Handle(ctx context.Context, delivery *consumer.Delivery) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	if r.closed {
+		_ = delivery.Nack(true)
+	}
+
 	r.runner.Do(func() {
 		go r.run()
 	})
@@ -84,5 +94,9 @@ func (r *BatchHandler) run() {
 }
 
 func (r *BatchHandler) Close() {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	r.closed = true
 	close(r.c)
 }
