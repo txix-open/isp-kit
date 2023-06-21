@@ -66,6 +66,12 @@ type RetryPolicy struct {
 	Retries          []RetryConfig `schema:"Настройки"`
 }
 
+type Binding struct {
+	Exchange     string `valid:"required" schema:"Точка обмена"`
+	ExchangeType string `valid:"required,in(direct|fanout|topic)" schema:"Тип точки обмена"`
+	RoutingKey   string `valid:"required" schema:"Ключ маршрутизации"`
+}
+
 type Consumer struct {
 	Queue              string       `valid:"required" schema:"Наименование очереди"`
 	Dlq                bool         `schema:"Создать очередь DLQ"`
@@ -74,12 +80,6 @@ type Consumer struct {
 	DisableAutoDeclare bool         `schema:"Отключить автоматическое объявление,по умолчанию  exchange, queue и binding будут созданы автоматически"`
 	Binding            *Binding     `schema:"Настройки топологии"`
 	RetryPolicy        *RetryPolicy `schema:"Политика повторной обработки"`
-}
-
-type Binding struct {
-	Exchange     string `valid:"required" schema:"Точка обмена"`
-	ExchangeType string `valid:"required,in(direct|fanout|topic)" schema:"Тип точки обмена"`
-	RoutingKey   string `valid:"required" schema:"Ключ маршрутизации"`
 }
 
 func (c Consumer) DefaultConsumer(handler consumer.Handler, restMiddlewares ...consumer.Middleware) consumer.Consumer {
@@ -111,6 +111,39 @@ func (c Consumer) DefaultConsumer(handler consumer.Handler, restMiddlewares ...c
 		c.Queue,
 		opts...,
 	)
+}
+
+type BatchConsumer struct {
+	Queue              string       `valid:"required" schema:"Наименование очереди"`
+	Dlq                bool         `schema:"Создать очередь DLQ"`
+	BatchSize          int          `valid:"required" schema:"Количество сообщений в пачке"`
+	PurgeIntervalInMs  int          `valid:"required" schema:"Интервал обработки"`
+	DisableAutoDeclare bool         `schema:"Отключить автоматическое объявление,по умолчанию  exchange, queue и binding будут созданы автоматически"`
+	Binding            *Binding     `schema:"Настройки топологии"`
+	RetryPolicy        *RetryPolicy `schema:"Политика повторной обработки"`
+}
+
+func (b BatchConsumer) ConsumerConfig() Consumer {
+	return Consumer{
+		Queue:              b.Queue,
+		Dlq:                b.Dlq,
+		PrefetchCount:      b.BatchSize,
+		Concurrency:        1,
+		DisableAutoDeclare: b.DisableAutoDeclare,
+		Binding:            b.Binding,
+		RetryPolicy:        b.RetryPolicy,
+	}
+}
+
+func (b BatchConsumer) DefaultConsumer(handler BatchHandlerAdapter, restMiddlewares ...consumer.Middleware) consumer.Consumer {
+	batchHandler := NewBatchHandler(
+		handler,
+		time.Duration(b.PurgeIntervalInMs)*time.Millisecond,
+		b.BatchSize,
+	)
+	consumer := b.ConsumerConfig().DefaultConsumer(batchHandler, restMiddlewares...)
+	consumer.Closer = batchHandler
+	return consumer
 }
 
 func TopologyFromConsumers(consumers ...Consumer) topology.Declarations {
@@ -145,6 +178,16 @@ func TopologyFromConsumers(consumers ...Consumer) topology.Declarations {
 	}
 
 	return topology.New(opts...)
+}
+
+func JoinDeclarations(declarations ...topology.Declarations) topology.Declarations {
+	result := topology.New()
+	for _, declaration := range declarations {
+		result.Queues = append(result.Queues, declaration.Queues...)
+		result.Exchanges = append(result.Exchanges, declaration.Exchanges...)
+		result.Bindings = append(result.Bindings, declaration.Bindings...)
+	}
+	return result
 }
 
 type Config struct {

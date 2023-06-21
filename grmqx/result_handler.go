@@ -28,13 +28,13 @@ type Result struct {
 	err            error
 }
 
-type HandlerAdapter interface {
+type ResultHandlerAdapter interface {
 	Handle(ctx context.Context, body []byte) Result
 }
 
-type AdapterFunc func(ctx context.Context, body []byte) Result
+type ResultHandlerAdapterFunc func(ctx context.Context, body []byte) Result
 
-func (a AdapterFunc) Handle(ctx context.Context, body []byte) Result {
+func (a ResultHandlerAdapterFunc) Handle(ctx context.Context, body []byte) Result {
 	return a(ctx, body)
 }
 
@@ -60,11 +60,11 @@ func Retry(err error) Result {
 
 type ResultHandler struct {
 	logger        log.Logger
-	adapter       HandlerAdapter
+	adapter       ResultHandlerAdapter
 	metricStorage ConsumerMetricStorage
 }
 
-func NewResultHandler(logger log.Logger, adapter HandlerAdapter) ResultHandler {
+func NewResultHandler(logger log.Logger, adapter ResultHandlerAdapter) ResultHandler {
 	return ResultHandler{
 		logger:        logger,
 		adapter:       adapter,

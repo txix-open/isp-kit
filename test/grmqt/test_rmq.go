@@ -15,7 +15,7 @@ type Client struct {
 	connCfg  grmqx.Connection
 	t        *test.Test
 	conn     *amqp091.Connection
-	grmqxCli *grmqx.Client
+	GrmqxCli *grmqx.Client
 }
 
 func New(t *test.Test) *Client {
@@ -67,7 +67,7 @@ func New(t *test.Test) *Client {
 		connCfg:  connCfg,
 		t:        t,
 		conn:     conn,
-		grmqxCli: grmqxCli,
+		GrmqxCli: grmqxCli,
 	}
 }
 
@@ -89,7 +89,7 @@ func (c *Client) QueueLength(queue string) int {
 
 func (c *Client) Upgrade(config grmqx.Config) {
 	config.Url = c.connCfg.Url()
-	err := c.grmqxCli.Upgrade(context.Background(), config)
+	err := c.GrmqxCli.Upgrade(context.Background(), config)
 	c.t.Assert().NoError(err)
 }
 

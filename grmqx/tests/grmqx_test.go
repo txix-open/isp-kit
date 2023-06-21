@@ -39,7 +39,7 @@ func TestRequestIdChain(t *testing.T) {
 
 	handler1 := grmqx.NewResultHandler(
 		test.Logger(),
-		grmqx.AdapterFunc(func(ctx context.Context, body []byte) grmqx.Result {
+		grmqx.ResultHandlerAdapterFunc(func(ctx context.Context, body []byte) grmqx.Result {
 			err := pub2.Publish(ctx, &amqp091.Publishing{})
 			require.NoError(err)
 			return grmqx.Ack()
@@ -50,7 +50,7 @@ func TestRequestIdChain(t *testing.T) {
 	await := make(chan struct{})
 	handler2 := grmqx.NewResultHandler(
 		test.Logger(),
-		grmqx.AdapterFunc(func(ctx context.Context, body []byte) grmqx.Result {
+		grmqx.ResultHandlerAdapterFunc(func(ctx context.Context, body []byte) grmqx.Result {
 			requestId := requestid.FromContext(ctx)
 			require.EqualValues(expectedRequestId, requestId)
 			close(await)
@@ -95,7 +95,7 @@ func TestRetry(t *testing.T) {
 	callCount := atomic.Int32{}
 	handler := grmqx.NewResultHandler(
 		test.Logger(),
-		grmqx.AdapterFunc(func(ctx context.Context, body []byte) grmqx.Result {
+		grmqx.ResultHandlerAdapterFunc(func(ctx context.Context, body []byte) grmqx.Result {
 			callCount.Add(1)
 			return grmqx.Retry(errors.New("some error"))
 		}),
@@ -126,4 +126,46 @@ func TestRetry(t *testing.T) {
 
 	require.EqualValues(4, callCount.Load())
 	require.EqualValues(1, cli.QueueLength("test.DLQ"))
+}
+
+func TestBatchHandler(t *testing.T) {
+	t.Parallel()
+	test, require := test.New(t)
+
+	pub := grmqx.Publisher{
+		RoutingKey: "test",
+	}.DefaultPublisher()
+	deliveryCount := atomic.Int32{}
+	handler := grmqx.BatchHandlerAdapterFunc(func(batch []grmqx.BatchItem) {
+		for _, item := range batch {
+			err := item.Delivery.Ack()
+			require.NoError(err)
+			deliveryCount.Add(1)
+		}
+	})
+	consumerCfg := grmqx.BatchConsumer{
+		Queue:             "test",
+		BatchSize:         100,
+		PurgeIntervalInMs: 60000,
+	}
+	consumer := consumerCfg.DefaultConsumer(handler, grmqx.ConsumerLog(test.Logger()))
+	cli := grmqt.New(test)
+	config := grmqx.NewConfig("",
+		grmqx.WithConsumers(consumer),
+		grmqx.WithPublishers(pub),
+		grmqx.WithDeclarations(grmqx.TopologyFromConsumers(consumerCfg.ConsumerConfig())),
+	)
+	cli.Upgrade(config)
+
+	for i := 0; i < 101; i++ {
+		err := pub.Publish(context.Background(), &amqp091.Publishing{})
+		require.NoError(err)
+	}
+
+	time.Sleep(2 * time.Second)
+
+	cli.GrmqxCli.Close()
+
+	require.EqualValues(101, deliveryCount.Load())
+	require.EqualValues(0, cli.QueueLength("test"))
 }
