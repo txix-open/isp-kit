@@ -6,14 +6,8 @@ import (
 	"time"
 
 	"github.com/integration-system/isp-kit/http/endpoint/buffer"
+	"github.com/integration-system/isp-kit/metrics/http_metrics"
 )
-
-type MetricStorage interface {
-	ObserveDuration(method string, path string, duration time.Duration)
-	ObserveRequestBodySize(method string, path string, size int)
-	ObserveResponseBodySize(method string, path string, size int)
-	CountStatusCode(method string, path string, code int)
-}
 
 type scSource interface {
 	StatusCode() int
@@ -36,9 +30,14 @@ func (w *writerWrapper) WriteHeader(statusCode int) {
 	w.ResponseWriter.WriteHeader(statusCode)
 }
 
-func Metrics(storage MetricStorage) Middleware {
+func Metrics(storage *http_metrics.ServerStorage) Middleware {
 	return func(next HandlerFunc) HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+			endpoint := http_metrics.ServerEndpoint(r.Context())
+			if endpoint == "" {
+				return next(ctx, w, r)
+			}
+
 			var scSrc scSource
 			buf, isBuffer := w.(*buffer.Buffer)
 			if isBuffer {
@@ -49,11 +48,11 @@ func Metrics(storage MetricStorage) Middleware {
 
 			start := time.Now()
 			err := next(ctx, w, r)
-			storage.ObserveDuration(r.Method, r.URL.Path, time.Since(start))
-			storage.CountStatusCode(r.Method, r.URL.Path, scSrc.StatusCode())
+			storage.ObserveDuration(r.Method, endpoint, time.Since(start))
+			storage.CountStatusCode(r.Method, endpoint, scSrc.StatusCode())
 			if isBuffer {
-				storage.ObserveRequestBodySize(r.Method, r.URL.Path, len(buf.RequestBody()))
-				storage.ObserveResponseBodySize(r.Method, r.URL.Path, len(buf.ResponseBody()))
+				storage.ObserveRequestBodySize(r.Method, endpoint, len(buf.RequestBody()))
+				storage.ObserveResponseBodySize(r.Method, endpoint, len(buf.ResponseBody()))
 			}
 
 			return err

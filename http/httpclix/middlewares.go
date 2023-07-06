@@ -6,6 +6,7 @@ import (
 
 	"github.com/integration-system/isp-kit/http/httpcli"
 	"github.com/integration-system/isp-kit/log"
+	"github.com/integration-system/isp-kit/metrics/http_metrics"
 	"github.com/integration-system/isp-kit/requestid"
 )
 
@@ -57,16 +58,17 @@ func Log(logger log.Logger) httpcli.Middleware {
 	}
 }
 
-type MetricStorage interface {
-	ObserveDuration(url string, duration time.Duration)
-}
-
-func Metrics(storage MetricStorage) httpcli.Middleware {
+func Metrics(storage *http_metrics.ClientStorage) httpcli.Middleware {
 	return func(next httpcli.RoundTripper) httpcli.RoundTripper {
 		return httpcli.RoundTripperFunc(func(ctx context.Context, request *httpcli.Request) (*httpcli.Response, error) {
+			endpoint := http_metrics.ClientEndpoint(ctx)
+			if endpoint == "" {
+				return next.RoundTrip(ctx, request)
+			}
+
 			start := time.Now()
 			resp, err := next.RoundTrip(ctx, request)
-			storage.ObserveDuration(request.Raw.URL.String(), time.Since(start))
+			storage.ObserveDuration(endpoint, time.Since(start))
 			return resp, err
 		})
 	}

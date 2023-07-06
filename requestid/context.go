@@ -4,10 +4,10 @@ import (
 	"context"
 )
 
-type contextKey int
+type contextKey struct{}
 
 var (
-	contextKeyValue = contextKey(-1)
+	contextKeyValue = contextKey{}
 )
 
 func ToContext(ctx context.Context, value string) context.Context {

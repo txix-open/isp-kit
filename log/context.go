@@ -4,10 +4,10 @@ import (
 	"context"
 )
 
-type contextLogKey int
+type contextLogKey struct{}
 
 var (
-	contextKey = contextLogKey(-1)
+	contextKey = contextLogKey{}
 )
 
 func ContextLogValues(ctx context.Context) []Field {

@@ -9,6 +9,7 @@ import (
 	"github.com/integration-system/isp-kit/http/httpclix"
 	"github.com/integration-system/isp-kit/http/httperrors"
 	"github.com/integration-system/isp-kit/log"
+	"github.com/integration-system/isp-kit/metrics/http_metrics"
 	"github.com/integration-system/isp-kit/requestid"
 	"github.com/integration-system/isp-kit/test"
 	"github.com/integration-system/isp-kit/test/httpt"
@@ -39,6 +40,7 @@ func TestDefault(t *testing.T) {
 
 	cli := httpclix.Default(httpcli.WithMiddlewares(httpclix.Log(test.Logger())))
 	exp := example{}
+	ctx = http_metrics.ClientEndpointToContext(ctx, "/api/save")
 	resp, err := cli.Post(url + "/api/save").
 		JsonRequestBody(example{"test"}).
 		JsonResponseBody(&exp).

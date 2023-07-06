@@ -6,18 +6,18 @@ import (
 
 	"github.com/integration-system/isp-kit/http/endpoint"
 	"github.com/integration-system/isp-kit/http/httpcli"
+	"github.com/integration-system/isp-kit/http/router"
 	"github.com/integration-system/isp-kit/test"
-	"github.com/julienschmidt/httprouter"
 )
 
 type MockServer struct {
 	wrapper endpoint.Wrapper
 	srv     *httptest.Server
-	router  *httprouter.Router
+	router  *router.Router
 }
 
 func NewMock(t *test.Test) *MockServer {
-	router := httprouter.New()
+	router := router.New()
 	srv := httptest.NewServer(router)
 	t.T().Cleanup(func() {
 		srv.Close()
