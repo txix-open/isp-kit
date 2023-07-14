@@ -1,4 +1,4 @@
-module github.com/nikonor/isp-kit
+module github.com/integration-system/isp-kit
 
 go 1.20
 
@@ -15,7 +15,6 @@ require (
 	github.com/integration-system/bgjob v1.3.0
 	github.com/integration-system/grmq v1.4.2
 	github.com/integration-system/isp-etp-go/v2 v2.1.3
-	github.com/integration-system/isp-kit v1.22.0
 	github.com/integration-system/jsonschema v1.0.1
 	github.com/jackc/pgx/v5 v5.4.1
 	github.com/jmoiron/sqlx v1.3.5
@@ -78,3 +77,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
 )
+
+replace github.com/integration-system/isp-kit v1.22.0 => ./
