@@ -1,0 +1,12 @@
+int: 7
+bool: true
+dur: 5s
+value: subst
+envOverride: test
+someStruct:
+  value: someStruct
+slice:
+  - value: elem0
+  - value: elem1
+    anything: anything
+  - value: elem2

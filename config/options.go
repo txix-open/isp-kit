@@ -2,20 +2,20 @@ package config
 
 type Option func(l *Config)
 
-func WithReadingFromFile(file string) Option {
-	return func(l *Config) {
-		l.file = file
+func WithExtraSource(source Source) Option {
+	return func(config *Config) {
+		config.extraSource = source
 	}
 }
 
 func WithEnvPrefix(prefix string) Option {
-	return func(l *Config) {
-		l.envPrefix = prefix
+	return func(config *Config) {
+		config.envPrefix = prefix
 	}
 }
 
 func WithValidator(validator Validator) Option {
-	return func(l *Config) {
-		l.validator = validator
+	return func(config *Config) {
+		config.validator = validator
 	}
 }

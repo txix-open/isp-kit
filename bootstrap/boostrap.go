@@ -44,10 +44,16 @@ func New(moduleVersion string, remoteConfig interface{}, endpoints []cluster.End
 		stdlog.Fatal(errors.WithMessage(err, "resolve local config path"))
 		return nil
 	}
+	configsOpts := []config.Option{
+		config.WithValidator(validator.Default),
+		config.WithEnvPrefix(os.Getenv("APP_CONFIG_ENV_PREFIX")),
+	}
+	if localConfigPath != "" {
+		configsOpts = append(configsOpts, config.WithExtraSource(config.NewYamlConfig(localConfigPath)))
+	}
 	app, err := app.New(
 		isDev,
-		config.WithValidator(validator.Default),
-		config.WithReadingFromFile(localConfigPath),
+		configsOpts...,
 	)
 	if err != nil {
 		stdlog.Fatal(errors.WithMessage(err, "create app"))

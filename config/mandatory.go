@@ -1,31 +1,44 @@
 package config
 
 import (
-	"github.com/pkg/errors"
-	"github.com/spf13/viper"
+	"strconv"
+	"time"
 )
 
 type Mandatory struct {
-	v *viper.Viper
+	config map[string]string
 }
 
 func (m Mandatory) Int(key string) (int, error) {
-	if m.v.IsSet(key) {
-		return m.v.GetInt(key), nil
+	value, err := get[int](m.config, key, strconv.Atoi)
+	if err != nil {
+		return 0, err
 	}
-	return 0, errors.Errorf("%s is expected in config", key)
+	return value, nil
 }
 
 func (m Mandatory) String(key string) (string, error) {
-	if m.v.IsSet(key) {
-		return m.v.GetString(key), nil
+	value, err := get[string](m.config, key, func(value string) (string, error) {
+		return value, nil
+	})
+	if err != nil {
+		return "", err
 	}
-	return "", errors.Errorf("%s is expected in config", key)
+	return value, nil
 }
 
 func (m Mandatory) Bool(key string) (bool, error) {
-	if m.v.IsSet(key) {
-		return m.v.GetBool(key), nil
+	value, err := get[bool](m.config, key, strconv.ParseBool)
+	if err != nil {
+		return false, err
 	}
-	return false, errors.Errorf("%s is expected in config", key)
+	return value, nil
+}
+
+func (m Mandatory) Duration(key string) (time.Duration, error) {
+	value, err := get[time.Duration](m.config, key, time.ParseDuration)
+	if err != nil {
+		return 0, err
+	}
+	return value, nil
 }

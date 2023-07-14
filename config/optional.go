@@ -1,30 +1,41 @@
 package config
 
 import (
-	"github.com/spf13/viper"
+	"time"
 )
 
 type Optional struct {
-	v *viper.Viper
+	m Mandatory
 }
 
 func (o Optional) Int(key string, defValue int) int {
-	if o.v.IsSet(key) {
-		return o.v.GetInt(key)
+	value, err := o.m.Int(key)
+	if err != nil {
+		return defValue
 	}
-	return defValue
+	return value
 }
 
 func (o Optional) String(key string, defValue string) string {
-	if o.v.IsSet(key) {
-		return o.v.GetString(key)
+	value, err := o.m.String(key)
+	if err != nil {
+		return defValue
 	}
-	return defValue
+	return value
 }
 
 func (o Optional) Bool(key string, defValue bool) bool {
-	if o.v.IsSet(key) {
-		return o.v.GetBool(key)
+	value, err := o.m.Bool(key)
+	if err != nil {
+		return defValue
 	}
-	return defValue
+	return value
+}
+
+func (o Optional) Duration(key string, defValue time.Duration) time.Duration {
+	value, err := o.m.Duration(key)
+	if err != nil {
+		return defValue
+	}
+	return value
 }
