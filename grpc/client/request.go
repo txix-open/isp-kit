@@ -37,11 +37,6 @@ func (req *RequestBuilder) JsonRequestBody(reqBody interface{}) *RequestBuilder 
 	return req
 }
 
-func (req *RequestBuilder) ReadJsonResponse(respPtr interface{}) *RequestBuilder {
-	req.responsePtr = respPtr
-	return req
-}
-
 func (req *RequestBuilder) JsonResponseBody(respPtr interface{}) *RequestBuilder {
 	req.responsePtr = respPtr
 	return req
