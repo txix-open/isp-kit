@@ -50,10 +50,11 @@ func New(opts ...Option) (*Config, error) {
 	for _, pairs := range os.Environ() {
 		parts := strings.Split(pairs, "=")
 		key := normalizeKey(parts[0])
-		if cfg.envPrefix != "" && !strings.HasPrefix(key, cfg.envPrefix) {
+		prefix := normalizeKey(cfg.envPrefix)
+		if prefix != "" && !strings.HasPrefix(key, prefix) {
 			continue
 		}
-		key = key[len(cfg.envPrefix):]
+		key = key[len(prefix):]
 		config[key] = strings.Join(parts[1:], "")
 	}
 

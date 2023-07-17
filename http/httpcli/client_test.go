@@ -2,9 +2,9 @@ package httpcli_test
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/hex"
 	"io"
-	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -226,7 +226,7 @@ func TestConcurrency(t *testing.T) {
 	for i := 0; i < 10000; i++ {
 		group.Go(func() error {
 			data := make([]byte, 4200)
-			rand.Read(data)
+			_, _ = rand.Read(data)
 			requestData := hex.EncodeToString(data)
 			response := example{}
 			resp, err := cli.Post(srv.URL).
@@ -258,7 +258,7 @@ func BenchmarkClient_Post(b *testing.B) {
 		cli := httpcli.New()
 		for pb.Next() {
 			data := make([]byte, 4200)
-			rand.Read(data)
+			_, _ = rand.Read(data)
 			resp, err := cli.Post(srv.URL).
 				JsonRequestBody(example{Data: hex.EncodeToString(data)}).
 				JsonResponseBody(&example{}).
@@ -282,7 +282,7 @@ func BenchmarkGoResty(b *testing.B) {
 		cli.JSONUnmarshal = json.Unmarshal
 		for pb.Next() {
 			data := make([]byte, 4200)
-			rand.Read(data)
+			_, _ = rand.Read(data)
 			_, err := cli.R().
 				SetBody(example{Data: hex.EncodeToString(data)}).
 				SetResult(&example{}).
