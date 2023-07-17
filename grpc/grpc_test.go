@@ -58,7 +58,7 @@ func TestGrpcBasic(t *testing.T) {
 	err = cli.Invoke("endpoint").
 		ApplicationId(123).
 		JsonRequestBody(expectedReq).
-		ReadJsonResponse(&resp).
+		JsonResponseBody(&resp).
 		Do(ctx)
 	require.NoError(err)
 	require.True(resp.Ok)
@@ -145,7 +145,7 @@ func TestGrpcAppendMetadata(t *testing.T) {
 	err = cli.Invoke("endpoint").
 		ApplicationId(123).
 		AppendMetadata(testKey, testValue).
-		ReadJsonResponse(&resp).
+		JsonResponseBody(&resp).
 		Do(ctx)
 	require.NoError(err)
 	require.True(resp.Ok)
