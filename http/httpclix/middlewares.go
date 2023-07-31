@@ -28,16 +28,45 @@ func RequestId() httpcli.Middleware {
 	}
 }
 
+type logConfig struct {
+	LogRequestBody  bool
+	LogResponseBody bool
+}
+
+type logConfigContextKey struct{}
+
+var (
+	defaultLogConfig = logConfig{
+		LogRequestBody:  true,
+		LogResponseBody: true,
+	}
+	logConfigContextKeyValue = logConfigContextKey{}
+)
+
+func LogConfigToContext(ctx context.Context, logRequestBody bool, logResponseBody bool) context.Context {
+	return context.WithValue(ctx, logConfigContextKeyValue, logConfig{
+		LogRequestBody:  logRequestBody,
+		LogResponseBody: logResponseBody,
+	})
+}
+
 func Log(logger log.Logger) httpcli.Middleware {
 	return func(next httpcli.RoundTripper) httpcli.RoundTripper {
 		return httpcli.RoundTripperFunc(func(ctx context.Context, request *httpcli.Request) (*httpcli.Response, error) {
-			logger.Debug(
-				ctx,
-				"http client: request",
+			config := defaultLogConfig
+			configFromContext, ok := ctx.Value(logConfigContextKeyValue).(logConfig)
+			if ok {
+				config = configFromContext
+			}
+
+			requestFields := []log.Field{
 				log.String("method", request.Raw.Method),
 				log.String("url", request.Raw.URL.String()),
-				log.ByteString("requestBody", request.Body()),
-			)
+			}
+			if config.LogRequestBody {
+				requestFields = append(requestFields, log.ByteString("requestBody", request.Body()))
+			}
+			logger.Debug(ctx, "http client: request", requestFields...)
 
 			resp, err := next.RoundTrip(ctx, request)
 			if err != nil {
@@ -45,13 +74,14 @@ func Log(logger log.Logger) httpcli.Middleware {
 				return resp, err
 			}
 
-			responseBody, _ := resp.Body()
-			logger.Debug(
-				ctx,
-				"http client: response",
+			responseFields := []log.Field{
 				log.Int("statusCode", resp.StatusCode()),
-				log.ByteString("responseBody", responseBody),
-			)
+			}
+			if config.LogResponseBody {
+				responseBody, _ := resp.Body()
+				log.ByteString("responseBody", responseBody)
+			}
+			logger.Debug(ctx, "http client: response", responseFields...)
 
 			return resp, err
 		})
