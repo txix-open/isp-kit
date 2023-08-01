@@ -42,13 +42,13 @@ func Recovery() Middleware {
 				}
 
 				recovered, ok := r.(error)
-				if !ok {
+				if ok {
+					err = recovered
+				} else {
 					err = fmt.Errorf("%v", recovered)
 				}
-
 				stack := make([]byte, 4<<10)
 				length := runtime.Stack(stack, false)
-
 				err = errors.Errorf("[PANIC RECOVER] %v %s\n", err, stack[:length])
 			}()
 

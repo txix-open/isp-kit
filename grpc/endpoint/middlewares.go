@@ -24,8 +24,11 @@ func Recovery() Middleware {
 				if r == nil {
 					return
 				}
+
 				recovered, ok := r.(error)
-				if !ok {
+				if ok {
+					err = recovered
+				} else {
 					err = fmt.Errorf("%v", recovered)
 				}
 				stack := make([]byte, 4<<10)
