@@ -2,6 +2,7 @@ package httpcli
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/http"
 )
@@ -9,9 +10,10 @@ import (
 type Response struct {
 	Raw *http.Response
 
-	body []byte
-	err  error
-	buff *bytes.Buffer
+	cancel context.CancelFunc
+	body   []byte
+	err    error
+	buff   *bytes.Buffer
 }
 
 // Body
@@ -25,6 +27,12 @@ func (r *Response) Body() ([]byte, error) {
 	if r.body != nil {
 		return r.body, nil
 	}
+	defer func() {
+		if r.cancel != nil {
+			r.cancel() //associated context is no longer needed
+			r.cancel = nil
+		}
+	}()
 	_, err := io.Copy(r.buff, r.Raw.Body)
 	if err != nil {
 		r.err = err
@@ -38,6 +46,10 @@ func (r *Response) Body() ([]byte, error) {
 // Release all resources associated with Response (buffer, tcp connection)
 // After call, bytes slice returned by Body can not be used
 func (r *Response) Close() {
+	if r.cancel != nil {
+		r.cancel()
+		r.cancel = nil
+	}
 	_ = r.Raw.Body.Close()
 	r.body = nil
 	releaseBuffer(r.buff)

@@ -25,7 +25,7 @@ type Middleware func(next RoundTripper) RoundTripper
 
 type Client struct {
 	cli          *http.Client
-	globalConfig GlobalRequestConfig
+	globalConfig *GlobalRequestConfig
 	mws          []Middleware
 
 	roundTripper RoundTripper
@@ -33,7 +33,6 @@ type Client struct {
 
 var (
 	StdClient = &http.Client{
-		Timeout: 15 * time.Second,
 		Transport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
 			DialContext: defaultTransportDialContext(&net.Dialer{
@@ -58,7 +57,8 @@ func New(opts ...Option) *Client {
 
 func NewWithClient(cli *http.Client, opts ...Option) *Client {
 	c := &Client{
-		cli: cli,
+		cli:          cli,
+		globalConfig: NewGlobalRequestConfig(),
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -69,6 +69,10 @@ func NewWithClient(cli *http.Client, opts ...Option) *Client {
 	}
 	c.roundTripper = roundTripper
 	return c
+}
+
+func (c *Client) GlobalRequestConfig() *GlobalRequestConfig {
+	return c.globalConfig
 }
 
 func (c *Client) Post(url string) *RequestBuilder {
@@ -116,6 +120,7 @@ func (c *Client) execute(ctx context.Context, builder *RequestBuilder) (*Respons
 
 	rr := &Request{
 		Raw:          request,
+		timeout:      builder.timeout,
 		retryOptions: builder.retryOptions,
 	}
 
@@ -160,15 +165,34 @@ func (c *Client) executeWithRetries(ctx context.Context, request *Request) (*Res
 		err      error
 	)
 	body := request.body
+	origCtx := ctx
 	_ = request.retryOptions.retrier.Do(ctx, func() error {
-		var resp *http.Response
+		var (
+			ctx    context.Context
+			cancel context.CancelFunc
+		)
+		if request.timeout > 0 {
+			ctx, cancel = context.WithTimeout(origCtx, request.timeout)
+			request.Raw = request.Raw.WithContext(ctx)
+		}
 		if request.body != nil { //it's a none multipart
 			request.Raw.Body = io.NopCloser(bytes.NewBuffer(body))
 		}
+		var resp *http.Response
 		resp, err = c.cli.Do(request.Raw)
 		buff := acquireBuffer()
-		response = &Response{Raw: resp, buff: buff}
+		response = &Response{
+			Raw:    resp,
+			buff:   buff,
+			cancel: cancel,
+		}
 		retryErr := request.retryOptions.condition(err, response)
+		if retryErr != nil {
+			releaseBuffer(buff)
+			if cancel != nil {
+				cancel()
+			}
+		}
 		return retryErr
 	})
 

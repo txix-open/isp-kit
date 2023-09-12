@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type RequestBuilder struct {
@@ -18,12 +19,13 @@ type RequestBuilder struct {
 	basicAuth         *BasicAuth
 	queryParams       map[string]any
 	retryOptions      *retryOptions
+	timeout           time.Duration
 	statusCodeToError bool
 
 	execute func(ctx context.Context, req *RequestBuilder) (*Response, error)
 }
 
-func NewRequestBuilder(method string, url string, cfg GlobalRequestConfig, execute func(ctx context.Context, req *RequestBuilder) (*Response, error)) *RequestBuilder {
+func NewRequestBuilder(method string, url string, cfg *GlobalRequestConfig, execute func(ctx context.Context, req *RequestBuilder) (*Response, error)) *RequestBuilder {
 	builder := &RequestBuilder{
 		method:       method,
 		url:          url,
@@ -104,6 +106,13 @@ func (b *RequestBuilder) MultipartRequestBody(data *MultipartData) *RequestBuild
 // If set and Response.IsSuccess is false, Do return ErrorResponse as error
 func (b *RequestBuilder) StatusCodeToError() *RequestBuilder {
 	b.statusCodeToError = true
+	return b
+}
+
+// Timeout
+// Set per request attempt timeout, default timeout 15 seconds
+func (b *RequestBuilder) Timeout(timeout time.Duration) *RequestBuilder {
+	b.timeout = timeout
 	return b
 }
 

@@ -2,6 +2,7 @@ package httpcli
 
 import (
 	"net/http"
+	"time"
 )
 
 type Request struct {
@@ -9,6 +10,7 @@ type Request struct {
 
 	retryOptions *retryOptions
 	body         []byte
+	timeout      time.Duration
 }
 
 // Body

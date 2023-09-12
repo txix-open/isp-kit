@@ -180,6 +180,42 @@ func TestRequestBuilder_RetryOnError(t *testing.T) {
 	require.Nil(resp)
 }
 
+func TestRequestBuilder_RetryWithTimeout(t *testing.T) {
+	require := require.New(t)
+	srv := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
+		t.Log("call endpoint")
+		time.Sleep(500 * time.Millisecond)
+		writer.WriteHeader(http.StatusOK)
+	}))
+	cli := httpcli.New()
+	resp, err := cli.Get(srv.URL).
+		Retry(httpcli.IfErrorOr5XXStatus(), retry.NewExponentialBackoff(1*time.Second)).
+		Timeout(100 * time.Millisecond).
+		JsonRequestBody(example{Data: "test_data"}).
+		Do(context.Background())
+	t.Log(err)
+	require.Error(err)
+	require.Nil(resp)
+}
+
+func TestRequestBuilder_GlobalRequestTimeout(t *testing.T) {
+	require := require.New(t)
+	srv := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
+		t.Log("call endpoint")
+		time.Sleep(500 * time.Millisecond)
+		writer.WriteHeader(http.StatusOK)
+	}))
+	cli := httpcli.New()
+	cli.GlobalRequestConfig().Timeout = 100 * time.Millisecond
+	resp, err := cli.Get(srv.URL).
+		Retry(httpcli.IfErrorOr5XXStatus(), retry.NewExponentialBackoff(2*time.Second)).
+		JsonRequestBody(example{Data: "test_data"}).
+		Do(context.Background())
+	t.Log(err)
+	require.Error(err)
+	require.Nil(resp)
+}
+
 func TestRequestBuilder_MultipartData(t *testing.T) {
 	require := require.New(t)
 	url := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
@@ -256,6 +292,7 @@ func BenchmarkClient_Post(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		srv := echoServer()
 		cli := httpcli.New()
+		cli.GlobalRequestConfig().Timeout = 0
 		for pb.Next() {
 			data := make([]byte, 4200)
 			_, _ = rand.Read(data)
