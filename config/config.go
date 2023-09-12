@@ -19,9 +19,9 @@ type Config struct {
 	optional  Optional
 	mandatory Mandatory
 
-	envPrefix   string
-	validator   Validator
-	extraSource Source
+	envPrefix    string
+	validator    Validator
+	extraSources []Source
 }
 
 func New(opts ...Option) (*Config, error) {
@@ -37,10 +37,10 @@ func New(opts ...Option) (*Config, error) {
 		opt(cfg)
 	}
 
-	if cfg.extraSource != nil {
-		extraConfig, err := cfg.extraSource.Config()
+	for _, source := range cfg.extraSources {
+		extraConfig, err := source.Config()
 		if err != nil {
-			return nil, errors.WithMessage(err, "extra source")
+			return nil, errors.WithMessagef(err, "read extra source, %T", source)
 		}
 		for key, value := range extraConfig {
 			config[normalizeKey(key)] = value

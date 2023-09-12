@@ -4,7 +4,7 @@ type Option func(l *Config)
 
 func WithExtraSource(source Source) Option {
 	return func(config *Config) {
-		config.extraSource = source
+		config.extraSources = append(config.extraSources, source)
 	}
 }
 
