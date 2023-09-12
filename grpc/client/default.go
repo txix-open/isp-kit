@@ -1,8 +1,6 @@
 package client
 
 import (
-	"time"
-
 	ispgrpc "github.com/integration-system/isp-kit/grpc"
 	"github.com/integration-system/isp-kit/metrics"
 	"github.com/integration-system/isp-kit/metrics/grpc_metrics"
@@ -14,7 +12,6 @@ func Default(restMiddlewares ...Middleware) (*Client, error) {
 	middlewares := append(
 		[]Middleware{
 			RequestId(),
-			DefaultTimeout(15 * time.Second),
 			Metrics(grpc_metrics.NewClientStorage(metrics.DefaultRegistry)),
 		},
 		restMiddlewares...,

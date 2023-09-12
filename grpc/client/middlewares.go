@@ -25,17 +25,6 @@ func RequestId() Middleware {
 	}
 }
 
-func DefaultTimeout(timeout time.Duration) Middleware {
-	return func(next RoundTripper) RoundTripper {
-		return func(ctx context.Context, builder *RequestBuilder, message *isp.Message) (*isp.Message, error) {
-			ctx, cancel := context.WithTimeout(ctx, timeout)
-			defer cancel()
-
-			return next(ctx, builder, message)
-		}
-	}
-}
-
 func Log(logger log.Logger) Middleware {
 	return func(next RoundTripper) RoundTripper {
 		return func(ctx context.Context, builder *RequestBuilder, message *isp.Message) (*isp.Message, error) {
