@@ -46,7 +46,7 @@ func ServeIspHttp() {
 	if err != nil {
 		panic(err)
 	}
-	s := http.NewHttpServer()
+	s := http.NewServer()
 	go func() {
 		err := s.Serve(listener)
 		if err != nil {
