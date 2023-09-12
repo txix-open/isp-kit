@@ -10,6 +10,7 @@ type Level = zapcore.Level
 const (
 	FatalLevel = zap.FatalLevel
 	ErrorLevel = zap.ErrorLevel
+	WarnLevel  = zap.WarnLevel
 	InfoLevel  = zap.InfoLevel
 	DebugLevel = zap.DebugLevel
 )
