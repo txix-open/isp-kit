@@ -32,11 +32,11 @@ type ParamMapper struct {
 }
 
 type Wrapper struct {
-	paramMappers  map[string]ParamMapper
-	bodyExtractor RequestBodyExtractor
-	bodyMapper    ResponseBodyMapper
-	middlewares   []Middleware
-	logger        log.Logger
+	ParamMappers  map[string]ParamMapper
+	BodyExtractor RequestBodyExtractor
+	BodyMapper    ResponseBodyMapper
+	Middlewares   []Middleware
+	Logger        log.Logger
 }
 
 func NewWrapper(
@@ -50,39 +50,39 @@ func NewWrapper(
 		mappers[mapper.Type] = mapper
 	}
 	return Wrapper{
-		paramMappers:  mappers,
-		bodyExtractor: bodyExtractor,
-		bodyMapper:    bodyMapper,
-		logger:        logger,
+		ParamMappers:  mappers,
+		BodyExtractor: bodyExtractor,
+		BodyMapper:    bodyMapper,
+		Logger:        logger,
 	}
 }
 
 func (m Wrapper) Endpoint(f interface{}) http.HandlerFunc {
-	caller, err := NewCaller(f, m.bodyExtractor, m.bodyMapper, m.paramMappers)
+	caller, err := NewCaller(f, m.BodyExtractor, m.BodyMapper, m.ParamMappers)
 	if err != nil {
 		panic(err)
 	}
 
 	handler := caller.Handle
-	for i := len(m.middlewares) - 1; i >= 0; i-- {
-		handler = m.middlewares[i](handler)
+	for i := len(m.Middlewares) - 1; i >= 0; i-- {
+		handler = m.Middlewares[i](handler)
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := handler(r.Context(), w, r)
 		if err != nil {
-			m.logger.Error(r.Context(), err)
+			m.Logger.Error(r.Context(), err)
 		}
 	}
 }
 
 func (m Wrapper) WithMiddlewares(middlewares ...Middleware) Wrapper {
 	return Wrapper{
-		paramMappers:  m.paramMappers,
-		bodyExtractor: m.bodyExtractor,
-		bodyMapper:    m.bodyMapper,
-		middlewares:   append(m.middlewares, middlewares...),
-		logger:        m.logger,
+		ParamMappers:  m.ParamMappers,
+		BodyExtractor: m.BodyExtractor,
+		BodyMapper:    m.BodyMapper,
+		Middlewares:   append(m.Middlewares, middlewares...),
+		Logger:        m.Logger,
 	}
 
 }
