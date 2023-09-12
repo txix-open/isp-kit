@@ -26,10 +26,10 @@ type ParamMapper struct {
 }
 
 type Wrapper struct {
-	paramMappers  map[string]ParamMapper
-	bodyExtractor RequestBodyExtractor
-	bodyMapper    ResponseBodyMapper
-	middlewares   []Middleware
+	ParamMappers  map[string]ParamMapper
+	BodyExtractor RequestBodyExtractor
+	BodyMapper    ResponseBodyMapper
+	Middlewares   []Middleware
 }
 
 func NewWrapper(
@@ -42,31 +42,31 @@ func NewWrapper(
 		mappers[mapper.Type] = mapper
 	}
 	return Wrapper{
-		paramMappers:  mappers,
-		bodyExtractor: bodyExtractor,
-		bodyMapper:    bodyMapper,
+		ParamMappers:  mappers,
+		BodyExtractor: bodyExtractor,
+		BodyMapper:    bodyMapper,
 	}
 }
 
 func (m Wrapper) Endpoint(f interface{}) grpc.HandlerFunc {
-	caller, err := NewCaller(f, m.bodyExtractor, m.bodyMapper, m.paramMappers)
+	caller, err := NewCaller(f, m.BodyExtractor, m.BodyMapper, m.ParamMappers)
 	if err != nil {
 		panic(err)
 	}
 
 	handler := caller.Handle
-	for i := len(m.middlewares) - 1; i >= 0; i-- {
-		handler = m.middlewares[i](handler)
+	for i := len(m.Middlewares) - 1; i >= 0; i-- {
+		handler = m.Middlewares[i](handler)
 	}
 	return handler
 }
 
 func (m Wrapper) WithMiddlewares(middlewares ...Middleware) Wrapper {
 	return Wrapper{
-		paramMappers:  m.paramMappers,
-		bodyExtractor: m.bodyExtractor,
-		bodyMapper:    m.bodyMapper,
-		middlewares:   append(m.middlewares, middlewares...),
+		ParamMappers:  m.ParamMappers,
+		BodyExtractor: m.BodyExtractor,
+		BodyMapper:    m.BodyMapper,
+		Middlewares:   append(m.Middlewares, middlewares...),
 	}
 
 }
