@@ -49,7 +49,8 @@ func (m QueryDurationMetrics) TraceQueryEnd(ctx context.Context, conn *pgx.Conn,
 	}
 	label := fmt.Sprintf("%s", ctx.Value(labelContextKey))
 
-	m.duration.WithLabelValues(label).Observe(float64(time.Since(startedAt.(time.Time)).Milliseconds()))
+	duration := time.Since(startedAt.(time.Time))
+	m.duration.WithLabelValues(label).Observe(metrics.Milliseconds(duration))
 }
 
 func OperationLabelToContext(ctx context.Context, label string) context.Context {

@@ -36,8 +36,8 @@ func NewPublisherStorage(reg *metrics.Registry) *PublisherStorage {
 	return s
 }
 
-func (c *PublisherStorage) ObservePublishDuration(exchange string, routingKey string, t time.Duration) {
-	c.publishMsgDuration.WithLabelValues(exchange, routingKey).Observe(float64(t.Milliseconds()))
+func (c *PublisherStorage) ObservePublishDuration(exchange string, routingKey string, duration time.Duration) {
+	c.publishMsgDuration.WithLabelValues(exchange, routingKey).Observe(metrics.Milliseconds(duration))
 }
 
 func (c *PublisherStorage) ObservePublishMsgSize(exchange string, routingKey string, size int) {

@@ -61,7 +61,7 @@ func (r *Registry) MetricsDescriptionHandler() http.Handler {
 		writer.Header().Set("content-type", "text/plain")
 
 		for _, metric := range r.list {
-			c := make(chan *prometheus.Desc, 100)
+			c := make(chan *prometheus.Desc, 512)
 			metric.Describe(c)
 			for i := 0; i < len(c); i++ {
 				desc := <-c

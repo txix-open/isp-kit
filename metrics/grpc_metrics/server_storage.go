@@ -45,7 +45,7 @@ func NewServerStorage(reg *metrics.Registry) *ServerStorage {
 }
 
 func (s *ServerStorage) ObserveDuration(endpoint string, duration time.Duration) {
-	s.duration.WithLabelValues(endpoint).Observe(float64(duration.Milliseconds()))
+	s.duration.WithLabelValues(endpoint).Observe(metrics.Milliseconds(duration))
 }
 
 func (s *ServerStorage) ObserveRequestBodySize(endpoint string, size int) {

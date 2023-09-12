@@ -24,5 +24,5 @@ func NewClientStorage(reg *metrics.Registry) *ClientStorage {
 }
 
 func (s *ClientStorage) ObserveDuration(endpoint string, duration time.Duration) {
-	s.duration.WithLabelValues(endpoint).Observe(float64(duration.Milliseconds()))
+	s.duration.WithLabelValues(endpoint).Observe(metrics.Milliseconds(duration))
 }

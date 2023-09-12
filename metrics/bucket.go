@@ -1,5 +1,9 @@
 package metrics
 
+import (
+	"time"
+)
+
 var (
 	DefaultObjectives = map[float64]float64{
 		0.5:  0.05,  //0.45-0.55
@@ -8,3 +12,11 @@ var (
 		0.99: 0.001, //0.98.9-0.99.1,
 	}
 )
+
+func Milliseconds(duration time.Duration) float64 {
+	value := duration.Milliseconds()
+	if value == 0 {
+		return 1
+	}
+	return float64(value)
+}

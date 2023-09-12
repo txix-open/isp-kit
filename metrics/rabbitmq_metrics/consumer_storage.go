@@ -54,8 +54,8 @@ func NewConsumerStorage(reg *metrics.Registry) *ConsumerStorage {
 	return s
 }
 
-func (c *ConsumerStorage) ObserveConsumeDuration(exchange string, routingKey string, t time.Duration) {
-	c.consumeMsgDuration.WithLabelValues(exchange, routingKey).Observe(float64(t.Milliseconds()))
+func (c *ConsumerStorage) ObserveConsumeDuration(exchange string, routingKey string, duration time.Duration) {
+	c.consumeMsgDuration.WithLabelValues(exchange, routingKey).Observe(metrics.Milliseconds(duration))
 }
 
 func (c *ConsumerStorage) ObserveConsumeMsgSize(exchange string, routingKey string, size int) {

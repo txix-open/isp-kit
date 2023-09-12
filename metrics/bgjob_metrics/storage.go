@@ -47,8 +47,8 @@ func NewStorage(reg *metrics.Registry) *Storage {
 	return s
 }
 
-func (c *Storage) ObserveExecuteDuration(queue string, jobType string, t time.Duration) {
-	c.duration.WithLabelValues(queue, jobType).Observe(float64(t.Milliseconds()))
+func (c *Storage) ObserveExecuteDuration(queue string, jobType string, duration time.Duration) {
+	c.duration.WithLabelValues(queue, jobType).Observe(metrics.Milliseconds(duration))
 }
 
 func (c *Storage) IncRetryCount(queue string, jobType string) {

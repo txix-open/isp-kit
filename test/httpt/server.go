@@ -11,9 +11,7 @@ import (
 
 func TestServer(t *test.Test, handler http.Handler, opts ...httpcli.Option) (*httptest.Server, *httpcli.Client) {
 	srv := httptest.NewServer(handler)
-	opts = append(opts, httpcli.WithGlobalRequestConfig(httpcli.GlobalRequestConfig{
-		BaseUrl: srv.URL,
-	}))
 	cli := httpclix.Default(opts...)
+	cli.GlobalRequestConfig().BaseUrl = srv.URL
 	return srv, cli
 }
