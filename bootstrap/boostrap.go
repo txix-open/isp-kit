@@ -16,6 +16,7 @@ import (
 	"github.com/integration-system/isp-kit/config"
 	"github.com/integration-system/isp-kit/healthcheck"
 	"github.com/integration-system/isp-kit/infra"
+	"github.com/integration-system/isp-kit/infra/pprof"
 	"github.com/integration-system/isp-kit/json"
 	"github.com/integration-system/isp-kit/log"
 	"github.com/integration-system/isp-kit/metrics"
@@ -140,9 +141,14 @@ func bootstrap(isDev bool, application *app.Application, moduleVersion string, r
 	infraServer.Handle("/internal/metrics", metricsRegistry.MetricsHandler())
 	infraServer.Handle("/internal/metrics/descriptions", metricsRegistry.MetricsDescriptionHandler())
 	infraServer.Handle("/internal/health", healthcheckRegistry.Handler())
+	pprof.RegisterHandlers("/internal", infraServer)
 	application.Logger().Info(application.Context(),
 		"infra server handlers",
-		log.Any("infraServerHandlers", []string{"/internal/metrics", "/internal/metrics/descriptions", "/internal/health"}),
+		log.Any("infraServerHandlers", append([]string{
+			"/internal/metrics",
+			"/internal/metrics/descriptions",
+			"/internal/health",
+		}, pprof.Endpoints("/internal")...)),
 	)
 
 	return &Bootstrap{

@@ -24,6 +24,10 @@ func (s *Server) Handle(pattern string, handler http.Handler) {
 	s.mux.Handle(pattern, handler)
 }
 
+func (s *Server) HandleFunc(pattern string, handler http.HandlerFunc) {
+	s.Handle(pattern, handler)
+}
+
 func (s *Server) ListenAndServe(address string) error {
 	s.s.Addr = address
 	err := s.s.ListenAndServe()
