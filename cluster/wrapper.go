@@ -38,20 +38,11 @@ func (w *clientWrapper) On(event string, handler func(data []byte)) {
 		copied := make([]byte, len(data))
 		copy(copied, data)
 
-		dataToLog := copied
-		var err error
-		if hidingSecretsEvents[event] {
-			dataToLog, err = HideSecrets(copied)
-			if err != nil {
-				w.logger.Error(w.ctx, "can not hide secrets in config for log", log.Any("error", err))
-			}
-		}
-
 		w.logger.Info(
 			w.ctx,
 			"event received",
 			log.String("event", event),
-			log.String("data", string(dataToLog)),
+			log.ByteString("data", hideSecrets(event, copied)),
 		)
 		handler(copied)
 	})
@@ -62,7 +53,7 @@ func (w *clientWrapper) EmitWithAck(ctx context.Context, event string, data []by
 	w.logger.Info(
 		ctx,
 		"send event",
-		log.String("data", string(data)),
+		log.ByteString("data", hideSecrets(event, data)),
 	)
 
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)

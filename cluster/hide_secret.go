@@ -13,6 +13,7 @@ var (
 	hidingSecretsEvents = map[string]bool{
 		ConfigSendConfigWhenConnected: true,
 		ConfigSendConfigChanged:       true,
+		ModuleSendConfigSchema:        true,
 	}
 )
 
@@ -52,4 +53,15 @@ func HideSecrets(data []byte) ([]byte, error) {
 	}
 
 	return data, nil
+}
+
+func hideSecrets(event string, data []byte) []byte {
+	if hidingSecretsEvents[event] {
+		dataToLog, err := HideSecrets(data)
+		if err != nil {
+			return data
+		}
+		return dataToLog
+	}
+	return data
 }
