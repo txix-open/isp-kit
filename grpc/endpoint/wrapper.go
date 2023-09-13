@@ -8,6 +8,10 @@ import (
 	"github.com/integration-system/isp-kit/grpc/isp"
 )
 
+type GrpcError interface {
+	GrpcStatusError() error
+}
+
 type Middleware func(next grpc.HandlerFunc) grpc.HandlerFunc
 
 type RequestBodyExtractor interface {

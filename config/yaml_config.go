@@ -37,7 +37,7 @@ func (y YamlFileSource) Config() (map[string]string, error) {
 	flatten := bellows.Flatten(fileProps)
 	config := map[string]string{}
 	for key, value := range flatten {
-		config[normalizeKey(key)] = fmt.Sprintf("%v", value)
+		config[key] = fmt.Sprintf("%v", value)
 	}
 	return config, nil
 }

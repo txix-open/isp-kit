@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/integration-system/isp-kit/http/apierrors"
 	"github.com/integration-system/isp-kit/http/httpcli"
 	"github.com/integration-system/isp-kit/http/httpclix"
-	"github.com/integration-system/isp-kit/http/httperrors"
 	"github.com/integration-system/isp-kit/log"
 	"github.com/integration-system/isp-kit/metrics/http_metrics"
 	"github.com/integration-system/isp-kit/requestid"
@@ -33,7 +33,7 @@ func TestDefault(t *testing.T) {
 
 		invokeNumber++
 		if invokeNumber == 1 {
-			return nil, httperrors.New(http.StatusBadRequest, errors.New("test error"))
+			return nil, apierrors.NewBusinessError(http.StatusBadRequest, "test error", errors.New("test error"))
 		}
 		return &req, nil
 	}).BaseURL()

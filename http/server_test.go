@@ -8,8 +8,8 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	isphttp "github.com/integration-system/isp-kit/http"
+	"github.com/integration-system/isp-kit/http/apierrors"
 	"github.com/integration-system/isp-kit/http/endpoint"
-	"github.com/integration-system/isp-kit/http/httperrors"
 	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
@@ -78,7 +78,7 @@ func prepareServer(t *testing.T) string {
 	}, {
 		Path: "/badGetId",
 		Handler: func(req Request) (*Response, error) {
-			return &Response{}, httperrors.New(404, errors.New("Not Found"))
+			return &Response{}, apierrors.New(http.StatusNotFound, http.StatusNotFound, "not found", errors.New("Not Found"))
 		},
 	}, {
 		Path: "/noBody",
@@ -96,7 +96,7 @@ func prepareServer(t *testing.T) string {
 	listener, err := net.Listen("tcp", "127.0.0.1:")
 	require.NoError(t, err)
 
-	srv := isphttp.NewServer()
+	srv := isphttp.NewServer(logger)
 	srv.Upgrade(muxer)
 	go func() {
 		err := srv.Serve(listener)

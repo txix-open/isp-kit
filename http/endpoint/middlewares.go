@@ -10,8 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/integration-system/isp-kit/http/apierrors"
 	"github.com/integration-system/isp-kit/http/endpoint/buffer"
-	"github.com/integration-system/isp-kit/http/httperrors"
+	"github.com/integration-system/isp-kit/log/logutil"
 
 	"github.com/integration-system/isp-kit/log"
 	"github.com/integration-system/isp-kit/requestid"
@@ -65,7 +66,8 @@ func ErrorHandler(logger log.Logger) Middleware {
 				return nil
 			}
 
-			logger.Error(ctx, err)
+			logFunc := logutil.LogLevelFuncForError(err, logger)
+			logFunc(ctx, err)
 
 			httpErr, ok := err.(HttpError)
 			if ok {
@@ -74,8 +76,7 @@ func ErrorHandler(logger log.Logger) Middleware {
 			}
 
 			//hide error details to prevent potential security leaks
-			err = httperrors.New(http.StatusInternalServerError, errors.New("internal service error")).
-				WriteError(w)
+			err = apierrors.NewInternalServiceError(err).WriteError(w)
 
 			return err
 		}

@@ -5,8 +5,10 @@ import (
 	"net"
 	"net/http"
 	"sync/atomic"
+	"time"
 
-	"github.com/integration-system/isp-kit/http/httperrors"
+	"github.com/integration-system/isp-kit/http/apierrors"
+	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
 )
 
@@ -17,7 +19,7 @@ type service struct {
 func (s *service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	value, ok := s.delegate.Load().(http.Handler)
 	if !ok {
-		_ = httperrors.New(http.StatusNotImplemented, errors.New("handler is not initialized")).
+		_ = apierrors.NewInternalServiceError(errors.New("handler is not initialized")).
 			WriteError(w)
 		return
 	}
@@ -38,9 +40,17 @@ type Server struct {
 	service *service
 }
 
-func NewServer(opts ...ServerOption) *Server {
+func NewServer(logger *log.Adapter, opts ...ServerOption) *Server {
 	s := &Server{
-		server: &http.Server{},
+		server: &http.Server{
+			ReadHeaderTimeout: 3 * time.Second,
+			IdleTimeout:       120 * time.Second,
+			ErrorLog: log.StdLoggerWithLevel(
+				logger,
+				log.WarnLevel,
+				log.String("source", "http server"),
+			),
+		},
 		service: &service{
 			delegate: atomic.Value{},
 		},

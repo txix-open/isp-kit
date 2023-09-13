@@ -9,6 +9,7 @@ import (
 	"github.com/integration-system/isp-kit/grpc"
 	"github.com/integration-system/isp-kit/grpc/isp"
 	"github.com/integration-system/isp-kit/log"
+	"github.com/integration-system/isp-kit/log/logutil"
 	"github.com/integration-system/isp-kit/requestid"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
@@ -47,11 +48,21 @@ func ErrorHandler(logger log.Logger) Middleware {
 			if err == nil {
 				return result, nil
 			}
-			logger.Error(ctx, err)
-			_, ok := status.FromError(err)
+
+			logFunc := logutil.LogLevelFuncForError(err, logger)
+			logFunc(ctx, err)
+
+			grpcErr, ok := err.(GrpcError)
+			if ok {
+				return result, grpcErr.GrpcStatusError()
+			}
+
+			//deprecated approach
+			_, ok = status.FromError(err)
 			if ok {
 				return result, err
 			}
+
 			//hide error details to prevent potential security leaks
 			return result, status.Error(codes.Internal, "internal service error")
 		}

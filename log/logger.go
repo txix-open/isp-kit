@@ -3,6 +3,7 @@ package log
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -89,4 +90,13 @@ func (a *Adapter) Enabled(level Level) bool {
 
 func (a *Adapter) Close() error {
 	return a.logger.Sync()
+}
+
+func StdLoggerWithLevel(adapter *Adapter, level Level, withFields ...Field) *log.Logger {
+	logger := adapter.logger.With(withFields...)
+	stdLogger, err := zap.NewStdLogAt(logger, level)
+	if err != nil {
+		panic(err)
+	}
+	return stdLogger
 }

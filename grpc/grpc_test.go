@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/integration-system/isp-kit/grpc"
+	"github.com/integration-system/isp-kit/grpc/apierrors"
 	grpcCli "github.com/integration-system/isp-kit/grpc/client"
 	"github.com/integration-system/isp-kit/grpc/endpoint"
 	"github.com/integration-system/isp-kit/log"
@@ -81,6 +82,15 @@ func TestGrpcValidation(t *testing.T) {
 
 	err = cli.Invoke("endpoint").JsonRequestBody(reqBody{A: ""}).Do(context.Background())
 	require.EqualValues(codes.InvalidArgument, status.Code(err))
+	apiError, ok := apierrors.FromError(err)
+	require.True(ok)
+	require.EqualValues(apierrors.Error{
+		ErrorCode:    400,
+		ErrorMessage: "invalid request body",
+		Details: map[string]any{
+			"a": "non zero value required",
+		},
+	}, *apiError)
 	require.EqualValues(0, atomic.LoadInt32(&callCount))
 }
 
