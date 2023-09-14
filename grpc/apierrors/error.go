@@ -84,10 +84,10 @@ func (e Error) LogLevel() log.Level {
 	return e.level
 }
 
-func FromError(err error) (*Error, bool) {
+func FromError(err error) *Error {
 	s, ok := status.FromError(err)
 	if !ok {
-		return nil, false
+		return nil
 	}
 
 	for _, detail := range s.Details() {
@@ -96,14 +96,14 @@ func FromError(err error) (*Error, bool) {
 			errData := Error{}
 			err := json.Unmarshal(typedDetail.GetBytesBody(), &errData)
 			if err != nil {
-				return nil, false
+				return nil
 			}
 			if errData.ErrorCode == 0 {
-				return nil, false
+				return nil
 			}
-			return &errData, true
+			return &errData
 		}
 	}
 
-	return nil, false
+	return nil
 }

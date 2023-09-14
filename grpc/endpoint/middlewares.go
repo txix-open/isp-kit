@@ -52,13 +52,13 @@ func ErrorHandler(logger log.Logger) Middleware {
 			logFunc := logutil.LogLevelFuncForError(err, logger)
 			logFunc(ctx, err)
 
-			grpcErr, ok := err.(GrpcError)
-			if ok {
+			var grpcErr GrpcError
+			if errors.As(err, &grpcErr) {
 				return result, grpcErr.GrpcStatusError()
 			}
 
 			//deprecated approach
-			_, ok = status.FromError(err)
+			_, ok := status.FromError(err)
 			if ok {
 				return result, err
 			}

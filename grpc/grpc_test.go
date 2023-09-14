@@ -82,8 +82,8 @@ func TestGrpcValidation(t *testing.T) {
 
 	err = cli.Invoke("endpoint").JsonRequestBody(reqBody{A: ""}).Do(context.Background())
 	require.EqualValues(codes.InvalidArgument, status.Code(err))
-	apiError, ok := apierrors.FromError(err)
-	require.True(ok)
+	apiError := apierrors.FromError(err)
+	require.NotNil(apiError)
 	require.EqualValues(apierrors.Error{
 		ErrorCode:    400,
 		ErrorMessage: "invalid request body",

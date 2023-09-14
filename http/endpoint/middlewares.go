@@ -69,8 +69,8 @@ func ErrorHandler(logger log.Logger) Middleware {
 			logFunc := logutil.LogLevelFuncForError(err, logger)
 			logFunc(ctx, err)
 
-			httpErr, ok := err.(HttpError)
-			if ok {
+			var httpErr HttpError
+			if errors.As(err, &httpErr) {
 				err = httpErr.WriteError(w)
 				return err
 			}
