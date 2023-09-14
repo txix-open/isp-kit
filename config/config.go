@@ -11,7 +11,7 @@ import (
 )
 
 type Validator interface {
-	ValidateToError(value interface{}) error
+	ValidateToError(value any) error
 }
 
 type Config struct {

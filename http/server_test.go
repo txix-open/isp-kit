@@ -63,7 +63,7 @@ func TestService(t *testing.T) {
 
 type endpointDescriptor struct {
 	Path    string
-	Handler interface{}
+	Handler any
 }
 
 func prepareServer(t *testing.T) string {

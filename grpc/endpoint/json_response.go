@@ -9,7 +9,7 @@ import (
 type JsonResponseMapper struct {
 }
 
-func (j JsonResponseMapper) Map(result interface{}) (*isp.Message, error) {
+func (j JsonResponseMapper) Map(result any) (*isp.Message, error) {
 	if result == nil {
 		return &isp.Message{Body: &isp.Message_BytesBody{}}, nil
 	}

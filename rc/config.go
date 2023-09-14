@@ -9,7 +9,7 @@ import (
 )
 
 type Validator interface {
-	ValidateToError(value interface{}) error
+	ValidateToError(value any) error
 }
 
 type Config struct {
@@ -28,7 +28,7 @@ func New(validator Validator, overrideData []byte) *Config {
 	}
 }
 
-func (c *Config) Upgrade(data []byte, newConfigPtr interface{}, prevConfigPtr interface{}) error {
+func (c *Config) Upgrade(data []byte, newConfigPtr any, prevConfigPtr any) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -60,13 +60,13 @@ func (c *Config) Upgrade(data []byte, newConfigPtr interface{}, prevConfigPtr in
 }
 
 func (c *Config) mergeWithOverride(data []byte) ([]byte, error) {
-	config := make(map[string]interface{})
+	config := make(map[string]any)
 	err := json.Unmarshal(data, &config)
 	if err != nil {
 		return nil, errors.WithMessage(err, "unmarshal config")
 	}
 
-	overrideData := make(map[string]interface{})
+	overrideData := make(map[string]any)
 	if len(c.overrideConfig) > 0 {
 		err = json.Unmarshal(c.overrideConfig, &overrideData)
 		if err != nil {
@@ -81,9 +81,9 @@ func (c *Config) mergeWithOverride(data []byte) ([]byte, error) {
 	}
 	result := bellows.Expand(config)
 	if result == nil {
-		result = make(map[string]interface{})
+		result = make(map[string]any)
 	}
-	config, ok := result.(map[string]interface{})
+	config, ok := result.(map[string]any)
 	if !ok {
 		return nil, errors.WithMessagef(err, "unexpected type from bellows, expected map, got %T", result)
 	}

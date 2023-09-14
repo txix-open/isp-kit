@@ -10,7 +10,7 @@ import (
 type JsonResponseMapper struct {
 }
 
-func (j JsonResponseMapper) Map(result interface{}, w http.ResponseWriter) error {
+func (j JsonResponseMapper) Map(result any, w http.ResponseWriter) error {
 	if result == nil {
 		return nil
 	}

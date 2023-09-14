@@ -8,7 +8,7 @@ import (
 func ContextParam() ParamMapper {
 	return ParamMapper{
 		Type: "context.Context",
-		Builder: func(ctx context.Context, w http.ResponseWriter, r *http.Request) (interface{}, error) {
+		Builder: func(ctx context.Context, w http.ResponseWriter, r *http.Request) (any, error) {
 			return ctx, nil
 		},
 	}
@@ -17,7 +17,7 @@ func ContextParam() ParamMapper {
 func ResponseWriterParam() ParamMapper {
 	return ParamMapper{
 		Type: "http.ResponseWriter",
-		Builder: func(ctx context.Context, w http.ResponseWriter, r *http.Request) (interface{}, error) {
+		Builder: func(ctx context.Context, w http.ResponseWriter, r *http.Request) (any, error) {
 			return w, nil
 		},
 	}
@@ -26,7 +26,7 @@ func ResponseWriterParam() ParamMapper {
 func RequestParam() ParamMapper {
 	return ParamMapper{
 		Type: "*http.Request",
-		Builder: func(ctx context.Context, w http.ResponseWriter, r *http.Request) (interface{}, error) {
+		Builder: func(ctx context.Context, w http.ResponseWriter, r *http.Request) (any, error) {
 			return r, nil
 		},
 	}

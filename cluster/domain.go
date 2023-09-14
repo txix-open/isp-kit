@@ -37,8 +37,8 @@ type EndpointDescriptor struct {
 	Path             string
 	Inner            bool
 	UserAuthRequired bool
-	Extra            map[string]interface{}
-	Handler          interface{} `json:"-"`
+	Extra            map[string]any
+	Handler          any `json:"-"`
 }
 
 type ModuleRequirements struct {

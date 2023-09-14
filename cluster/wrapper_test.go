@@ -74,8 +74,8 @@ func TestHideSecrets(t *testing.T) {
 	actualData, err := cluster.HideSecrets(configData)
 	require.NoError(err)
 
-	expectConfig := make(map[string]interface{})
-	actualConfig := make(map[string]interface{})
+	expectConfig := make(map[string]any)
+	actualConfig := make(map[string]any)
 
 	err = json.Unmarshal(expectData, &expectConfig)
 	require.NoError(err)

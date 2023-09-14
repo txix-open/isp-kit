@@ -25,7 +25,7 @@ type Caller struct {
 }
 
 func NewCaller(
-	f interface{},
+	f any,
 	bodyExtractor RequestBodyExtractor,
 	bodyMapper ResponseBodyMapper,
 	paramMappers map[string]ParamMapper,
@@ -90,7 +90,7 @@ func (h *Caller) Handle(ctx context.Context, w http.ResponseWriter, r *http.Requ
 
 	returned := h.handler.Call(args)
 
-	var result interface{}
+	var result any
 	var err error
 	for i := 0; i < len(returned); i++ {
 		v := returned[i]

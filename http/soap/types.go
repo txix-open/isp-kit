@@ -27,7 +27,7 @@ type Header struct {
 type Body struct {
 	XMLName xml.Name `xml:"http://schemas.xmlsoap.org/soap/envelope/ Body"`
 
-	Content interface{} `xml:",omitempty"`
+	Content any `xml:",omitempty"`
 
 	// faultOccurred indicates whether the XML body included a fault;
 	// we cannot simply store SOAPFault as a pointer to indicate this, since

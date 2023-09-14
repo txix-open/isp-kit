@@ -10,7 +10,7 @@ import (
 )
 
 type Validator interface {
-	ValidateToError(v interface{}) error
+	ValidateToError(v any) error
 }
 
 type RequestExtractor struct {

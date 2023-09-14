@@ -38,7 +38,7 @@ type Bootstrap struct {
 	ModuleName          string
 }
 
-func New(moduleVersion string, remoteConfig interface{}, endpoints []cluster.EndpointDescriptor) *Bootstrap {
+func New(moduleVersion string, remoteConfig any, endpoints []cluster.EndpointDescriptor) *Bootstrap {
 	isDev := strings.ToLower(os.Getenv("APP_MODE")) == "dev"
 	localConfigPath, err := configFilePath(isDev)
 	if err != nil {
@@ -69,7 +69,7 @@ func New(moduleVersion string, remoteConfig interface{}, endpoints []cluster.End
 	return boot
 }
 
-func bootstrap(isDev bool, application *app.Application, moduleVersion string, remoteConfig interface{}, endpoints []cluster.EndpointDescriptor) (*Bootstrap, error) {
+func bootstrap(isDev bool, application *app.Application, moduleVersion string, remoteConfig any, endpoints []cluster.EndpointDescriptor) (*Bootstrap, error) {
 	localConfig := LocalConfig{}
 	err := application.Config().Read(&localConfig)
 	if err != nil {

@@ -69,7 +69,7 @@ func ServeIspHttp() {
 type v struct {
 }
 
-func (v v) Validate(i interface{}) error {
+func (v v) Validate(i any) error {
 	return validator.Default.ValidateToError(i)
 }
 

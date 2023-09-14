@@ -21,10 +21,10 @@ type RequestBodyExtractor interface {
 }
 
 type ResponseBodyMapper interface {
-	Map(result interface{}, w http.ResponseWriter) error
+	Map(result any, w http.ResponseWriter) error
 }
 
-type ParamBuilder func(ctx context.Context, w http.ResponseWriter, r *http.Request) (interface{}, error)
+type ParamBuilder func(ctx context.Context, w http.ResponseWriter, r *http.Request) (any, error)
 
 type ParamMapper struct {
 	Type    string
@@ -57,7 +57,7 @@ func NewWrapper(
 	}
 }
 
-func (m Wrapper) Endpoint(f interface{}) http.HandlerFunc {
+func (m Wrapper) Endpoint(f any) http.HandlerFunc {
 	caller, err := NewCaller(f, m.BodyExtractor, m.BodyMapper, m.ParamMappers)
 	if err != nil {
 		panic(err)

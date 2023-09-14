@@ -47,7 +47,7 @@ func TestBalancing(t *testing.T) {
 	}
 }
 
-func prepareServer(t *testing.T, require *require.Assertions, endpointName string, handler interface{}) string {
+func prepareServer(t *testing.T, require *require.Assertions, endpointName string, handler any) string {
 	listener, err := net.Listen("tcp", "127.0.0.1:")
 	require.NoError(err)
 	srv := grpc.NewServer()

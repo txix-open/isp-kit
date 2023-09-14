@@ -10,7 +10,7 @@ import (
 type noneValidation struct {
 }
 
-func (n noneValidation) ValidateToError(value interface{}) error {
+func (n noneValidation) ValidateToError(value any) error {
 	return nil
 }
 

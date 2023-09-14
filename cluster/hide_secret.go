@@ -18,7 +18,7 @@ var (
 )
 
 func HideSecrets(data []byte) ([]byte, error) {
-	config := make(map[string]interface{})
+	config := make(map[string]any)
 	err := json.Unmarshal(data, &config)
 	if err != nil {
 		return nil, errors.WithMessage(err, "unmarshal config for replacement secret")
@@ -39,10 +39,10 @@ func HideSecrets(data []byte) ([]byte, error) {
 
 	expandConf := bellows.Expand(flattenConf)
 	if expandConf == nil {
-		expandConf = make(map[string]interface{})
+		expandConf = make(map[string]any)
 	}
 
-	config, ok := expandConf.(map[string]interface{})
+	config, ok := expandConf.(map[string]any)
 	if !ok {
 		return nil, errors.WithMessagef(err, "unexpected type from bellows, expected map, got %T", config)
 	}

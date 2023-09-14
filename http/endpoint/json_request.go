@@ -13,7 +13,7 @@ import (
 )
 
 type Validator interface {
-	Validate(value interface{}) (bool, map[string]string)
+	Validate(value any) (bool, map[string]string)
 }
 
 type JsonRequestExtractor struct {

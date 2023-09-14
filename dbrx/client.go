@@ -69,7 +69,7 @@ func (c *Client) DB() (*dbx.Client, error) {
 	return c.db()
 }
 
-func (c *Client) Select(ctx context.Context, ptr interface{}, query string, args ...interface{}) error {
+func (c *Client) Select(ctx context.Context, ptr any, query string, args ...any) error {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
@@ -80,7 +80,7 @@ func (c *Client) Select(ctx context.Context, ptr interface{}, query string, args
 	return cli.Select(ctx, ptr, query, args...)
 }
 
-func (c *Client) SelectRow(ctx context.Context, ptr interface{}, query string, args ...interface{}) error {
+func (c *Client) SelectRow(ctx context.Context, ptr any, query string, args ...any) error {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
@@ -91,7 +91,7 @@ func (c *Client) SelectRow(ctx context.Context, ptr interface{}, query string, a
 	return cli.SelectRow(ctx, ptr, query, args...)
 }
 
-func (c *Client) Exec(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+func (c *Client) Exec(ctx context.Context, query string, args ...any) (sql.Result, error) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
@@ -102,7 +102,7 @@ func (c *Client) Exec(ctx context.Context, query string, args ...interface{}) (s
 	return cli.Exec(ctx, query, args...)
 }
 
-func (c *Client) ExecNamed(ctx context.Context, query string, arg interface{}) (sql.Result, error) {
+func (c *Client) ExecNamed(ctx context.Context, query string, arg any) (sql.Result, error) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 

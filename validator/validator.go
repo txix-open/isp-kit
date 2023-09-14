@@ -16,10 +16,10 @@ func New() Adapter {
 }
 
 type wrapper struct {
-	V interface{}
+	V any
 }
 
-func (a Adapter) Validate(v interface{}) (ok bool, details map[string]string) {
+func (a Adapter) Validate(v any) (ok bool, details map[string]string) {
 	ok, err := govalidator.ValidateStruct(wrapper{v}) //hack
 	if ok || err == nil {
 		return true, nil
@@ -33,7 +33,7 @@ func (a Adapter) Validate(v interface{}) (ok bool, details map[string]string) {
 	return false, details
 }
 
-func (a Adapter) ValidateToError(v interface{}) error {
+func (a Adapter) ValidateToError(v any) error {
 	ok, details := a.Validate(v)
 	if ok {
 		return nil

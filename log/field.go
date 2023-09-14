@@ -30,6 +30,6 @@ func ByteString(key string, value []byte) Field {
 	return zap.ByteString(key, value)
 }
 
-func Any(key string, value interface{}) Field {
+func Any(key string, value any) Field {
 	return zap.Any(key, value)
 }

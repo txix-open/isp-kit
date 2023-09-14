@@ -77,18 +77,18 @@ func (db *Client) RunInTransaction(ctx context.Context, txFunc TxFunc, opts ...T
 	return txFunc(ctx, &Tx{tx})
 }
 
-func (db *Client) Select(ctx context.Context, ptr interface{}, query string, args ...interface{}) error {
+func (db *Client) Select(ctx context.Context, ptr any, query string, args ...any) error {
 	return db.SelectContext(ctx, ptr, query, args...)
 }
 
-func (db *Client) SelectRow(ctx context.Context, ptr interface{}, query string, args ...interface{}) error {
+func (db *Client) SelectRow(ctx context.Context, ptr any, query string, args ...any) error {
 	return db.GetContext(ctx, ptr, query, args...)
 }
 
-func (db *Client) Exec(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+func (db *Client) Exec(ctx context.Context, query string, args ...any) (sql.Result, error) {
 	return db.ExecContext(ctx, query, args...)
 }
 
-func (db *Client) ExecNamed(ctx context.Context, query string, arg interface{}) (sql.Result, error) {
+func (db *Client) ExecNamed(ctx context.Context, query string, arg any) (sql.Result, error) {
 	return db.NamedExecContext(ctx, query, arg)
 }

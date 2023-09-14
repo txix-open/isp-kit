@@ -182,7 +182,7 @@ func file_backend_service_proto_rawDescGZIP() []byte {
 }
 
 var file_backend_service_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_backend_service_proto_goTypes = []interface{}{
+var file_backend_service_proto_goTypes = []any{
 	(*Message)(nil),           // 0: isp.Message
 	(*_struct.Struct)(nil),    // 1: google.protobuf.Struct
 	(*_struct.ListValue)(nil), // 2: google.protobuf.ListValue
@@ -209,7 +209,7 @@ func file_backend_service_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_backend_service_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_backend_service_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*Message); i {
 			case 0:
 				return &v.state
@@ -222,7 +222,7 @@ func file_backend_service_proto_init() {
 			}
 		}
 	}
-	file_backend_service_proto_msgTypes[0].OneofWrappers = []interface{}{
+	file_backend_service_proto_msgTypes[0].OneofWrappers = []any{
 		(*Message_StructBody)(nil),
 		(*Message_ListBody)(nil),
 		(*Message_NullBody)(nil),
@@ -335,7 +335,7 @@ func RegisterBackendServiceServer(s *grpc.Server, srv BackendServiceServer) {
 	s.RegisterService(&_BackendService_serviceDesc, srv)
 }
 
-func _BackendService_Request_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _BackendService_Request_Handler(srv any, ctx context.Context, dec func(any) error, interceptor grpc.UnaryServerInterceptor) (any, error) {
 	in := new(Message)
 	if err := dec(in); err != nil {
 		return nil, err
@@ -347,13 +347,13 @@ func _BackendService_Request_Handler(srv interface{}, ctx context.Context, dec f
 		Server:     srv,
 		FullMethod: "/isp.BackendService/Request",
 	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+	handler := func(ctx context.Context, req any) (any, error) {
 		return srv.(BackendServiceServer).Request(ctx, req.(*Message))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BackendService_RequestStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _BackendService_RequestStream_Handler(srv any, stream grpc.ServerStream) error {
 	return srv.(BackendServiceServer).RequestStream(&backendServiceRequestStreamServer{stream})
 }
 

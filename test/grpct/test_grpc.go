@@ -14,7 +14,7 @@ import (
 type MockServer struct {
 	srv           *grpc.Server
 	logger        log.Logger
-	mockEndpoints map[string]interface{}
+	mockEndpoints map[string]any
 }
 
 func NewMock(t *test.Test) (*MockServer, *client.Client) {
@@ -22,11 +22,11 @@ func NewMock(t *test.Test) (*MockServer, *client.Client) {
 	return &MockServer{
 		srv:           srv,
 		logger:        t.Logger(),
-		mockEndpoints: make(map[string]interface{}),
+		mockEndpoints: make(map[string]any),
 	}, cli
 }
 
-func (m *MockServer) Mock(endpoint string, handler interface{}) *MockServer {
+func (m *MockServer) Mock(endpoint string, handler any) *MockServer {
 	m.mockEndpoints[endpoint] = handler
 	wrapper := endpoint2.DefaultWrapper(m.logger)
 	muxer := grpc.NewMux()

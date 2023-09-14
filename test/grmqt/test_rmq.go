@@ -93,7 +93,7 @@ func (c *Client) Upgrade(config grmqx.Config) {
 	c.t.Assert().NoError(err)
 }
 
-func (c *Client) PublishJson(exchange string, routingKey string, data interface{}) {
+func (c *Client) PublishJson(exchange string, routingKey string, data any) {
 	body, err := json.Marshal(data)
 	c.t.Assert().NoError(err)
 	pub := amqp091.Publishing{

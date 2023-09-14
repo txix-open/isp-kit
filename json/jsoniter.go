@@ -26,11 +26,11 @@ func init() {
 	instance.RegisterExtension(naming)
 }
 
-func Marshal(v interface{}) ([]byte, error) {
+func Marshal(v any) ([]byte, error) {
 	return instance.Marshal(v)
 }
 
-func Unmarshal(data []byte, ptr interface{}) error {
+func Unmarshal(data []byte, ptr any) error {
 	return instance.Unmarshal(data, ptr)
 }
 

@@ -10,12 +10,12 @@ import (
 type Schema *jsonschema.Schema
 
 type ConfigSchema struct {
-	Version       string                 `json:"version"`
-	Schema        Schema                 `json:"schema"`
-	DefaultConfig map[string]interface{} `json:"config"`
+	Version       string         `json:"version"`
+	Schema        Schema         `json:"schema"`
+	DefaultConfig map[string]any `json:"config"`
 }
 
-func GenerateConfigSchema(cfgPtr interface{}) Schema {
+func GenerateConfigSchema(cfgPtr any) Schema {
 	ref := jsonschema.Reflector{
 		FieldNameReflector: GetNameAndRequiredFlag,
 		FieldReflector:     SetProperties,

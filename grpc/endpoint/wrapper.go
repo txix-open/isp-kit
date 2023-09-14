@@ -19,10 +19,10 @@ type RequestBodyExtractor interface {
 }
 
 type ResponseBodyMapper interface {
-	Map(result interface{}) (*isp.Message, error)
+	Map(result any) (*isp.Message, error)
 }
 
-type ParamBuilder func(ctx context.Context, message *isp.Message) (interface{}, error)
+type ParamBuilder func(ctx context.Context, message *isp.Message) (any, error)
 
 type ParamMapper struct {
 	Type    string
@@ -52,7 +52,7 @@ func NewWrapper(
 	}
 }
 
-func (m Wrapper) Endpoint(f interface{}) grpc.HandlerFunc {
+func (m Wrapper) Endpoint(f any) grpc.HandlerFunc {
 	caller, err := NewCaller(f, m.BodyExtractor, m.BodyMapper, m.ParamMappers)
 	if err != nil {
 		panic(err)

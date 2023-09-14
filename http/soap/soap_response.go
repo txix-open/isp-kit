@@ -10,7 +10,7 @@ import (
 type ResponseMapper struct {
 }
 
-func (j ResponseMapper) Map(result interface{}, w http.ResponseWriter) error {
+func (j ResponseMapper) Map(result any, w http.ResponseWriter) error {
 	w.Header().Set("content-type", ContentType)
 
 	env := Envelope{Body: Body{Content: result}}

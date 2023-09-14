@@ -35,12 +35,12 @@ func (req *RequestBuilder) ApplicationId(appId int) *RequestBuilder {
 	return req
 }
 
-func (req *RequestBuilder) JsonRequestBody(reqBody interface{}) *RequestBuilder {
+func (req *RequestBuilder) JsonRequestBody(reqBody any) *RequestBuilder {
 	req.requestBody = reqBody
 	return req
 }
 
-func (req *RequestBuilder) JsonResponseBody(respPtr interface{}) *RequestBuilder {
+func (req *RequestBuilder) JsonResponseBody(respPtr any) *RequestBuilder {
 	req.responsePtr = respPtr
 	return req
 }
