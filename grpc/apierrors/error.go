@@ -18,7 +18,7 @@ const (
 type Error struct {
 	ErrorCode    int
 	ErrorMessage string
-	Details      map[string]any `json:",omitempty"`
+	Details      map[string]interface{} `json:",omitempty"`
 
 	grpcStatusCode codes.Code
 	cause          error

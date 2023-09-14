@@ -16,7 +16,7 @@ const (
 type Error struct {
 	ErrorCode    int
 	ErrorMessage string
-	Details      map[string]any `json:",omitempty"`
+	Details      map[string]interface{} `json:",omitempty"`
 
 	httpStatusCode int
 	cause          error
