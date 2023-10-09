@@ -77,6 +77,8 @@ func (r *BatchHandler) run() {
 		if timer != nil {
 			timer.Stop()
 			timer = time.NewTimer(r.purgeInterval)
+		} else {
+			timer = time.NewTimer(r.purgeInterval)
 		}
 		select {
 		case item, ok := <-r.c:
