@@ -72,7 +72,12 @@ func (r *BatchHandler) run() {
 			r.adapter.Handle(r.batch)
 		}
 	}()
+	var timer *time.Timer
 	for {
+		if timer != nil {
+			timer.Stop()
+			timer = time.NewTimer(r.purgeInterval)
+		}
 		select {
 		case item, ok := <-r.c:
 			if !ok {
@@ -82,7 +87,7 @@ func (r *BatchHandler) run() {
 			if len(r.batch) < r.maxSize {
 				continue
 			}
-		case <-time.After(r.purgeInterval):
+		case <-timer.C:
 			if len(r.batch) == 0 {
 				continue
 			}
