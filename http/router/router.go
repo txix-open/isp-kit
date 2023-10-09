@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/integration-system/isp-kit/metrics/http_metrics"
@@ -37,7 +38,7 @@ func (r *Router) DELETE(path string, handler http.Handler) *Router {
 }
 
 func (r *Router) Handler(method string, path string, handler http.Handler) *Router {
-	r.router.Handler(method, path, r.withMetricEndpoint(path, handler))
+	r.router.Handler(method, path, r.withMetricEndpoint(method, path, handler))
 	return r
 }
 
@@ -49,9 +50,10 @@ func (r *Router) InternalRouter() *httprouter.Router {
 	return r.router
 }
 
-func (r *Router) withMetricEndpoint(path string, handler http.Handler) http.Handler {
+func (r *Router) withMetricEndpoint(method string, path string, handler http.Handler) http.Handler {
+	endpoint := fmt.Sprintf("%s %s", method, path)
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		ctx := http_metrics.ServerEndpointToContext(request.Context(), path)
+		ctx := http_metrics.ServerEndpointToContext(request.Context(), endpoint)
 		request = request.WithContext(ctx)
 		handler.ServeHTTP(writer, request)
 	})
