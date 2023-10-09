@@ -79,7 +79,7 @@ func Log(logger log.Logger) httpcli.Middleware {
 			}
 			if config.LogResponseBody {
 				responseBody, _ := resp.Body()
-				log.ByteString("responseBody", responseBody)
+				responseFields = append(responseFields, log.ByteString("responseBody", responseBody))
 			}
 			logger.Debug(ctx, "http client: response", responseFields...)
 
