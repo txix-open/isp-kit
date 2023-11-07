@@ -31,7 +31,7 @@ func (s *Server) HandleFunc(pattern string, handler http.HandlerFunc) {
 func (s *Server) ListenAndServe(address string) error {
 	s.s.Addr = address
 	err := s.s.ListenAndServe()
-	if err == http.ErrServerClosed {
+	if errors.Is(err, http.ErrServerClosed) {
 		return nil
 	}
 	if err != nil {
