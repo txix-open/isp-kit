@@ -1,10 +1,8 @@
 package endpoint
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"runtime"
 	"strings"
@@ -127,7 +125,7 @@ func Log(logger log.Logger, availableContentTypes []string) Middleware {
 				if err != nil {
 					return errors.WithMessage(err, "close request reader")
 				}
-				r.Body = io.NopCloser(bytes.NewBuffer(buf.RequestBody()))
+				r.Body = buffer.NewRequestBody(buf.RequestBody())
 
 				requestLogFields = append(requestLogFields, log.ByteString("requestBody", buf.RequestBody()))
 			}
