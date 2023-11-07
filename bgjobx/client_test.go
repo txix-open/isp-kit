@@ -15,7 +15,7 @@ import (
 
 func TestClient(t *testing.T) {
 	test, assert := test.New(t)
-	testDb := dbt.New(test, dbx.WithMigration("./migration"))
+	testDb := dbt.New(test, dbx.WithMigrationRunner("./migration", test.Logger()))
 	cli := bgjobx.NewClient(testDb, test.Logger())
 	t.Cleanup(func() {
 		cli.Close()
