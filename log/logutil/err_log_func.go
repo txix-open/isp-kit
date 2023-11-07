@@ -10,13 +10,17 @@ type LogLevelSpecifier interface {
 	LogLevel() log.Level
 }
 
-func LogLevelFuncForError(err error, logger log.Logger) func(ctx context.Context, message any, fields ...log.Field) {
+func LogLevelForError(err error) log.Level {
 	logLevel := log.ErrorLevel
 	specifier, ok := err.(LogLevelSpecifier)
 	if ok {
 		logLevel = specifier.LogLevel()
 	}
+	return logLevel
+}
 
+func LogLevelFuncForError(err error, logger log.Logger) func(ctx context.Context, message any, fields ...log.Field) {
+	logLevel := LogLevelForError(err)
 	switch logLevel {
 	case log.ErrorLevel:
 		return logger.Error
