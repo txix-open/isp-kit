@@ -56,15 +56,15 @@ func New(isDev bool, cfgOpts ...config.Option) (*Application, error) {
 	}, nil
 }
 
-func (a Application) Context() context.Context {
+func (a *Application) Context() context.Context {
 	return a.ctx
 }
 
-func (a Application) Config() *config.Config {
+func (a *Application) Config() *config.Config {
 	return a.cfg
 }
 
-func (a Application) Logger() *log.Adapter {
+func (a *Application) Logger() *log.Adapter {
 	return a.logger
 }
 
@@ -107,7 +107,7 @@ func (a *Application) Shutdown() {
 		closer := a.closers[i]
 		err := closer.Close()
 		if err != nil {
-			a.logger.Error(a.ctx, err, log.String("closer", fmt.Sprintf("%T", closer)))
+			a.logger.Error(a.ctx, err, log.String("closer", fmt.Sprintf("[%d] %T", i, closer)))
 		}
 	}
 }
