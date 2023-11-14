@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 )
 
+const (
+	RequiredAdminPermission = "reqAdminPerm"
+)
+
 type AddressConfiguration struct {
 	IP   string `json:"ip"`
 	Port string `json:"port"`
@@ -49,4 +53,18 @@ type ModuleRequirements struct {
 type ModuleDependency struct {
 	Name     string
 	Required bool
+}
+
+func RequireAdminPermission(perm string) map[string]any {
+	return map[string]any{
+		RequiredAdminPermission: perm,
+	}
+}
+
+func GetRequiredAdminPermission(desc EndpointDescriptor) (string, bool) {
+	if len(desc.Extra) == 0 {
+		return "", false
+	}
+	value, ok := desc.Extra[RequiredAdminPermission].(string)
+	return value, ok
 }
