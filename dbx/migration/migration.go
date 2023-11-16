@@ -40,7 +40,7 @@ func (r Runner) Run(db *sql.DB) error {
 
 	err = goose.Up(db, r.migrationDir)
 	if err != nil {
-		return errors.WithMessage(err, "complete goose command")
+		return errors.WithMessage(err, "run goose up")
 	}
 
 	return nil

@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/integration-system/isp-kit/config"
 	"github.com/integration-system/isp-kit/log"
@@ -80,16 +79,16 @@ func (a *Application) Run() error {
 	errChan := make(chan error)
 
 	for i := range a.runners {
-		go func(runner Runner) {
+		go func(index int, runner Runner) {
 			err := runner.Run(a.ctx)
 			if err != nil {
 				select {
-				case errChan <- errors.WithMessagef(err, "start runner[%T]", runner):
+				case errChan <- errors.WithMessagef(err, "start runner[%d] -> %T", index, runner):
 				default:
-					a.logger.Error(a.ctx, errors.WithMessagef(err, "start runner[%T]", runner))
+					a.logger.Error(a.ctx, errors.WithMessagef(err, "start runner[%d] -> %T", index, runner))
 				}
 			}
-		}(a.runners[i])
+		}(i, a.runners[i])
 	}
 
 	select {
@@ -107,7 +106,7 @@ func (a *Application) Shutdown() {
 		closer := a.closers[i]
 		err := closer.Close()
 		if err != nil {
-			a.logger.Error(a.ctx, err, log.String("closer", fmt.Sprintf("[%d] %T", i, closer)))
+			a.logger.Error(a.ctx, errors.WithMessagef(err, "closers[%d] -> %T", i, closer))
 		}
 	}
 }
