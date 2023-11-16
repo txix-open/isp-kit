@@ -6,10 +6,12 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/integration-system/isp-kit/grpc"
 	"github.com/integration-system/isp-kit/grpc/isp"
 	"github.com/integration-system/isp-kit/log"
 	"github.com/integration-system/isp-kit/log/logutil"
+	sentry2 "github.com/integration-system/isp-kit/observability/sentry"
 	"github.com/integration-system/isp-kit/requestid"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
@@ -50,7 +52,10 @@ func ErrorHandler(logger log.Logger) Middleware {
 			}
 
 			logFunc := logutil.LogLevelFuncForError(err, logger)
-			logFunc(ctx, err)
+			logContext := sentry2.LazilyEnrichEvent(ctx, func(event *sentry.Event) {
+				event.Request = sentryRequest(ctx, message)
+			})
+			logFunc(logContext, err)
 
 			var grpcErr GrpcError
 			if errors.As(err, &grpcErr) {
@@ -109,5 +114,18 @@ func BodyLogger(logger log.Logger) Middleware {
 
 			return response, err
 		}
+	}
+}
+
+func sentryRequest(ctx context.Context, msg *isp.Message) *sentry.Request {
+	md, _ := metadata.FromIncomingContext(ctx)
+	endpoint, _ := grpc.StringFromMd(grpc.ProxyMethodNameHeader, md)
+	applicationId, _ := grpc.StringFromMd(grpc.ApplicationIdHeader, md)
+	return &sentry.Request{
+		URL:    endpoint,
+		Method: "POST",
+		Headers: map[string]string{
+			grpc.ApplicationIdHeader: applicationId,
+		},
 	}
 }

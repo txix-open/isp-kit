@@ -40,6 +40,20 @@ func NewHubFromConfiguration(config Config) (Hub, error) {
 		ServerName:  config.ModuleName,
 		Release:     config.ModuleVersion,
 		Environment: config.Environment,
+		Integrations: func(integrations []sentry.Integration) []sentry.Integration {
+			filtered := make([]sentry.Integration, 0, len(integrations))
+			ignoredIntegrations := map[string]bool{
+				"Modules":     true,
+				"Environment": true,
+			}
+			for _, integration := range integrations {
+				if ignoredIntegrations[integration.Name()] {
+					continue
+				}
+				filtered = append(filtered, integration)
+			}
+			return filtered
+		},
 	})
 	if err != nil {
 		return nil, errors.WithMessage(err, "create sdk client")
@@ -54,20 +68,20 @@ func NewHubFromConfiguration(config Config) (Hub, error) {
 
 func (s SdkHub) CatchError(ctx context.Context, err error, level log.Level) {
 	eventLevel := sentry.LevelError
-	switch level {
-	case log.FatalLevel:
-		eventLevel = sentry.LevelFatal
+	levelFromMapping, ok := logLevelMapping[level]
+	if ok {
+		eventLevel = levelFromMapping
 	}
 	event := &sentry.Event{
 		Level:     eventLevel,
 		Message:   err.Error(),
 		Timestamp: time.Now(),
 	}
-	event.SetException(err, s.hub.Client().Options().MaxErrorDepth)
+	SetException(event, err)
 
 	requestId := requestid.FromContext(ctx)
 	if requestId != "" {
-		event.Extra = map[string]interface{}{
+		event.Extra = map[string]any{
 			RequestIdKey: requestId,
 		}
 	}
