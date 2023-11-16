@@ -4,7 +4,6 @@ import (
 	"errors"
 	"math/rand"
 	"sync"
-	"time"
 )
 
 var (
@@ -14,19 +13,16 @@ var (
 type RoundRobin struct {
 	hosts   []string
 	current int
-	rand    rand.Source
 	locker  sync.Locker
 }
 
 func NewRoundRobin(hosts []string) *RoundRobin {
-	rand := rand.New(rand.NewSource(time.Now().UnixNano()))
 	current := 0
 	if len(hosts) > 0 {
 		current = rand.Intn(len(hosts))
 	}
 	return &RoundRobin{
 		hosts:   hosts,
-		rand:    rand,
 		current: current,
 		locker:  &sync.Mutex{},
 	}
