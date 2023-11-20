@@ -52,7 +52,7 @@ func ErrorHandler(logger log.Logger) Middleware {
 			}
 
 			logFunc := logutil.LogLevelFuncForError(err, logger)
-			logContext := sentry2.LazilyEnrichEvent(ctx, func(event *sentry.Event) {
+			logContext := sentry2.EnrichEvent(ctx, func(event *sentry.Event) {
 				event.Request = sentryRequest(ctx, message)
 			})
 			logFunc(logContext, err)

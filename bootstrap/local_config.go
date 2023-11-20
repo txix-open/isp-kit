@@ -43,4 +43,5 @@ type Sentry struct {
 	Enable      bool
 	Dsn         string
 	Environment string
+	Tags        map[string]string
 }

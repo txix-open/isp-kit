@@ -14,6 +14,6 @@ var (
 
 type EventEnrichment func(event *sentry.Event)
 
-func LazilyEnrichEvent(ctx context.Context, enrichment EventEnrichment) context.Context {
+func EnrichEvent(ctx context.Context, enrichment EventEnrichment) context.Context {
 	return context.WithValue(ctx, contextKeyValue, enrichment)
 }

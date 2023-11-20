@@ -74,6 +74,8 @@ func New(moduleVersion string, remoteConfig any, endpoints []cluster.EndpointDes
 		Dsn:           localConfig.Observability.Sentry.Dsn,
 		ModuleName:    localConfig.ModuleName,
 		Environment:   localConfig.Observability.Sentry.Environment,
+		Tags:          localConfig.Observability.Sentry.Tags,
+		InstanceId:    localConfig.GrpcOuterAddress.IP,
 		ModuleVersion: moduleVersion,
 	})
 	if err != nil {

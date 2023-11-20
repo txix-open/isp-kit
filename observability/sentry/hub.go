@@ -30,6 +30,14 @@ func NewHubFromConfiguration(config Config) (Hub, error) {
 		return nil, errors.New("sentry is enabled. dsn must be specified. check sentry configuration")
 	}
 
+	allTags := make(map[string]string)
+	if config.InstanceId != "" {
+		allTags["instanceId"] = config.InstanceId
+	}
+	for key, value := range config.Tags {
+		allTags[key] = value
+	}
+
 	buffedTransport := sentry.NewHTTPTransport()
 	buffedTransport.Timeout = defaultTransportTimeout
 	buffedTransport.BufferSize = defaultEventBufferSize
@@ -40,6 +48,7 @@ func NewHubFromConfiguration(config Config) (Hub, error) {
 		ServerName:  config.ModuleName,
 		Release:     config.ModuleVersion,
 		Environment: config.Environment,
+		Tags:        allTags,
 		Integrations: func(integrations []sentry.Integration) []sentry.Integration {
 			filtered := make([]sentry.Integration, 0, len(integrations))
 			ignoredIntegrations := map[string]bool{
