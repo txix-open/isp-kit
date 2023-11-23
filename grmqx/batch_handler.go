@@ -67,19 +67,22 @@ func (r *BatchHandler) Handle(ctx context.Context, delivery *consumer.Delivery) 
 }
 
 func (r *BatchHandler) run() {
+	var timer *time.Timer
 	defer func() {
 		if len(r.batch) > 0 {
 			r.adapter.Handle(r.batch)
 		}
-	}()
-	var timer *time.Timer
-	for {
 		if timer != nil {
 			timer.Stop()
+		}
+	}()
+	for {
+		if timer == nil {
 			timer = time.NewTimer(r.purgeInterval)
 		} else {
-			timer = time.NewTimer(r.purgeInterval)
+			timer.Reset(r.purgeInterval)
 		}
+
 		select {
 		case item, ok := <-r.c:
 			if !ok {

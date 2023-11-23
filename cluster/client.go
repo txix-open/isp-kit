@@ -17,17 +17,18 @@ type Client struct {
 	lb              *lb.RoundRobin
 	eventHandler    *EventHandler
 	logger          log.Logger
-	sessionIsActive int32
+	sessionIsActive *atomic.Int32
 
 	close context.CancelFunc
 }
 
 func NewClient(moduleInfo ModuleInfo, configData ConfigData, hosts []string, logger log.Logger) *Client {
 	return &Client{
-		moduleInfo: moduleInfo,
-		configData: configData,
-		lb:         lb.NewRoundRobin(hosts),
-		logger:     logger,
+		moduleInfo:      moduleInfo,
+		configData:      configData,
+		lb:              lb.NewRoundRobin(hosts),
+		sessionIsActive: &atomic.Int32{},
+		logger:          logger,
 	}
 }
 
@@ -58,14 +59,14 @@ func (c *Client) Close() error {
 }
 
 func (c *Client) Healthcheck(ctx context.Context) error {
-	if atomic.LoadInt32(&c.sessionIsActive) == int32(1) {
+	if c.sessionIsActive.Load() == int32(1) {
 		return nil
 	}
 	return errors.New("session inactive")
 }
 
 func (c *Client) runSession(ctx context.Context) error {
-	defer atomic.StoreInt32(&c.sessionIsActive, 0)
+	defer c.sessionIsActive.Store(0)
 
 	host, err := c.lb.Next()
 	if err != nil {
@@ -130,7 +131,7 @@ func (c *Client) runSession(ctx context.Context) error {
 		}
 	})
 
-	atomic.StoreInt32(&c.sessionIsActive, 1)
+	c.sessionIsActive.Store(1)
 
 	for {
 		err := c.waitAndPing(ctx, cli)
@@ -161,10 +162,10 @@ func (c *Client) confirm(ctx context.Context, data HandshakeData) error {
 }
 
 func (c *Client) applyRemoteConfig(ctx context.Context, config []byte) (err error) {
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, c.eventHandler.handleConfigTimeout)
 	defer cancel()
-	errChan := make(chan error)
 
+	errChan := make(chan error, 1)
 	go func() {
 		errChan <- c.eventHandler.remoteConfigReceiver.ReceiveConfig(ctx, config)
 	}()

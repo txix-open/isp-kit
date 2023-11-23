@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/integration-system/isp-kit/config"
 	"github.com/integration-system/isp-kit/log"
@@ -48,23 +47,26 @@ func New(isDev bool, cfgOpts ...config.Option) (*Application, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &Application{
-		ctx:     ctx,
-		cfg:     cfg,
-		logger:  logger,
-		closers: []Closer{logger},
-		cancel:  cancel,
+		ctx:    ctx,
+		cfg:    cfg,
+		logger: logger,
+		closers: []Closer{CloserFunc(func() error {
+			_ = logger.Sync()
+			return nil
+		})},
+		cancel: cancel,
 	}, nil
 }
 
-func (a Application) Context() context.Context {
+func (a *Application) Context() context.Context {
 	return a.ctx
 }
 
-func (a Application) Config() *config.Config {
+func (a *Application) Config() *config.Config {
 	return a.cfg
 }
 
-func (a Application) Logger() *log.Adapter {
+func (a *Application) Logger() *log.Adapter {
 	return a.logger
 }
 
@@ -80,16 +82,16 @@ func (a *Application) Run() error {
 	errChan := make(chan error)
 
 	for i := range a.runners {
-		go func(runner Runner) {
+		go func(index int, runner Runner) {
 			err := runner.Run(a.ctx)
 			if err != nil {
 				select {
-				case errChan <- errors.WithMessagef(err, "start runner[%T]", runner):
+				case errChan <- errors.WithMessagef(err, "start runner[%d] -> %T", index, runner):
 				default:
-					a.logger.Error(a.ctx, errors.WithMessagef(err, "start runner[%T]", runner))
+					a.logger.Error(a.ctx, errors.WithMessagef(err, "start runner[%d] -> %T", index, runner))
 				}
 			}
-		}(a.runners[i])
+		}(i, a.runners[i])
 	}
 
 	select {
@@ -101,13 +103,16 @@ func (a *Application) Run() error {
 }
 
 func (a *Application) Shutdown() {
+	a.Close()
 	a.cancel()
+}
 
+func (a *Application) Close() {
 	for i := 0; i < len(a.closers); i++ {
 		closer := a.closers[i]
 		err := closer.Close()
 		if err != nil {
-			a.logger.Error(a.ctx, err, log.String("closer", fmt.Sprintf("%T", closer)))
+			a.logger.Error(a.ctx, errors.WithMessagef(err, "closers[%d] -> %T", i, closer))
 		}
 	}
 }

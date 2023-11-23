@@ -40,7 +40,7 @@ type Server struct {
 	service *service
 }
 
-func NewServer(logger *log.Adapter, opts ...ServerOption) *Server {
+func NewServer(logger log.Logger, opts ...ServerOption) *Server {
 	s := &Server{
 		server: &http.Server{
 			ReadHeaderTimeout: 3 * time.Second,
@@ -48,7 +48,7 @@ func NewServer(logger *log.Adapter, opts ...ServerOption) *Server {
 			ErrorLog: log.StdLoggerWithLevel(
 				logger,
 				log.WarnLevel,
-				log.String("source", "http server"),
+				log.String("worker", "http server"),
 			),
 		},
 		service: &service{
@@ -84,7 +84,7 @@ func (s *Server) ListenAndServe(address string) error {
 
 func (s *Server) Serve(listener net.Listener) error {
 	err := s.server.Serve(listener)
-	if err == http.ErrServerClosed {
+	if errors.Is(err, http.ErrServerClosed) {
 		return nil
 	}
 	if err != nil {

@@ -155,7 +155,7 @@ func (h Handshake) Do(ctx context.Context, host string) (w *clientWrapper, err e
 	declaration := BackendDeclaration{
 		ModuleName:      h.moduleInfo.ModuleName,
 		Version:         h.moduleInfo.ModuleVersion,
-		LibVersion:      "1.0.0", //TODO
+		LibVersion:      h.moduleInfo.LibVersion,
 		Endpoints:       h.moduleInfo.Endpoints,
 		RequiredModules: moduleDependencies,
 		Address:         h.moduleInfo.GrpcOuterAddress,

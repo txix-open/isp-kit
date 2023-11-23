@@ -11,11 +11,8 @@ var (
 )
 
 func ContextLogValues(ctx context.Context) []Field {
-	value, ok := ctx.Value(contextKey).([]Field)
-	if ok {
-		return value
-	}
-	return nil
+	value, _ := ctx.Value(contextKey).([]Field)
+	return value
 }
 
 func ToContext(ctx context.Context, kvs ...Field) context.Context {

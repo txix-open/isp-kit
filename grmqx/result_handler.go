@@ -94,6 +94,8 @@ func (r ResultHandler) Handle(ctx context.Context, delivery *consumer.Delivery) 
 			ctx,
 			"rmq client: message will be requeued",
 			log.Any("error", result.err),
+			log.String("exchange", exchange),
+			log.String("routingKey", routingKey),
 			log.String("requeueTimeout", result.requeueTimeout.String()),
 		)
 		select {
@@ -109,6 +111,8 @@ func (r ResultHandler) Handle(ctx context.Context, delivery *consumer.Delivery) 
 		r.logger.Error(
 			ctx,
 			"rmq client: message will be retried",
+			log.String("exchange", exchange),
+			log.String("routingKey", routingKey),
 			log.Any("error", result.err),
 		)
 		err := delivery.Retry()
@@ -120,6 +124,8 @@ func (r ResultHandler) Handle(ctx context.Context, delivery *consumer.Delivery) 
 		r.logger.Error(
 			ctx,
 			"rmq client: message will be moved to DLQ or dropped",
+			log.String("exchange", exchange),
+			log.String("routingKey", routingKey),
 			log.Any("error", result.err),
 		)
 		err := delivery.Nack(false)

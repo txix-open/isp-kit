@@ -2,12 +2,12 @@ package dbx
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"runtime"
 	"time"
 
 	"github.com/integration-system/isp-kit/db"
-	"github.com/integration-system/isp-kit/dbx/migration"
 	"github.com/jackc/pgx/v5"
 	"github.com/pkg/errors"
 )
@@ -16,13 +16,15 @@ var (
 	defaultMaxOpenConn = runtime.NumCPU() * 10
 )
 
+type MigrationRunner interface {
+	Run(db *sql.DB) error
+}
+
 type Client struct {
 	*db.Client
 
-	withMigration bool
-	migrationDir  string
-
-	tracer pgx.QueryTracer
+	migrationRunner MigrationRunner
+	tracer          pgx.QueryTracer
 }
 
 func Open(ctx context.Context, config Config, opts ...Option) (*Client, error) {
@@ -55,8 +57,8 @@ func Open(ctx context.Context, config Config, opts ...Option) (*Client, error) {
 	dbCli.SetMaxIdleConns(maxIdleConns)
 	dbCli.SetConnMaxIdleTime(90 * time.Second)
 
-	if cli.withMigration {
-		err = migration.NewRunner(dbCli.DB.DB, cli.migrationDir).Run()
+	if cli.migrationRunner != nil {
+		err = cli.migrationRunner.Run(dbCli.DB.DB)
 		if err != nil {
 			return nil, errors.WithMessage(err, "migration run")
 		}

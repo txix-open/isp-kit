@@ -88,12 +88,16 @@ func (a *Adapter) Enabled(level Level) bool {
 	return a.level.Enabled(level)
 }
 
-func (a *Adapter) Close() error {
+func (a *Adapter) Sync() error {
 	return a.logger.Sync()
 }
 
-func StdLoggerWithLevel(adapter *Adapter, level Level, withFields ...Field) *log.Logger {
-	logger := adapter.logger.With(withFields...)
+func StdLoggerWithLevel(adapter Logger, level Level, withFields ...Field) *log.Logger {
+	kitAdapter, ok := adapter.(*Adapter)
+	if !ok {
+		panic(fmt.Errorf("adapter must be a [%T], got [%T]", &Adapter{}, adapter))
+	}
+	logger := kitAdapter.logger.With(withFields...)
 	stdLogger, err := zap.NewStdLogAt(logger, level)
 	if err != nil {
 		panic(err)

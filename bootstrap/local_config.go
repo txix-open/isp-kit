@@ -9,6 +9,7 @@ type LocalConfig struct {
 	MigrationsDirPath       string
 	RemoteConfigOverride    string
 	LogFile                 LogFile
+	Observability           Observability
 	InfraServerPort         int
 }
 
@@ -32,4 +33,15 @@ type GrpcOuterAddr struct {
 type GrpcInnerAddr struct {
 	IP   string `valid:"required"`
 	Port int    `valid:"required"`
+}
+
+type Observability struct {
+	Sentry Sentry
+}
+
+type Sentry struct {
+	Enable      bool
+	Dsn         string
+	Environment string
+	Tags        map[string]string
 }

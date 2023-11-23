@@ -15,6 +15,7 @@ const (
 )
 
 type service struct {
+	isp.UnimplementedBackendServiceServer
 	delegate atomic.Value
 }
 

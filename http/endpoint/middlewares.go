@@ -1,18 +1,18 @@
 package endpoint
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"runtime"
 	"strings"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/integration-system/isp-kit/http/apierrors"
 	"github.com/integration-system/isp-kit/http/endpoint/buffer"
 	"github.com/integration-system/isp-kit/log/logutil"
+	sentry2 "github.com/integration-system/isp-kit/observability/sentry"
 
 	"github.com/integration-system/isp-kit/log"
 	"github.com/integration-system/isp-kit/requestid"
@@ -67,7 +67,10 @@ func ErrorHandler(logger log.Logger) Middleware {
 			}
 
 			logFunc := logutil.LogLevelFuncForError(err, logger)
-			logFunc(ctx, err)
+			logContext := sentry2.EnrichEvent(ctx, func(event *sentry.Event) {
+				event.Request = sentryRequest(r)
+			})
+			logFunc(logContext, err)
 
 			var httpErr HttpError
 			if errors.As(err, &httpErr) {
@@ -127,7 +130,7 @@ func Log(logger log.Logger, availableContentTypes []string) Middleware {
 				if err != nil {
 					return errors.WithMessage(err, "close request reader")
 				}
-				r.Body = io.NopCloser(bytes.NewBuffer(buf.RequestBody()))
+				r.Body = buffer.NewRequestBody(buf.RequestBody())
 
 				requestLogFields = append(requestLogFields, log.ByteString("requestBody", buf.RequestBody()))
 			}
@@ -163,4 +166,18 @@ func matchContentType(contentType string, availableContentTypes []string) bool {
 		}
 	}
 	return false
+}
+
+func sentryRequest(r *http.Request) *sentry.Request {
+	protocol := "https"
+	if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
+		protocol = "http"
+	}
+	url := fmt.Sprintf("%s://%s%s", protocol, r.Host, r.URL.Path)
+
+	return &sentry.Request{
+		URL:         url,
+		Method:      r.Method,
+		QueryString: r.URL.RawQuery,
+	}
 }

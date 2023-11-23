@@ -22,6 +22,7 @@ type ConfigData struct {
 type ModuleInfo struct {
 	ModuleName       string
 	ModuleVersion    string
+	LibVersion       string
 	GrpcOuterAddress AddressConfiguration
 	Endpoints        []EndpointDescriptor
 }

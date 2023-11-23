@@ -8,8 +8,10 @@ import (
 	"net"
 	"os"
 	"path"
+	"runtime/debug"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/integration-system/isp-kit/app"
 	"github.com/integration-system/isp-kit/cluster"
@@ -20,6 +22,7 @@ import (
 	"github.com/integration-system/isp-kit/json"
 	"github.com/integration-system/isp-kit/log"
 	"github.com/integration-system/isp-kit/metrics"
+	"github.com/integration-system/isp-kit/observability/sentry"
 	"github.com/integration-system/isp-kit/rc"
 	"github.com/integration-system/isp-kit/rc/schema"
 	"github.com/integration-system/isp-kit/validator"
@@ -36,6 +39,7 @@ type Bootstrap struct {
 	BindingAddress      string
 	MigrationsDir       string
 	ModuleName          string
+	SentryHub           sentry.Hub
 }
 
 func New(moduleVersion string, remoteConfig any, endpoints []cluster.EndpointDescriptor) *Bootstrap {
@@ -61,24 +65,43 @@ func New(moduleVersion string, remoteConfig any, endpoints []cluster.EndpointDes
 		return nil
 	}
 
-	boot, err := bootstrap(isDev, app, moduleVersion, remoteConfig, endpoints)
+	localConfig, err := localConfig(app.Config())
 	if err != nil {
+		app.Logger().Fatal(app.Context(), errors.WithMessage(err, "create local config"))
+	}
+
+	sentryHub, err := sentry.NewHubFromConfiguration(sentry.Config{
+		Enable:        localConfig.Observability.Sentry.Enable,
+		Dsn:           localConfig.Observability.Sentry.Dsn,
+		ModuleName:    localConfig.ModuleName,
+		Environment:   localConfig.Observability.Sentry.Environment,
+		Tags:          localConfig.Observability.Sentry.Tags,
+		InstanceId:    localConfig.GrpcOuterAddress.IP,
+		ModuleVersion: moduleVersion,
+	})
+	if err != nil {
+		app.Logger().Fatal(app.Context(), errors.WithMessage(err, "create sentry error reporter"))
+	}
+
+	boot, err := bootstrap(isDev, app, sentryHub, *localConfig, moduleVersion, remoteConfig, endpoints)
+	if err != nil {
+		err = errors.WithMessage(err, "create bootstrap")
+		sentryHub.CatchError(app.Context(), err, log.FatalLevel)
 		app.Logger().Fatal(app.Context(), err)
 	}
 
 	return boot
 }
 
-func bootstrap(isDev bool, application *app.Application, moduleVersion string, remoteConfig any, endpoints []cluster.EndpointDescriptor) (*Bootstrap, error) {
-	localConfig := LocalConfig{}
-	err := application.Config().Read(&localConfig)
-	if err != nil {
-		return nil, errors.WithMessage(err, "read local config")
-	}
-	if localConfig.GrpcInnerAddress.Port != localConfig.GrpcOuterAddress.Port {
-		return nil, errors.Errorf("grpcInnerAddress.port is not equal grpcOuterAddress.port. potential mistake")
-	}
-
+func bootstrap(
+	isDev bool,
+	application *app.Application,
+	sentryHub sentry.Hub,
+	localConfig LocalConfig,
+	moduleVersion string,
+	remoteConfig any,
+	endpoints []cluster.EndpointDescriptor,
+) (*Bootstrap, error) {
 	configServiceHosts, err := parseConfigServiceHosts(localConfig.ConfigServiceAddress)
 	if err != nil {
 		return nil, errors.WithMessage(err, "parse config service hosts")
@@ -95,6 +118,7 @@ func bootstrap(isDev bool, application *app.Application, moduleVersion string, r
 	moduleInfo := cluster.ModuleInfo{
 		ModuleName:    localConfig.ModuleName,
 		ModuleVersion: moduleVersion,
+		LibVersion:    kitVersion(),
 		GrpcOuterAddress: cluster.AddressConfiguration{
 			IP:   broadcastHost,
 			Port: strconv.Itoa(localConfig.GrpcOuterAddress.Port),
@@ -121,7 +145,7 @@ func bootstrap(isDev bool, application *app.Application, moduleVersion string, r
 		moduleInfo,
 		configData,
 		configServiceHosts,
-		application.Logger(),
+		sentry.WrapErrorLogger(application.Logger(), sentryHub),
 	)
 
 	rc := rc.New(validator.Default, []byte(localConfig.RemoteConfigOverride))
@@ -151,6 +175,11 @@ func bootstrap(isDev bool, application *app.Application, moduleVersion string, r
 		}, pprof.Endpoints("/internal")...)),
 	)
 
+	application.AddClosers(app.CloserFunc(func() error {
+		sentryHub.Flush()
+		return nil
+	}))
+
 	return &Bootstrap{
 		App:                 application,
 		ClusterCli:          clusterCli,
@@ -161,7 +190,15 @@ func bootstrap(isDev bool, application *app.Application, moduleVersion string, r
 		InfraServer:         infraServer,
 		MetricsRegistry:     metricsRegistry,
 		HealthcheckRegistry: healthcheckRegistry,
+		SentryHub:           sentryHub,
 	}, nil
+}
+
+func (b *Bootstrap) Fatal(err error) {
+	b.SentryHub.CatchError(b.App.Context(), err, log.FatalLevel)
+	b.App.Close()
+	time.Sleep(500 * time.Millisecond)
+	b.App.Logger().Fatal(context.Background(), err)
 }
 
 func parseConfigServiceHosts(cfg ConfigServiceAddr) ([]string, error) {
@@ -271,4 +308,29 @@ func infraServer(localConfig LocalConfig, application *app.Application) *infra.S
 		return infraServer.Shutdown()
 	}))
 	return infraServer
+}
+
+func localConfig(config *config.Config) (*LocalConfig, error) {
+	localConfig := LocalConfig{}
+	err := config.Read(&localConfig)
+	if err != nil {
+		return nil, errors.WithMessage(err, "read local config")
+	}
+	if localConfig.GrpcInnerAddress.Port != localConfig.GrpcOuterAddress.Port {
+		return nil, errors.Errorf("grpcInnerAddress.port is not equal grpcOuterAddress.port. potential mistake")
+	}
+	return &localConfig, nil
+}
+
+func kitVersion() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return "0.0.0"
+	}
+	for _, dep := range info.Deps {
+		if dep.Path == "github.com/integration-system/isp-kit" {
+			return dep.Version
+		}
+	}
+	return "0.0.0"
 }
