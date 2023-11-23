@@ -11,6 +11,7 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/integration-system/isp-kit/app"
 	"github.com/integration-system/isp-kit/cluster"
@@ -144,7 +145,7 @@ func bootstrap(
 		moduleInfo,
 		configData,
 		configServiceHosts,
-		application.Logger(),
+		sentry.WrapErrorLogger(application.Logger(), sentryHub),
 	)
 
 	rc := rc.New(validator.Default, []byte(localConfig.RemoteConfigOverride))
@@ -195,7 +196,8 @@ func bootstrap(
 
 func (b *Bootstrap) Fatal(err error) {
 	b.SentryHub.CatchError(b.App.Context(), err, log.FatalLevel)
-	b.App.Shutdown()
+	b.App.Close()
+	time.Sleep(500 * time.Millisecond)
 	b.App.Logger().Fatal(context.Background(), err)
 }
 

@@ -47,11 +47,14 @@ func New(isDev bool, cfgOpts ...config.Option) (*Application, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &Application{
-		ctx:     ctx,
-		cfg:     cfg,
-		logger:  logger,
-		closers: []Closer{logger},
-		cancel:  cancel,
+		ctx:    ctx,
+		cfg:    cfg,
+		logger: logger,
+		closers: []Closer{CloserFunc(func() error {
+			_ = logger.Sync()
+			return nil
+		})},
+		cancel: cancel,
 	}, nil
 }
 
@@ -100,8 +103,11 @@ func (a *Application) Run() error {
 }
 
 func (a *Application) Shutdown() {
+	a.Close()
 	a.cancel()
+}
 
+func (a *Application) Close() {
 	for i := 0; i < len(a.closers); i++ {
 		closer := a.closers[i]
 		err := closer.Close()

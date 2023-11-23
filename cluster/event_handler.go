@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"time"
 )
 
 type RemoteConfigReceiver interface {
@@ -18,6 +19,7 @@ type HostsUpgrader interface {
 
 type EventHandler struct {
 	remoteConfigReceiver RemoteConfigReceiver
+	handleConfigTimeout  time.Duration
 	routesReceiver       RoutesReceiver
 	requiredModules      map[string]HostsUpgrader
 }
@@ -29,7 +31,12 @@ func NewEventHandler() *EventHandler {
 }
 
 func (h *EventHandler) RemoteConfigReceiver(receiver RemoteConfigReceiver) *EventHandler {
+	return h.RemoteConfigReceiverWithTimeout(receiver, 5*time.Second)
+}
+
+func (h *EventHandler) RemoteConfigReceiverWithTimeout(receiver RemoteConfigReceiver, timeout time.Duration) *EventHandler {
 	h.remoteConfigReceiver = receiver
+	h.handleConfigTimeout = timeout
 	return h
 }
 

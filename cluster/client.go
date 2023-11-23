@@ -162,10 +162,10 @@ func (c *Client) confirm(ctx context.Context, data HandshakeData) error {
 }
 
 func (c *Client) applyRemoteConfig(ctx context.Context, config []byte) (err error) {
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, c.eventHandler.handleConfigTimeout)
 	defer cancel()
-	errChan := make(chan error)
 
+	errChan := make(chan error, 1)
 	go func() {
 		errChan <- c.eventHandler.remoteConfigReceiver.ReceiveConfig(ctx, config)
 	}()

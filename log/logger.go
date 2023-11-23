@@ -88,7 +88,7 @@ func (a *Adapter) Enabled(level Level) bool {
 	return a.level.Enabled(level)
 }
 
-func (a *Adapter) Close() error {
+func (a *Adapter) Sync() error {
 	return a.logger.Sync()
 }
 
