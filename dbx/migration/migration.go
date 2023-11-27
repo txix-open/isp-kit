@@ -3,10 +3,15 @@ package migration
 import (
 	"database/sql"
 	"os"
+	"sync"
 
 	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
 	"github.com/pressly/goose/v3"
+)
+
+var (
+	setLoggerLock = sync.Mutex{}
 )
 
 type Runner struct {
@@ -15,6 +20,9 @@ type Runner struct {
 
 func NewRunner(migrationDir string, logger log.Logger) Runner {
 	if logger != nil {
+		setLoggerLock.Lock()
+		defer setLoggerLock.Unlock()
+
 		goose.SetLogger(newLogger(logger))
 	}
 	return Runner{
