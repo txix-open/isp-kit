@@ -12,6 +12,20 @@ type ConfigSchema struct {
 	DefaultConfig map[string]any `json:"config"`
 }
 
+type Generator struct {
+	ref *jsonschema.Reflector
+}
+
+func NewGenerator(ref *jsonschema.Reflector) *Generator {
+	return &Generator{
+		ref: ref,
+	}
+}
+
+func (g *Generator) Generate(obj any) Schema {
+	return g.ref.Reflect(obj)
+}
+
 func GenerateConfigSchema(cfgPtr any) Schema {
 	ref := jsonschema.Reflector{
 		FieldNameReflector: GetNameAndRequiredFlag,
