@@ -2,8 +2,6 @@ module github.com/integration-system/isp-kit
 
 go 1.21
 
-replace github.com/integration-system/jsonschema => /home/kirrryu/jsonschema
-
 require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
@@ -18,7 +16,7 @@ require (
 	github.com/integration-system/bgjob v1.3.0
 	github.com/integration-system/grmq v1.4.2
 	github.com/integration-system/isp-etp-go/v2 v2.1.3
-	github.com/integration-system/jsonschema v1.0.1
+	github.com/integration-system/jsonschema v0.0.0-20231204080301-fa365e270a81
 	github.com/jackc/pgx/v5 v5.5.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/json-iterator/go v1.1.12
