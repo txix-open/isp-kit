@@ -3,7 +3,10 @@ package tracing
 import (
 	"context"
 
+	"github.com/go-logr/stdr"
+	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
@@ -21,14 +24,18 @@ const (
 	RequestId = attribute.Key("request_id")
 )
 
-func NewProviderFromConfiguration(ctx context.Context, config Config) (Provider, error) {
+func NewProviderFromConfiguration(ctx context.Context, logger log.Logger, config Config) (Provider, error) {
 	if !config.Enable {
 		return NewNoopProvider(), nil
 	}
 
+	stdLogger := log.StdLoggerWithLevel(logger, log.InfoLevel, log.String("worker", "tracer"))
+	otel.SetLogger(stdr.New(stdLogger))
+
 	exporter, err := otlptracehttp.New(
 		ctx,
 		otlptracehttp.WithEndpoint(config.Address),
+		otlptracehttp.WithInsecure(),
 	)
 	if err != nil {
 		return nil, errors.WithMessage(err, "new otlp http exporter")

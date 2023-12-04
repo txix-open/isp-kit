@@ -191,7 +191,11 @@ func bootstrap(
 		InstanceId:    localConfig.GrpcOuterAddress.IP,
 		Attributes:    localConfig.Observability.Tracing.Attributes,
 	}
-	tracingProvider, err := tracing.NewProviderFromConfiguration(application.Context(), tracingConfig)
+	tracingProvider, err := tracing.NewProviderFromConfiguration(
+		application.Context(),
+		application.Logger(),
+		tracingConfig,
+	)
 	if err != nil {
 		err = errors.WithMessage(err, "new tracing provider, tracing will be disabled")
 		sentryHub.CatchError(application.Context(), err, log.ErrorLevel)

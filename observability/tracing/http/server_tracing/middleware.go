@@ -59,14 +59,14 @@ func (c Config) Middleware() http2.Middleware {
 				trace.WithSpanKind(trace.SpanKindServer),
 			}
 
+			spanName := ""
 			serverEndpoint := http_metrics.ServerEndpoint(ctx)
 			if serverEndpoint != "" {
 				attributes = append(attributes, semconv.HTTPRouteKey.String(serverEndpoint))
+				spanName = serverEndpoint
+			} else {
+				spanName = fmt.Sprintf("%s %s", r.Method, r.URL.Path)
 			}
-			if serverEndpoint == "" {
-				serverEndpoint = r.URL.Path
-			}
-			spanName := fmt.Sprintf("%s %s", r.Method, serverEndpoint)
 
 			//TODO some of endpoint exported
 			/*if publicEndpoint {

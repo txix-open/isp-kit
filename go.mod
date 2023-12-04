@@ -8,6 +8,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/getsentry/sentry-go v0.25.0
 	github.com/go-faker/faker/v4 v4.2.0
+	github.com/go-logr/stdr v1.2.2
 	github.com/go-resty/resty/v2 v2.10.0
 	github.com/go-stomp/stomp/v3 v3.0.5
 	github.com/iancoleman/strcase v0.3.0
@@ -47,7 +48,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-logr/logr v1.3.0 // indirect
-	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.18.1 // indirect
 	github.com/jackc/pgconn v1.13.0 // indirect
