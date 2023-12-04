@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	http2 "github.com/integration-system/isp-kit/http"
 	"github.com/integration-system/isp-kit/http/endpoint/buffer"
 	"github.com/integration-system/isp-kit/metrics/http_metrics"
 )
@@ -30,8 +31,8 @@ func (w *writerWrapper) WriteHeader(statusCode int) {
 	w.ResponseWriter.WriteHeader(statusCode)
 }
 
-func Metrics(storage *http_metrics.ServerStorage) Middleware {
-	return func(next HandlerFunc) HandlerFunc {
+func Metrics(storage *http_metrics.ServerStorage) http2.Middleware {
+	return func(next http2.HandlerFunc) http2.HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 			endpoint := http_metrics.ServerEndpoint(r.Context())
 			if endpoint == "" {

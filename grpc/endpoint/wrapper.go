@@ -12,8 +12,6 @@ type GrpcError interface {
 	GrpcStatusError() error
 }
 
-type Middleware func(next grpc.HandlerFunc) grpc.HandlerFunc
-
 type RequestBodyExtractor interface {
 	Extract(ctx context.Context, message *isp.Message, reqBodyType reflect.Type) (reflect.Value, error)
 }
@@ -33,7 +31,7 @@ type Wrapper struct {
 	ParamMappers  map[string]ParamMapper
 	BodyExtractor RequestBodyExtractor
 	BodyMapper    ResponseBodyMapper
-	Middlewares   []Middleware
+	Middlewares   []grpc.Middleware
 }
 
 func NewWrapper(
@@ -65,7 +63,7 @@ func (m Wrapper) Endpoint(f any) grpc.HandlerFunc {
 	return handler
 }
 
-func (m Wrapper) WithMiddlewares(middlewares ...Middleware) Wrapper {
+func (m Wrapper) WithMiddlewares(middlewares ...grpc.Middleware) Wrapper {
 	return Wrapper{
 		ParamMappers:  m.ParamMappers,
 		BodyExtractor: m.BodyExtractor,

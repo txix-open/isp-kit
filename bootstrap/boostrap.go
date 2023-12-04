@@ -23,6 +23,7 @@ import (
 	"github.com/integration-system/isp-kit/log"
 	"github.com/integration-system/isp-kit/metrics"
 	"github.com/integration-system/isp-kit/observability/sentry"
+	"github.com/integration-system/isp-kit/observability/tracing"
 	"github.com/integration-system/isp-kit/rc"
 	"github.com/integration-system/isp-kit/rc/schema"
 	"github.com/integration-system/isp-kit/validator"
@@ -40,6 +41,7 @@ type Bootstrap struct {
 	MigrationsDir       string
 	ModuleName          string
 	SentryHub           sentry.Hub
+	TracingProvider     tracing.Provider
 }
 
 func New(moduleVersion string, remoteConfig any, endpoints []cluster.EndpointDescriptor) *Bootstrap {
@@ -180,6 +182,31 @@ func bootstrap(
 		return nil
 	}))
 
+	tracingConfig := tracing.Config{
+		Enable:        localConfig.Observability.Tracing.Enable,
+		Address:       localConfig.Observability.Tracing.Address,
+		ModuleName:    localConfig.ModuleName,
+		ModuleVersion: moduleVersion,
+		Environment:   localConfig.Observability.Tracing.Environment,
+		InstanceId:    localConfig.GrpcOuterAddress.IP,
+		Attributes:    localConfig.Observability.Tracing.Attributes,
+	}
+	tracingProvider, err := tracing.NewProviderFromConfiguration(application.Context(), tracingConfig)
+	if err != nil {
+		err = errors.WithMessage(err, "new tracing provider, tracing will be disabled")
+		sentryHub.CatchError(application.Context(), err, log.ErrorLevel)
+		application.Logger().Error(application.Context(), err)
+		tracingProvider = tracing.NewNoopProvider()
+	}
+	tracing.DefaultProvider = tracingProvider
+	application.AddClosers(app.CloserFunc(func() error {
+		err := tracingProvider.Shutdown(context.Background())
+		if err != nil {
+			return errors.WithMessage(err, "shutdown tracing provider")
+		}
+		return nil
+	}))
+
 	return &Bootstrap{
 		App:                 application,
 		ClusterCli:          clusterCli,
@@ -191,6 +218,7 @@ func bootstrap(
 		MetricsRegistry:     metricsRegistry,
 		HealthcheckRegistry: healthcheckRegistry,
 		SentryHub:           sentryHub,
+		TracingProvider:     tracingProvider,
 	}, nil
 }
 

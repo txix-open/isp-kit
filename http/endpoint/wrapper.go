@@ -6,15 +6,13 @@ import (
 	"net/http"
 	"reflect"
 
+	http2 "github.com/integration-system/isp-kit/http"
 	"github.com/integration-system/isp-kit/log"
 )
 
 type HttpError interface {
 	WriteError(w http.ResponseWriter) error
 }
-
-type HandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request) error
-type Middleware func(next HandlerFunc) HandlerFunc
 
 type RequestBodyExtractor interface {
 	Extract(ctx context.Context, reader io.Reader, reqBodyType reflect.Type) (reflect.Value, error)
@@ -35,7 +33,7 @@ type Wrapper struct {
 	ParamMappers  map[string]ParamMapper
 	BodyExtractor RequestBodyExtractor
 	BodyMapper    ResponseBodyMapper
-	Middlewares   []Middleware
+	Middlewares   []http2.Middleware
 	Logger        log.Logger
 }
 
@@ -76,7 +74,7 @@ func (m Wrapper) Endpoint(f any) http.HandlerFunc {
 	}
 }
 
-func (m Wrapper) WithMiddlewares(middlewares ...Middleware) Wrapper {
+func (m Wrapper) WithMiddlewares(middlewares ...http2.Middleware) Wrapper {
 	return Wrapper{
 		ParamMappers:  m.ParamMappers,
 		BodyExtractor: m.BodyExtractor,

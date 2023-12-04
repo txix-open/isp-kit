@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
+	http2 "github.com/integration-system/isp-kit/http"
 	"github.com/integration-system/isp-kit/http/apierrors"
 	"github.com/integration-system/isp-kit/http/endpoint/buffer"
 	"github.com/integration-system/isp-kit/log/logutil"
@@ -24,8 +25,8 @@ const (
 	defaultMaxRequestBodySize = 64 * 1024 * 1024
 )
 
-func MaxRequestBodySize(maxBytes int64) Middleware {
-	return func(next HandlerFunc) HandlerFunc {
+func MaxRequestBodySize(maxBytes int64) http2.Middleware {
+	return func(next http2.HandlerFunc) http2.HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 			r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
 			return next(ctx, w, r)
@@ -33,8 +34,8 @@ func MaxRequestBodySize(maxBytes int64) Middleware {
 	}
 }
 
-func Recovery() Middleware {
-	return func(next HandlerFunc) HandlerFunc {
+func Recovery() http2.Middleware {
+	return func(next http2.HandlerFunc) http2.HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) (err error) {
 			defer func() {
 				r := recover()
@@ -58,8 +59,8 @@ func Recovery() Middleware {
 	}
 }
 
-func ErrorHandler(logger log.Logger) Middleware {
-	return func(next HandlerFunc) HandlerFunc {
+func ErrorHandler(logger log.Logger) http2.Middleware {
+	return func(next http2.HandlerFunc) http2.HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 			err := next(ctx, w, r)
 			if err == nil {
@@ -86,8 +87,8 @@ func ErrorHandler(logger log.Logger) Middleware {
 	}
 }
 
-func RequestId() Middleware {
-	return func(next HandlerFunc) HandlerFunc {
+func RequestId() http2.Middleware {
+	return func(next http2.HandlerFunc) http2.HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 			requestId := r.Header.Get(requestIdHeader)
 			if requestId == "" {
@@ -109,8 +110,8 @@ var defaultAvailableContentTypes = []string{
 	`text/xml; charset="utf-8"`,
 }
 
-func Log(logger log.Logger, availableContentTypes []string) Middleware {
-	return func(next HandlerFunc) HandlerFunc {
+func Log(logger log.Logger, availableContentTypes []string) http2.Middleware {
+	return func(next http2.HandlerFunc) http2.HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 			buf := buffer.Acquire(w)
 			defer buffer.Release(buf)
@@ -155,7 +156,7 @@ func Log(logger log.Logger, availableContentTypes []string) Middleware {
 	}
 }
 
-func DefaultLog(logger log.Logger) Middleware {
+func DefaultLog(logger log.Logger) http2.Middleware {
 	return Log(logger, defaultAvailableContentTypes)
 }
 

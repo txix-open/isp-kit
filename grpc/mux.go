@@ -16,8 +16,6 @@ const (
 	RequestIdHeader       = "x-request-id"
 )
 
-type HandlerFunc func(ctx context.Context, message *isp.Message) (*isp.Message, error)
-
 type Mux struct {
 	isp.UnimplementedBackendServiceServer
 	unaryHandlers map[string]HandlerFunc
