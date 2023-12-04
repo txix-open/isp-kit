@@ -19,7 +19,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func Recovery() Middleware {
+func Recovery() grpc.Middleware {
 	return func(next grpc.HandlerFunc) grpc.HandlerFunc {
 		return func(ctx context.Context, message *isp.Message) (msg *isp.Message, err error) {
 			defer func() {
@@ -43,7 +43,7 @@ func Recovery() Middleware {
 	}
 }
 
-func ErrorHandler(logger log.Logger) Middleware {
+func ErrorHandler(logger log.Logger) grpc.Middleware {
 	return func(next grpc.HandlerFunc) grpc.HandlerFunc {
 		return func(ctx context.Context, message *isp.Message) (*isp.Message, error) {
 			result, err := next(ctx, message)
@@ -74,7 +74,7 @@ func ErrorHandler(logger log.Logger) Middleware {
 	}
 }
 
-func RequestId() Middleware {
+func RequestId() grpc.Middleware {
 	return func(next grpc.HandlerFunc) grpc.HandlerFunc {
 		return func(ctx context.Context, message *isp.Message) (*isp.Message, error) {
 			md, ok := metadata.FromIncomingContext(ctx)
@@ -97,7 +97,7 @@ func RequestId() Middleware {
 	}
 }
 
-func BodyLogger(logger log.Logger) Middleware {
+func BodyLogger(logger log.Logger) grpc.Middleware {
 	return func(next grpc.HandlerFunc) grpc.HandlerFunc {
 		return func(ctx context.Context, message *isp.Message) (*isp.Message, error) {
 			logger.Debug(ctx, "grpc handler: request", log.ByteString("requestBody", message.GetBytesBody()))

@@ -18,7 +18,7 @@ type MetricStorage interface {
 	CountStatusCode(endpoint string, code codes.Code)
 }
 
-func Metrics(storage MetricStorage) Middleware {
+func Metrics(storage MetricStorage) grpc.Middleware {
 	return func(next grpc.HandlerFunc) grpc.HandlerFunc {
 		return func(ctx context.Context, message *isp.Message) (*isp.Message, error) {
 			md, _ := metadata.FromIncomingContext(ctx)

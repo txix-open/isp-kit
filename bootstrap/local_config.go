@@ -36,7 +36,8 @@ type GrpcInnerAddr struct {
 }
 
 type Observability struct {
-	Sentry Sentry
+	Sentry  Sentry
+	Tracing Tracing
 }
 
 type Sentry struct {
@@ -44,4 +45,11 @@ type Sentry struct {
 	Dsn         string
 	Environment string
 	Tags        map[string]string
+}
+
+type Tracing struct {
+	Enable      bool
+	Address     string
+	Environment string
+	Attributes  map[string]string
 }
