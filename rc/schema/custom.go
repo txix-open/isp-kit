@@ -7,7 +7,7 @@ import (
 	"github.com/integration-system/jsonschema"
 )
 
-type Generator func(field reflect.StructField, s *jsonschema.Schema)
+type Generator func(field reflect.StructField, s *jsonschema.Schema) // TODO: change name => custom generator
 
 type customSchema struct {
 	mx        sync.RWMutex

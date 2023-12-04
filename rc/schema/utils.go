@@ -6,7 +6,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"unicode"
 
 	"github.com/integration-system/jsonschema"
@@ -179,32 +178,12 @@ func GetFieldName(fieldType reflect.StructField) (string, bool) {
 	return original, true
 }
 
-// These code copy from
-// https://github.com/go-playground/validator/blob/d4271985b44b735c6f76abc7a06532ee997f9476/baked_in.go#L207
-// ---.
-var oneofValsCache = map[string][]string{}
-var oneofValsCacheRWLock = sync.RWMutex{}
 var splitParamsRegex = regexp.MustCompile(`'[^']*'|\S+`)
 
 func parseOneOfParam(param string) []string {
-	oneofValsCacheRWLock.RLock()
-	values, ok := oneofValsCache[param]
-	oneofValsCacheRWLock.RUnlock()
-
-	if !ok {
-		oneofValsCacheRWLock.Lock()
-		values = splitParamsRegex.FindAllString(param, -1)
-
-		for i := 0; i < len(values); i++ {
-			values[i] = strings.ReplaceAll(values[i], "'", "")
-		}
-
-		oneofValsCache[param] = values
-
-		oneofValsCacheRWLock.Unlock()
+	values := splitParamsRegex.FindAllString(param, -1)
+	for i := 0; i < len(values); i++ {
+		values[i] = strings.ReplaceAll(values[i], "'", "")
 	}
-
 	return values
 }
-
-// ---.
