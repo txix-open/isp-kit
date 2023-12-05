@@ -12,7 +12,7 @@ type Struct struct {
 }
 
 type SubStruct struct {
-	A string `valid:"required"`
+	A string `validate:"required"`
 }
 
 func TestValidateNil(t *testing.T) {
@@ -23,7 +23,7 @@ func TestValidateNil(t *testing.T) {
 	require.Empty(details)
 
 	ok, details = validator.Default.Validate(Struct{Optional: &SubStruct{}})
-	expectedDetails := map[string]string{"Optional.A": "non zero value required"}
+	expectedDetails := map[string]string{".Optional.A": "Key: '.Optional.A' Error:Field validation for 'A' failed on the 'required' tag"}
 	require.False(ok)
 	require.EqualValues(expectedDetails, details)
 }
@@ -37,7 +37,7 @@ func TestValidateArray(t *testing.T) {
 		A: "",
 	}}
 	ok, details := validator.Default.Validate(arr)
-	expectedDetails := map[string]string{"1.A": "non zero value required"}
+	expectedDetails := map[string]string{"[1].A": "Key: '[1].A' Error:Field validation for 'A' failed on the 'required' tag"}
 	require.False(ok)
 	require.EqualValues(expectedDetails, details)
 
@@ -46,7 +46,7 @@ func TestValidateArray(t *testing.T) {
 	}
 	value := s{Array: arr}
 	ok, details = validator.Default.Validate(value)
-	expectedDetails = map[string]string{"Array.1.A": "non zero value required"}
+	expectedDetails = map[string]string{".Array[1].A": "Key: '.Array[1].A' Error:Field validation for 'A' failed on the 'required' tag"}
 	require.False(ok)
 	require.EqualValues(expectedDetails, details)
 }
@@ -59,7 +59,7 @@ func TestMap(t *testing.T) {
 		"key2": {A: "2"},
 	}
 	ok, details := validator.Default.Validate(m)
-	expectedDetails := map[string]string{"key.A": "non zero value required"}
+	expectedDetails := map[string]string{"[key].A": "Key: '[key].A' Error:Field validation for 'A' failed on the 'required' tag"}
 	require.False(ok)
 	require.EqualValues(expectedDetails, details)
 }

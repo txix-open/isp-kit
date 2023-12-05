@@ -5,14 +5,17 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/asaskevich/govalidator"
+	"github.com/go-playground/validator/v10"
 )
 
 type Adapter struct {
+	validator *validator.Validate
 }
 
 func New() Adapter {
-	return Adapter{}
+	return Adapter{
+		validator: validator.New(),
+	}
 }
 
 type wrapper struct {
@@ -20,13 +23,11 @@ type wrapper struct {
 }
 
 func (a Adapter) Validate(v any) (ok bool, details map[string]string) {
-	ok, err := govalidator.ValidateStruct(wrapper{v}) //hack
-	if ok || err == nil {
+	err := a.validator.Struct(wrapper{v}) //hack
+	if err == nil {
 		return true, nil
 	}
-
-	details = make(map[string]string)
-	err = a.collectDetails(err, details)
+	details, err = a.collectDetails(err)
 	if err != nil {
 		return false, map[string]string{"#validator": err.Error()}
 	}
@@ -38,7 +39,6 @@ func (a Adapter) ValidateToError(v any) error {
 	if ok {
 		return nil
 	}
-
 	descriptions := make([]string, 0, len(details))
 	for field, err := range details {
 		descriptions = append(descriptions, fmt.Sprintf("%s -> %s", field, err))
@@ -47,24 +47,16 @@ func (a Adapter) ValidateToError(v any) error {
 	return errors.New(err)
 }
 
-func (a Adapter) collectDetails(err error, result map[string]string) error {
-	switch e := err.(type) {
-	case govalidator.Error:
-		errName := e.Name
-		if len(e.Path) > 0 {
-			errName = strings.Join(append(e.Path, e.Name), ".")
-			errName = errName[2:] //remove V.
-		}
-		result[errName] = e.Err.Error()
-	case govalidator.Errors:
-		for _, err := range e.Errors() {
-			err = a.collectDetails(err, result)
-			if err != nil {
-				return err
-			}
-		}
-	default:
-		return err
+func (a Adapter) collectDetails(err error) (map[string]string, error) {
+	e, ok := err.(validator.ValidationErrors)
+	if !ok {
+		return nil, err
 	}
-	return nil
+	const prefixToDelete = "wrapper.V"
+	result := make(map[string]string, len(e))
+	for _, err := range e {
+		field, _ := strings.CutPrefix(err.Namespace(), prefixToDelete)
+		result[field] = strings.ReplaceAll(err.Error(), prefixToDelete, "")
+	}
+	return result, nil
 }
