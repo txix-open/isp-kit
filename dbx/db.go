@@ -24,7 +24,7 @@ type Client struct {
 	*db.Client
 
 	migrationRunner MigrationRunner
-	tracer          pgx.QueryTracer
+	queryTraces     []pgx.QueryTracer
 }
 
 func Open(ctx context.Context, config Config, opts ...Option) (*Client, error) {
@@ -40,7 +40,7 @@ func Open(ctx context.Context, config Config, opts ...Option) (*Client, error) {
 		}
 	}
 
-	dbCli, err := db.Open(ctx, config.Dsn(), db.WithQueryTracer(cli.tracer))
+	dbCli, err := db.Open(ctx, config.Dsn(), db.WithQueryTracer(cli.queryTraces...))
 	if err != nil {
 		return nil, errors.WithMessage(err, "open db")
 	}

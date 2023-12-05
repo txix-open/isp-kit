@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	tracerName = "isp-kit/observability/httptracing"
+	tracerName = "isp-kit/observability/tracing/http"
 )
 
 type Config struct {
@@ -34,8 +34,7 @@ func NewConfig() Config {
 }
 
 func (c Config) Middleware() httpcli.Middleware {
-	_, isNoop := c.Provider.(tracing.NoopProvider)
-	if isNoop {
+	if tracing.IsNoop(c.Provider) {
 		return func(next httpcli.RoundTripper) httpcli.RoundTripper {
 			return httpcli.RoundTripperFunc(func(ctx context.Context, request *httpcli.Request) (*httpcli.Response, error) {
 				return next.RoundTrip(ctx, request)
@@ -56,7 +55,7 @@ func (c Config) Middleware() httpcli.Middleware {
 			if clientEndpoint == "" {
 				clientEndpoint = request.Raw.URL.Path
 			}
-			spanName := fmt.Sprintf("%s %s", request.Raw.Method, clientEndpoint)
+			spanName := fmt.Sprintf("HTTP call %s %s", request.Raw.Method, clientEndpoint)
 
 			ctx, span := tracer.Start(ctx, spanName, opts...)
 			defer span.End()

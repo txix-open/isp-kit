@@ -21,7 +21,7 @@ var (
 )
 
 const (
-	RequestId = attribute.Key("request_id")
+	RequestId = attribute.Key("app.request_id")
 )
 
 func NewProviderFromConfiguration(ctx context.Context, logger log.Logger, config Config) (Provider, error) {

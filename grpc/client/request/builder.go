@@ -1,4 +1,4 @@
-package client
+package request
 
 import (
 	"context"
@@ -12,53 +12,51 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-type RequestBuilder struct {
+type Builder struct {
+	Endpoint      string
+	MD            metadata.MD
 	requestBody   any
 	responsePtr   any
 	applicationId int
 	timeout       time.Duration
-	endpoint      string
 	roundTripper  RoundTripper
-	metadata      map[string][]string
 }
 
-func NewRequestBuilder(roundTripper RoundTripper, endpoint string) *RequestBuilder {
-	return &RequestBuilder{
+func NewBuilder(roundTripper RoundTripper, endpoint string) *Builder {
+	return &Builder{
+		Endpoint:     endpoint,
+		MD:           metadata.New(make(map[string]string)),
 		roundTripper: roundTripper,
-		endpoint:     endpoint,
 		timeout:      15 * time.Second,
 	}
 }
 
-func (req *RequestBuilder) ApplicationId(appId int) *RequestBuilder {
+func (req *Builder) ApplicationId(appId int) *Builder {
 	req.applicationId = appId
 	return req
 }
 
-func (req *RequestBuilder) JsonRequestBody(reqBody any) *RequestBuilder {
+func (req *Builder) JsonRequestBody(reqBody any) *Builder {
 	req.requestBody = reqBody
 	return req
 }
 
-func (req *RequestBuilder) JsonResponseBody(respPtr any) *RequestBuilder {
+func (req *Builder) JsonResponseBody(respPtr any) *Builder {
 	req.responsePtr = respPtr
 	return req
 }
 
-func (req *RequestBuilder) Timeout(timeout time.Duration) *RequestBuilder {
+func (req *Builder) Timeout(timeout time.Duration) *Builder {
 	req.timeout = timeout
 	return req
 }
 
-func (req *RequestBuilder) AppendMetadata(k string, v ...string) *RequestBuilder {
-	if req.metadata == nil {
-		req.metadata = make(map[string][]string)
-	}
-	req.metadata[k] = v
+func (req *Builder) AppendMetadata(k string, v ...string) *Builder {
+	req.MD[k] = append(req.MD[k], v...)
 	return req
 }
 
-func (req *RequestBuilder) Do(ctx context.Context) error {
+func (req *Builder) Do(ctx context.Context) error {
 	var (
 		reqCtx = ctx
 		cancel context.CancelFunc
@@ -68,14 +66,11 @@ func (req *RequestBuilder) Do(ctx context.Context) error {
 		defer cancel()
 	}
 
-	md := metadata.Pairs(grpc.ProxyMethodNameHeader, req.endpoint)
+	req.MD.Set(grpc.ProxyMethodNameHeader, req.Endpoint)
 	if req.applicationId != 0 {
-		md.Set(grpc.ApplicationIdHeader, strconv.Itoa(req.applicationId))
+		req.MD.Set(grpc.ApplicationIdHeader, strconv.Itoa(req.applicationId))
 	}
-	for k, v := range req.metadata {
-		md.Append(k, v...)
-	}
-	ctx = metadata.NewOutgoingContext(reqCtx, md)
+	ctx = metadata.NewOutgoingContext(reqCtx, req.MD)
 	var body []byte
 	var err error
 	if req.requestBody != nil {

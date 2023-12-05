@@ -14,8 +14,8 @@ func WithMigrationRunner(migrationDir string, logger log.Logger) Option {
 	}
 }
 
-func WithTracer(tracer pgx.QueryTracer) Option {
+func WithQueryTracer(tracers ...pgx.QueryTracer) Option {
 	return func(db *Client) {
-		db.tracer = tracer
+		db.queryTraces = append(db.queryTraces, tracers...)
 	}
 }

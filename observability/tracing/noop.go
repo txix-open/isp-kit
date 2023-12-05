@@ -22,3 +22,8 @@ func (n NoopProvider) Tracer(name string, options ...trace.TracerOption) trace.T
 func (n NoopProvider) Shutdown(ctx context.Context) error {
 	return nil
 }
+
+func IsNoop(provider TracerProvider) bool {
+	_, isNoop := provider.(NoopProvider)
+	return isNoop
+}

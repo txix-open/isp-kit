@@ -2,7 +2,6 @@ package sql_metrics
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/integration-system/isp-kit/metrics"
@@ -34,8 +33,8 @@ func NewTracer(reg *metrics.Registry) QueryDurationMetrics {
 }
 
 func (m QueryDurationMetrics) TraceQueryStart(ctx context.Context, conn *pgx.Conn, data pgx.TraceQueryStartData) context.Context {
-	label := ctx.Value(labelContextKey)
-	if label == nil {
+	label := OperationLabelFromContext(ctx)
+	if label == "" {
 		return ctx
 	}
 
@@ -47,7 +46,7 @@ func (m QueryDurationMetrics) TraceQueryEnd(ctx context.Context, conn *pgx.Conn,
 	if startedAt == nil {
 		return
 	}
-	label := fmt.Sprintf("%s", ctx.Value(labelContextKey))
+	label := OperationLabelFromContext(ctx)
 
 	duration := time.Since(startedAt.(time.Time))
 	m.duration.WithLabelValues(label).Observe(metrics.Milliseconds(duration))
@@ -55,4 +54,9 @@ func (m QueryDurationMetrics) TraceQueryEnd(ctx context.Context, conn *pgx.Conn,
 
 func OperationLabelToContext(ctx context.Context, label string) context.Context {
 	return context.WithValue(ctx, labelContextKey, label)
+}
+
+func OperationLabelFromContext(ctx context.Context) string {
+	value, _ := ctx.Value(labelContextKey).(string)
+	return value
 }

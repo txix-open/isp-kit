@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 
+	"github.com/integration-system/isp-kit/grpc/client/request"
 	"github.com/integration-system/isp-kit/grpc/isp"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
@@ -16,20 +17,16 @@ const (
 )
 
 type Client struct {
-	middlewares []Middleware
+	middlewares []request.Middleware
 	dialOptions []grpc.DialOption
 
-	roundTripper  RoundTripper
+	roundTripper  request.RoundTripper
 	hostsResolver *manual.Resolver
 	grpcCli       *grpc.ClientConn
 	backendCli    isp.BackendServiceClient
 
 	currentHosts []string
 }
-
-type RoundTripper func(ctx context.Context, builder *RequestBuilder, message *isp.Message) (*isp.Message, error)
-
-type Middleware func(next RoundTripper) RoundTripper
 
 func New(initialHosts []string, opts ...Option) (*Client, error) {
 	cli := &Client{}
@@ -68,8 +65,8 @@ func New(initialHosts []string, opts ...Option) (*Client, error) {
 	return cli, nil
 }
 
-func (cli *Client) Invoke(endpoint string) *RequestBuilder {
-	return NewRequestBuilder(cli.roundTripper, endpoint)
+func (cli *Client) Invoke(endpoint string) *request.Builder {
+	return request.NewBuilder(cli.roundTripper, endpoint)
 }
 
 func (cli *Client) Upgrade(hosts []string) {
@@ -87,7 +84,7 @@ func (cli *Client) BackendClient() isp.BackendServiceClient {
 	return cli.backendCli
 }
 
-func (cli *Client) do(ctx context.Context, _ *RequestBuilder, message *isp.Message) (*isp.Message, error) {
+func (cli *Client) do(ctx context.Context, _ *request.Builder, message *isp.Message) (*isp.Message, error) {
 	if len(cli.currentHosts) == 0 {
 		return nil, errors.New("grpc client: client is not initialized properly: empty hosts array")
 	}

@@ -6,7 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/integration-system/grmq/consumer"
 	"github.com/integration-system/isp-kit/grmqx"
+	"github.com/integration-system/isp-kit/grmqx/handler"
 	"github.com/integration-system/isp-kit/log"
 	"github.com/integration-system/isp-kit/requestid"
 	"github.com/integration-system/isp-kit/test"
@@ -39,10 +41,10 @@ func TestRequestIdChain(t *testing.T) {
 
 	handler1 := grmqx.NewResultHandler(
 		test.Logger(),
-		grmqx.ResultHandlerAdapterFunc(func(ctx context.Context, body []byte) grmqx.Result {
+		handler.SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) handler.Result {
 			err := pub2.Publish(ctx, &amqp091.Publishing{})
 			require.NoError(err)
-			return grmqx.Ack()
+			return handler.Ack()
 		}),
 	)
 	consumer1 := consumerCfg1.DefaultConsumer(handler1, grmqx.ConsumerLog(test.Logger()))
@@ -50,11 +52,11 @@ func TestRequestIdChain(t *testing.T) {
 	await := make(chan struct{})
 	handler2 := grmqx.NewResultHandler(
 		test.Logger(),
-		grmqx.ResultHandlerAdapterFunc(func(ctx context.Context, body []byte) grmqx.Result {
+		handler.SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) handler.Result {
 			requestId := requestid.FromContext(ctx)
 			require.EqualValues(expectedRequestId, requestId)
 			close(await)
-			return grmqx.Ack()
+			return handler.Ack()
 		}),
 	)
 	consumer2 := consumerCfg2.DefaultConsumer(handler2, grmqx.ConsumerLog(test.Logger()))
@@ -70,7 +72,7 @@ func TestRequestIdChain(t *testing.T) {
 		grmqx.WithConsumers(consumer1, consumer2),
 		grmqx.WithDeclarations(grmqx.TopologyFromConsumers(consumerCfg1, consumerCfg2)),
 	)
-	err := cli.Upgrade(context.Background(), cfg)
+	err = cli.Upgrade(context.Background(), cfg)
 	require.NoError(err)
 
 	ctx := requestid.ToContext(context.Background(), expectedRequestId)
@@ -95,9 +97,9 @@ func TestRetry(t *testing.T) {
 	callCount := atomic.Int32{}
 	handler := grmqx.NewResultHandler(
 		test.Logger(),
-		grmqx.ResultHandlerAdapterFunc(func(ctx context.Context, body []byte) grmqx.Result {
+		handler.SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) handler.Result {
 			callCount.Add(1)
-			return grmqx.Retry(errors.New("some error"))
+			return handler.Retry(errors.New("some error"))
 		}),
 	)
 	consumerCfg := grmqx.Consumer{

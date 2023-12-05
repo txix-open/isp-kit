@@ -53,6 +53,9 @@ func (i AuthData) DeviceToken() (string, error) {
 }
 
 func StringFromMd(key string, md metadata.MD) (string, error) {
+	if md == nil {
+		return "", errors.New("metadata is nil")
+	}
 	values := md[key]
 	if len(values) == 0 {
 		return "", errors.Errorf("'%s' is expected id metadata", key)

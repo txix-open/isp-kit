@@ -23,7 +23,7 @@ const (
 	ReadBytesKey  = attribute.Key("http.read_bytes")  // if anything was read from the request body, the total number of bytes read
 	WroteBytesKey = attribute.Key("http.wrote_bytes") // if anything was written to the response writer, the total number of bytes written
 
-	tracerName = "isp-kit/observability/httptracing"
+	tracerName = "isp-kit/observability/tracing/http"
 )
 
 type Config struct {
@@ -39,8 +39,7 @@ func NewConfig() Config {
 }
 
 func (c Config) Middleware() http2.Middleware {
-	_, isNoop := c.Provider.(tracing.NoopProvider)
-	if isNoop {
+	if tracing.IsNoop(c.Provider) {
 		return func(next http2.HandlerFunc) http2.HandlerFunc {
 			return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 				return next(ctx, w, r)
