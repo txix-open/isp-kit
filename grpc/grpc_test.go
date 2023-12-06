@@ -69,7 +69,7 @@ func TestGrpcValidation(t *testing.T) {
 	require, srv, cli := prepareTest(t)
 
 	type reqBody struct {
-		A string `valid:"required"`
+		A string `validate:"required"`
 	}
 	logger, err := log.New()
 	require.NoError(err)
@@ -88,7 +88,7 @@ func TestGrpcValidation(t *testing.T) {
 		ErrorCode:    400,
 		ErrorMessage: "invalid request body",
 		Details: map[string]any{
-			"a": "non zero value required",
+			".A": "A is a required field",
 		},
 	}, *apiError)
 	require.EqualValues(0, atomic.LoadInt32(&callCount))

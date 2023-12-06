@@ -6,9 +6,9 @@ import (
 )
 
 type Config struct {
-	Host        string `valid:"required" schema:"Хост"`
-	Port        int    `valid:"required" schema:"Порт"`
-	Database    string `valid:"required" schema:"База данных"`
+	Host        string `validate:"required" schema:"Хост"`
+	Port        int    `validate:"required" schema:"Порт"`
+	Database    string `validate:"required" schema:"База данных"`
 	Username    string `schema:"Логин"`
 	Password    string `schema:"Пароль"`
 	Schema      string `schema:"Схема"`

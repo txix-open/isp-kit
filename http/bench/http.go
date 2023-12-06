@@ -19,7 +19,7 @@ import (
 )
 
 type Request struct {
-	S string `valid:"required"`
+	S string `validate:"required"`
 }
 
 type Response struct {
