@@ -72,7 +72,7 @@ func TestRequestIdChain(t *testing.T) {
 		grmqx.WithConsumers(consumer1, consumer2),
 		grmqx.WithDeclarations(grmqx.TopologyFromConsumers(consumerCfg1, consumerCfg2)),
 	)
-	err = cli.Upgrade(context.Background(), cfg)
+	err := cli.Upgrade(context.Background(), cfg)
 	require.NoError(err)
 
 	ctx := requestid.ToContext(context.Background(), expectedRequestId)
