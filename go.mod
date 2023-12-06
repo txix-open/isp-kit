@@ -9,6 +9,8 @@ require (
 	github.com/getsentry/sentry-go v0.25.0
 	github.com/go-faker/faker/v4 v4.2.0
 	github.com/go-logr/stdr v1.2.2
+	github.com/go-playground/locales v0.14.1
+	github.com/go-playground/universal-translator v0.18.1
 	github.com/go-resty/resty/v2 v2.10.0
 	github.com/go-stomp/stomp/v3 v3.0.5
 	github.com/iancoleman/strcase v0.3.0
@@ -17,6 +19,7 @@ require (
 	github.com/integration-system/grmq v1.4.2
 	github.com/integration-system/isp-etp-go/v2 v2.1.3
 	github.com/integration-system/jsonschema v0.0.0-20231204080301-fa365e270a81
+	github.com/integration-system/validator/v10 v10.0.0-20231205122740-49807820d98b
 	github.com/jackc/pgx/v5 v5.5.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/json-iterator/go v1.1.12
@@ -48,6 +51,7 @@ require (
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/go-logr/logr v1.3.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.18.1 // indirect
@@ -58,6 +62,7 @@ require (
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
+	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/lib/pq v1.10.2 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect
