@@ -1,6 +1,8 @@
 package validator_test
 
 import (
+	"maps"
+	"strconv"
 	"testing"
 
 	"github.com/integration-system/isp-kit/validator"
@@ -129,4 +131,73 @@ func TestOneOf(t *testing.T) {
 	}
 	require.False(ok)
 	require.EqualValues(expDetails, details)
+}
+
+func genNestedStruct(depth int) *nested {
+	if depth < 1 {
+		return &nested{
+			Map:   make(map[string]*nested),
+			Array: make([]*nested, 0),
+		}
+	}
+	obj := genNestedStruct(depth - 1)
+	m := make(map[string]*nested)
+	maps.Copy(m, obj.Map)
+	m[strconv.Itoa(depth)] = obj
+	return &nested{
+		Struct: obj,
+		Map:    m,
+		Array:  append(obj.Array, obj),
+	}
+}
+
+type nested struct {
+	Struct *nested            `validate:"required" valid:"required"`
+	Map    map[string]*nested `validate:"required" valid:"required"`
+	Array  []*nested          `validate:"required" valid:"required"`
+}
+
+func BenchmarkValidatorV10(b *testing.B) {
+	b.ResetTimer()
+	b.ReportAllocs()
+	b.SetParallelism(32)
+	b.RunParallel(func(pb *testing.PB) {
+		obj := genNestedStruct(5)
+		// obj := &nested{
+		// 	Struct: &nested{
+		// 		Struct: &nested{},
+		// 		Map:    map[string]*nested{"0": {}},
+		// 		Array:  []*nested{{}},
+		// 	},
+		// 	Map: map[string]*nested{
+		// 		"0": {
+		// 			Struct: &nested{},
+		// 			Map:    map[string]*nested{"0": {}},
+		// 			Array:  []*nested{{}},
+		// 		},
+		// 	},
+		// 	Array: []*nested{
+		// 		{
+		// 			Struct: &nested{},
+		// 			Map:    map[string]*nested{"0": {}},
+		// 			Array:  []*nested{{}},
+		// 		},
+		// 	},
+		// }
+		for pb.Next() {
+			validator.Default.Validate(obj)
+		}
+	})
+}
+
+func BenchmarkValidatorAsaskevich(b *testing.B) {
+	b.ResetTimer()
+	b.ReportAllocs()
+	b.SetParallelism(32)
+	b.RunParallel(func(pb *testing.PB) {
+		obj := genNestedStruct(5)
+		for pb.Next() {
+			validator.Default.ValidateOld(obj)
+		}
+	})
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/integration-system/validator/v10"
@@ -21,10 +22,7 @@ func New() Adapter {
 	uni := ut.New(en, en)
 	translator, _ := uni.GetTranslator("en")
 	validator := validator.New()
-	err := en_translations.RegisterDefaultTranslations(validator, translator)
-	if err != nil {
-		panic(err)
-	}
+	_ = en_translations.RegisterDefaultTranslations(validator, translator)
 	return Adapter{
 		validator:  validator,
 		translator: translator,
@@ -72,4 +70,41 @@ func (a Adapter) collectDetails(err error) (map[string]string, error) {
 		result[field] = err.Translate(a.translator)
 	}
 	return result, nil
+}
+
+func (a Adapter) ValidateOld(v any) (ok bool, details map[string]string) {
+	ok, err := govalidator.ValidateStruct(wrapper{v}) //hack
+	if ok || err == nil {
+		return true, nil
+	}
+
+	details = make(map[string]string)
+	err = a.collectDetailsOld(err, details)
+	if err != nil {
+		return false, map[string]string{"#validator": err.Error()}
+	}
+	return false, details
+
+}
+
+func (a Adapter) collectDetailsOld(err error, result map[string]string) error {
+	switch e := err.(type) {
+	case govalidator.Error:
+		errName := e.Name
+		if len(e.Path) > 0 {
+			errName = strings.Join(append(e.Path, e.Name), ".")
+			errName = errName[2:] //remove V.
+		}
+		result[errName] = e.Err.Error()
+	case govalidator.Errors:
+		for _, err := range e.Errors() {
+			err = a.collectDetailsOld(err, result)
+			if err != nil {
+				return err
+			}
+		}
+	default:
+		return err
+	}
+	return nil
 }
