@@ -163,27 +163,6 @@ func BenchmarkValidatorV10(b *testing.B) {
 	b.SetParallelism(32)
 	b.RunParallel(func(pb *testing.PB) {
 		obj := genNestedStruct(5)
-		// obj := &nested{
-		// 	Struct: &nested{
-		// 		Struct: &nested{},
-		// 		Map:    map[string]*nested{"0": {}},
-		// 		Array:  []*nested{{}},
-		// 	},
-		// 	Map: map[string]*nested{
-		// 		"0": {
-		// 			Struct: &nested{},
-		// 			Map:    map[string]*nested{"0": {}},
-		// 			Array:  []*nested{{}},
-		// 		},
-		// 	},
-		// 	Array: []*nested{
-		// 		{
-		// 			Struct: &nested{},
-		// 			Map:    map[string]*nested{"0": {}},
-		// 			Array:  []*nested{{}},
-		// 		},
-		// 	},
-		// }
 		for pb.Next() {
 			validator.Default.Validate(obj)
 		}
