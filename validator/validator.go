@@ -5,16 +5,29 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-playground/validator/v10"
+	"github.com/go-playground/locales/en"
+	ut "github.com/go-playground/universal-translator"
+	"github.com/integration-system/validator/v10"
+	en_translations "github.com/integration-system/validator/v10/translations/en"
 )
 
 type Adapter struct {
-	validator *validator.Validate
+	validator  *validator.Validate
+	translator ut.Translator
 }
 
 func New() Adapter {
+	en := en.New()
+	uni := ut.New(en, en)
+	translator, _ := uni.GetTranslator("en")
+	validator := validator.New()
+	err := en_translations.RegisterDefaultTranslations(validator, translator)
+	if err != nil {
+		panic(err)
+	}
 	return Adapter{
-		validator: validator.New(),
+		validator:  validator,
+		translator: translator,
 	}
 }
 
@@ -56,7 +69,7 @@ func (a Adapter) collectDetails(err error) (map[string]string, error) {
 	result := make(map[string]string, len(e))
 	for _, err := range e {
 		field, _ := strings.CutPrefix(err.Namespace(), prefixToDelete)
-		result[field] = strings.ReplaceAll(err.Error(), prefixToDelete, "")
+		result[field] = err.Translate(a.translator)
 	}
 	return result, nil
 }
