@@ -22,17 +22,11 @@ func NewGenerator() *Generator {
 			FieldNameReflector: GetNameAndRequiredFlag,
 			FieldReflector:     SetProperties,
 			ExpandedStruct:     true,
+			DoNotReference:     true,
 		},
 	}
 }
 
 func (g *Generator) Generate(obj any) Schema {
 	return g.Reflector.Reflect(obj)
-}
-
-func GenerateConfigSchema(cfgPtr any) Schema {
-	s := NewGenerator().Generate(cfgPtr)
-	s.Title = "Remote config"
-	s.Version = ""
-	return s
 }

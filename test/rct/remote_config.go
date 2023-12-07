@@ -1,13 +1,12 @@
 package rct
 
 import (
-	"fmt"
 	"os"
 	"reflect"
 	"testing"
 
 	"github.com/integration-system/isp-kit/json"
-	"github.com/integration-system/isp-kit/rc/schema"
+	"github.com/integration-system/isp-kit/rc"
 	"github.com/integration-system/isp-kit/validator"
 	"github.com/stretchr/testify/require"
 	"github.com/xeipuuv/gojsonschema"
@@ -17,17 +16,16 @@ func Test[T any](t *testing.T, defaultRemoteConfigPath string, remoteConfig T) {
 	require := require.New(t)
 
 	validatorTag := "valid"
-	require.False(FindTag(remoteConfig, validatorTag),
-		fmt.Sprintf("'%s' tag is is not longer supported, you must use https://github.com/go-playground/validator", validatorTag))
+	require.Falsef(FindTag(remoteConfig, validatorTag), "'%s' tag is not longer supported, you must use https://github.com/go-playground/validator", validatorTag)
 
 	defaultRemoteConfig, err := os.ReadFile(defaultRemoteConfigPath)
 	require.NoError(err)
 
-	jsonSchema := schema.GenerateConfigSchema(remoteConfig)
+	jsonSchema := rc.GenerateConfigSchema(remoteConfig)
 	jsonSchemaData, err := json.Marshal(jsonSchema)
 	require.NoError(err)
 
-	remoteConfigAsMap := make(map[string]any, 0)
+	remoteConfigAsMap := make(map[string]any)
 	err = json.Unmarshal(defaultRemoteConfig, &remoteConfigAsMap)
 	require.NoError(err)
 

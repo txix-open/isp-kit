@@ -41,6 +41,7 @@ func (c Config) Middleware() handler.Middleware {
 			})
 		}
 	}
+
 	tracer := c.Provider.Tracer(tracerName)
 	return func(next handler.SyncHandlerAdapter) handler.SyncHandlerAdapter {
 		return handler.SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) handler.Result {
@@ -61,11 +62,11 @@ func (c Config) Middleware() handler.Middleware {
 				trace.WithSpanKind(trace.SpanKindConsumer),
 				trace.WithAttributes(attributes...),
 			}
-			opts = append(opts, trace.WithNewRoot())
+			/*opts = append(opts, trace.WithNewRoot())
 			// Linking incoming span context if any for public endpoint.
 			if s := trace.SpanContextFromContext(ctx); s.IsValid() && s.IsRemote() {
 				opts = append(opts, trace.WithLinks(trace.Link{SpanContext: s}))
-			}
+			}*/
 
 			destination := rabbitmq.Destination(source.Exchange, source.RoutingKey)
 			spanName := fmt.Sprintf("%s deliver", destination)

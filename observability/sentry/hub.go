@@ -49,6 +49,7 @@ func NewHubFromConfiguration(config Config) (Hub, error) {
 		Transport:   buffedTransport,
 		ServerName:  config.ModuleName,
 		Environment: config.Environment,
+		Release:     "undefined",
 		Tags:        allTags,
 		Integrations: func(integrations []sentry.Integration) []sentry.Integration {
 			filtered := make([]sentry.Integration, 0, len(integrations))

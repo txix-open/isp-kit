@@ -18,7 +18,7 @@ require (
 	github.com/integration-system/bgjob v1.3.0
 	github.com/integration-system/grmq v1.4.2
 	github.com/integration-system/isp-etp-go/v2 v2.1.3
-	github.com/integration-system/jsonschema v0.0.0-20231204080301-fa365e270a81
+	github.com/integration-system/jsonschema v1.1.0
 	github.com/integration-system/validator/v10 v10.0.0-20231205122740-49807820d98b
 	github.com/jackc/pgx/v5 v5.5.0
 	github.com/jmoiron/sqlx v1.3.5

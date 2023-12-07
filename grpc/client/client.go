@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"sync/atomic"
 
 	"github.com/integration-system/isp-kit/grpc/client/request"
 	"github.com/integration-system/isp-kit/grpc/isp"
@@ -25,7 +26,7 @@ type Client struct {
 	grpcCli       *grpc.ClientConn
 	backendCli    isp.BackendServiceClient
 
-	currentHosts []string
+	currentHosts atomic.Value
 }
 
 func New(initialHosts []string, opts ...Option) (*Client, error) {
@@ -51,7 +52,8 @@ func New(initialHosts []string, opts ...Option) (*Client, error) {
 	}
 	backendCli := isp.NewBackendServiceClient(grpcCli)
 
-	cli.currentHosts = initialHosts
+	cli.currentHosts = atomic.Value{}
+	cli.currentHosts.Store(initialHosts)
 	cli.hostsResolver = hostsResolver
 	cli.backendCli = backendCli
 	cli.grpcCli = grpcCli
@@ -70,7 +72,7 @@ func (cli *Client) Invoke(endpoint string) *request.Builder {
 }
 
 func (cli *Client) Upgrade(hosts []string) {
-	cli.currentHosts = hosts
+	cli.currentHosts.Store(hosts)
 	cli.hostsResolver.UpdateState(resolver.State{
 		Addresses: toAddresses(hosts),
 	})
@@ -85,7 +87,8 @@ func (cli *Client) BackendClient() isp.BackendServiceClient {
 }
 
 func (cli *Client) do(ctx context.Context, _ *request.Builder, message *isp.Message) (*isp.Message, error) {
-	if len(cli.currentHosts) == 0 {
+	currentHosts := cli.currentHosts.Load().([]string)
+	if len(currentHosts) == 0 {
 		return nil, errors.New("grpc client: client is not initialized properly: empty hosts array")
 	}
 	return cli.backendCli.Request(ctx, message)

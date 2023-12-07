@@ -39,6 +39,7 @@ func (c Config) Middleware() publisher.Middleware {
 			})
 		}
 	}
+
 	tracer := c.Provider.Tracer(tracerName)
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
 		return publisher.RoundTripperFunc(func(ctx context.Context, exchange string, routingKey string, msg *amqp091.Publishing) error {

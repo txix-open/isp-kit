@@ -25,7 +25,6 @@ import (
 	"github.com/integration-system/isp-kit/observability/sentry"
 	"github.com/integration-system/isp-kit/observability/tracing"
 	"github.com/integration-system/isp-kit/rc"
-	"github.com/integration-system/isp-kit/rc/schema"
 	"github.com/integration-system/isp-kit/validator"
 	"github.com/pkg/errors"
 )
@@ -128,7 +127,7 @@ func bootstrap(
 		Endpoints: endpoints,
 	}
 
-	schema := schema.GenerateConfigSchema(remoteConfig)
+	schema := rc.GenerateConfigSchema(remoteConfig)
 	schemaData, err := json.Marshal(schema)
 	if err != nil {
 		return nil, errors.WithMessage(err, "marshal schema")
