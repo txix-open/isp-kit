@@ -16,8 +16,8 @@ import (
 )
 
 type Connection struct {
-	Host     string `valid:"required" schema:"Хост"`
-	Port     int    `valid:"required" schema:"Порт"`
+	Host     string `validate:"required" schema:"Хост"`
+	Port     int    `validate:"required" schema:"Порт"`
 	Username string `schema:"Логин"`
 	Password string `schema:"Пароль"`
 	Vhost    string `schema:"Виртуальный хост"`
@@ -38,7 +38,7 @@ func (c Connection) Url() string {
 
 type Publisher struct {
 	Exchange   string `schema:"Точка обмена"`
-	RoutingKey string `valid:"required" schema:"Ключ маршрутизации,для публикации напрямую в очередь указывается название очереди"`
+	RoutingKey string `validate:"required" schema:"Ключ маршрутизации,для публикации напрямую в очередь указывается название очереди"`
 }
 
 func (p Publisher) DefaultPublisher(restMiddlewares ...publisher.Middleware) *publisher.Publisher {
@@ -59,8 +59,8 @@ func (p Publisher) DefaultPublisher(restMiddlewares ...publisher.Middleware) *pu
 }
 
 type RetryConfig struct {
-	DelayInMs   int `valid:"required" schema:"Задержка в миллисекундах"`
-	MaxAttempts int `valid:"required" schema:"Количество попыток,-1 = бесконечно"`
+	DelayInMs   int `validate:"required" schema:"Задержка в миллисекундах"`
+	MaxAttempts int `validate:"required" schema:"Количество попыток,-1 = бесконечно"`
 }
 
 type RetryPolicy struct {
@@ -69,13 +69,13 @@ type RetryPolicy struct {
 }
 
 type Binding struct {
-	Exchange     string `valid:"required" schema:"Точка обмена"`
-	ExchangeType string `valid:"required,in(direct|fanout|topic)" schema:"Тип точки обмена"`
-	RoutingKey   string `valid:"required" schema:"Ключ маршрутизации"`
+	Exchange     string `validate:"required" schema:"Точка обмена"`
+	ExchangeType string `validate:"required,oneof=direct fanout topic" schema:"Тип точки обмена"`
+	RoutingKey   string `validate:"required" schema:"Ключ маршрутизации"`
 }
 
 type Consumer struct {
-	Queue              string       `valid:"required" schema:"Наименование очереди"`
+	Queue              string       `validate:"required" schema:"Наименование очереди"`
 	Dlq                bool         `schema:"Создать очередь DLQ"`
 	PrefetchCount      int          `schema:"Количество предзагруженных сообщений,по умолчанию - 1"`
 	Concurrency        int          `schema:"Количество обработчиков,по умолчанию - 1, рекомендовано использовать значение = prefetchCount"`
@@ -116,10 +116,10 @@ func (c Consumer) DefaultConsumer(handler consumer.Handler, restMiddlewares ...c
 }
 
 type BatchConsumer struct {
-	Queue              string       `valid:"required" schema:"Наименование очереди"`
+	Queue              string       `validate:"required" schema:"Наименование очереди"`
 	Dlq                bool         `schema:"Создать очередь DLQ"`
-	BatchSize          int          `valid:"required" schema:"Количество сообщений в пачке"`
-	PurgeIntervalInMs  int          `valid:"required" schema:"Интервал обработки"`
+	BatchSize          int          `validate:"required" schema:"Количество сообщений в пачке"`
+	PurgeIntervalInMs  int          `validate:"required" schema:"Интервал обработки"`
 	DisableAutoDeclare bool         `schema:"Отключить автоматическое объявление,по умолчанию  exchange, queue и binding будут созданы автоматически"`
 	Binding            *Binding     `schema:"Настройки топологии"`
 	RetryPolicy        *RetryPolicy `schema:"Политика повторной обработки"`

@@ -1,12 +1,13 @@
 package schema
 
 import (
+	"encoding/json"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode"
 
-	"github.com/asaskevich/govalidator"
 	"github.com/integration-system/jsonschema"
 )
 
@@ -35,135 +36,101 @@ func GetNameAndRequiredFlag(field reflect.StructField) (string, bool) {
 	return name, false
 }
 
-func SetProperties(field reflect.StructField, t *jsonschema.Type) {
+func SetProperties(field reflect.StructField, s *jsonschema.Schema) {
 	schema, ok := field.Tag.Lookup(tagSchema)
 	if ok {
 		parts := strings.SplitN(schema, ",", 2)
 		if len(parts) > 0 {
 			if len(parts) == 2 {
-				t.Description = parts[1]
+				s.Description = parts[1]
 			}
 			if parts[0] != "" {
-				t.Title = parts[0]
+				s.Title = parts[0]
 			}
 		}
 	}
 
 	defaultValue, ok := field.Tag.Lookup(tagDefault)
 	if ok {
-		t.Default = defaultValue
+		s.Default = defaultValue
 	}
 
-	setValidators(field, t)
+	setValidators(field, s)
 
 	customValue, ok := field.Tag.Lookup(tagCustomSchema)
 	if ok {
 		if f := CustomGenerators.getGeneratorByName(customValue); f != nil {
-			f(field, t)
+			f(field, s)
 		}
 	}
 }
 
-func setValidators(field reflect.StructField, t *jsonschema.Type) {
+func setValidators(field reflect.StructField, s *jsonschema.Schema) {
 	validators := getValidatorsMap(field)
 	if validators == nil {
 		return
 	}
-
-	for f, args := range validators {
-		switch f {
-		case "uri":
-			fallthrough
-		case "email":
-			fallthrough
-		case "ipv4":
-			fallthrough
-		case "ipv6":
-			t.Format = f
-		case "matches":
-			if len(args) > 0 {
-				t.Pattern = args[0]
-			}
-		case "host":
-			t.Format = "hostname"
-		case "length":
-			fallthrough
-		case "runelength":
-			if len(args) == 0 {
-				continue
-			}
-			val, err := strconv.Atoi(args[0])
-			if err == nil {
-				t.MinLength = val
-			}
-			if len(args) == 1 {
-				continue
-			}
-			val, err = strconv.Atoi(args[1])
-			if err == nil {
-				t.MaxLength = val
-			}
-		case "in":
-			if len(args) == 0 {
-				continue
-			}
-			vals := strings.Split(args[0], "|")
-			for _, val := range vals {
-				t.Enum = append(t.Enum, val)
-			}
-		case "range":
-			if len(args) == 0 {
-				continue
-			}
-			val, err := strconv.Atoi(args[0])
-			if err == nil {
-				t.Minimum = val
-			}
-			if len(args) == 1 {
-				continue
-			}
-			val, err = strconv.Atoi(args[1])
-			if err == nil {
-				t.Maximum = val
-			}
+	for k, v := range validators {
+		switch k {
+		case "max", "lte":
+			setMax(s, v)
+		case "min", "gte":
+			setMin(s, v)
+		case "oneof":
+			setOneOf(s, v)
 		}
 	}
 }
 
-func getValidatorsMap(field reflect.StructField) map[string][]string {
-	value, ok := field.Tag.Lookup("valid")
+func setMax(s *jsonschema.Schema, v string) {
+	value, err := strconv.ParseUint(v, 10, 64)
+	if err != nil {
+		return
+	}
+	switch s.Type {
+	case "string":
+		s.MaxLength = &value
+	case "integer":
+		s.Maximum = json.Number(v)
+	case "array":
+		s.MaxItems = &value
+	}
+}
+
+func setMin(s *jsonschema.Schema, v string) {
+	value, err := strconv.ParseUint(v, 10, 64)
+	if err != nil {
+		return
+	}
+	switch s.Type {
+	case "string":
+		s.MinLength = &value
+	case "integer":
+		s.Minimum = json.Number(v)
+	case "array":
+		s.MinItems = &value
+	}
+}
+
+func setOneOf(s *jsonschema.Schema, v string) {
+	if s.Type != "string" && s.Type != "integer" {
+		return
+	}
+	for _, value := range parseOneOfParam(v) {
+		s.Enum = append(s.Enum, value)
+	}
+}
+
+func getValidatorsMap(field reflect.StructField) tagOptionsMap {
+	value, ok := field.Tag.Lookup("validate")
 	if !ok {
 		return nil
 	}
-
 	value = strings.TrimSpace(value)
 	if value == "" || value == "-" {
 		return nil
 	}
-
-	tm := parseTagIntoMap(value)
-	result := make(map[string][]string, len(tm))
-	for val := range tm {
-		f, args := getValidatorFunction(val)
-		result[f] = args
-	}
-	return result
-}
-
-func getValidatorFunction(val string) (string, []string) {
-	for key, value := range govalidator.ParamTagRegexMap {
-		ps := value.FindStringSubmatch(val)
-		l := len(ps)
-		if l < 2 {
-			continue
-		}
-		args := make([]string, l-1)
-		for i := 1; i < l; i++ {
-			args[i-1] = ps[i]
-		}
-		return key, args
-	}
-	return val, []string{}
+	return parseTagIntoMap(value)
 }
 
 type tagOptionsMap map[string]string
@@ -171,40 +138,17 @@ type tagOptionsMap map[string]string
 func parseTagIntoMap(tag string) tagOptionsMap {
 	optionsMap := make(tagOptionsMap)
 	options := strings.Split(tag, ",")
-
 	for _, option := range options {
 		option = strings.TrimSpace(option)
-
-		validationOptions := strings.Split(option, "~")
-		if !isValidTag(validationOptions[0]) {
-			continue
-		}
-		if len(validationOptions) == 2 {
-			optionsMap[validationOptions[0]] = validationOptions[1]
-		} else {
-			optionsMap[validationOptions[0]] = ""
+		keyValue := strings.Split(option, "=")
+		switch len(keyValue) {
+		case 1:
+			optionsMap[keyValue[0]] = ""
+		case 2:
+			optionsMap[keyValue[0]] = keyValue[1]
 		}
 	}
 	return optionsMap
-}
-
-func isValidTag(s string) bool {
-	if s == "" {
-		return false
-	}
-	for _, c := range s {
-		switch {
-		case strings.ContainsRune("\\'\"!#$%&()*+-./:<=>?@[]^_{|}~ ", c):
-			// Backslash and quote chars are reserved, but
-			// otherwise any punctuation chars are allowed
-			// in a tag name.
-		default:
-			if !unicode.IsLetter(c) && !unicode.IsDigit(c) {
-				return false
-			}
-		}
-	}
-	return true
 }
 
 func GetFieldName(fieldType reflect.StructField) (string, bool) {
@@ -232,4 +176,14 @@ func GetFieldName(fieldType reflect.StructField) (string, bool) {
 		original = string(arr)
 	}
 	return original, true
+}
+
+var splitParamsRegex = regexp.MustCompile(`'[^']*'|\S+`)
+
+func parseOneOfParam(param string) []string {
+	values := splitParamsRegex.FindAllString(param, -1)
+	for i := 0; i < len(values); i++ {
+		values[i] = strings.ReplaceAll(values[i], "'", "")
+	}
+	return values
 }

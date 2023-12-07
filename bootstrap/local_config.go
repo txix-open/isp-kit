@@ -4,7 +4,7 @@ type LocalConfig struct {
 	ConfigServiceAddress    ConfigServiceAddr
 	GrpcOuterAddress        GrpcOuterAddr
 	GrpcInnerAddress        GrpcInnerAddr
-	ModuleName              string `valid:"required"`
+	ModuleName              string `validate:"required"`
 	DefaultRemoteConfigPath string
 	MigrationsDirPath       string
 	RemoteConfigOverride    string
@@ -21,18 +21,18 @@ type LogFile struct {
 }
 
 type ConfigServiceAddr struct {
-	IP   string `valid:"required"`
-	Port string `valid:"required"`
+	IP   string `validate:"required"`
+	Port string `validate:"required"`
 }
 
 type GrpcOuterAddr struct {
 	IP   string
-	Port int `valid:"required"`
+	Port int `validate:"required"`
 }
 
 type GrpcInnerAddr struct {
-	IP   string `valid:"required"`
-	Port int    `valid:"required"`
+	IP   string `validate:"required"`
+	Port int    `validate:"required"`
 }
 
 type Observability struct {

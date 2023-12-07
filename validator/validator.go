@@ -5,14 +5,30 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/asaskevich/govalidator"
+	"github.com/go-playground/locales/en"
+	ut "github.com/go-playground/universal-translator"
+	"github.com/integration-system/validator/v10"
+	en_translations "github.com/integration-system/validator/v10/translations/en"
 )
 
 type Adapter struct {
+	validator  *validator.Validate
+	translator ut.Translator
 }
 
 func New() Adapter {
-	return Adapter{}
+	enTranslator := en.New()
+	uni := ut.New(enTranslator, enTranslator)
+	translator, _ := uni.GetTranslator("en")
+	validator := validator.New()
+	err := en_translations.RegisterDefaultTranslations(validator, translator)
+	if err != nil {
+		panic(err)
+	}
+	return Adapter{
+		validator:  validator,
+		translator: translator,
+	}
 }
 
 type wrapper struct {
@@ -20,13 +36,11 @@ type wrapper struct {
 }
 
 func (a Adapter) Validate(v any) (ok bool, details map[string]string) {
-	ok, err := govalidator.ValidateStruct(wrapper{v}) //hack
-	if ok || err == nil {
+	err := a.validator.Struct(wrapper{v}) //hack
+	if err == nil {
 		return true, nil
 	}
-
-	details = make(map[string]string)
-	err = a.collectDetails(err, details)
+	details, err = a.collectDetails(err)
 	if err != nil {
 		return false, map[string]string{"#validator": err.Error()}
 	}
@@ -38,7 +52,6 @@ func (a Adapter) ValidateToError(v any) error {
 	if ok {
 		return nil
 	}
-
 	descriptions := make([]string, 0, len(details))
 	for field, err := range details {
 		descriptions = append(descriptions, fmt.Sprintf("%s -> %s", field, err))
@@ -47,24 +60,30 @@ func (a Adapter) ValidateToError(v any) error {
 	return errors.New(err)
 }
 
-func (a Adapter) collectDetails(err error, result map[string]string) error {
-	switch e := err.(type) {
-	case govalidator.Error:
-		errName := e.Name
-		if len(e.Path) > 0 {
-			errName = strings.Join(append(e.Path, e.Name), ".")
-			errName = errName[2:] //remove V.
+const (
+	prefixToDelete = "wrapper.V"
+)
+
+func (a Adapter) collectDetails(err error) (map[string]string, error) {
+	var e validator.ValidationErrors
+	if !errors.As(err, &e) {
+		return nil, err
+	}
+	result := make(map[string]string, len(e))
+	for _, err := range e {
+		field := []byte(err.Namespace())[len(prefixToDelete):]
+		if field[0] == '.' {
+			field = field[1:]
 		}
-		result[errName] = e.Err.Error()
-	case govalidator.Errors:
-		for _, err := range e.Errors() {
-			err = a.collectDetails(err, result)
-			if err != nil {
-				return err
+		firstLetter := 0
+		for i := 0; i < len(field); i++ {
+			if field[i] == '.' {
+				field[firstLetter] = strings.ToLower(string(field[firstLetter]))[0]
+				firstLetter = i + 1
 			}
 		}
-	default:
-		return err
+		field[firstLetter] = strings.ToLower(string(field[firstLetter]))[0]
+		result[string(field)] = err.Translate(a.translator)
 	}
-	return nil
+	return result, nil
 }

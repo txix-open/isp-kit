@@ -10,8 +10,8 @@ import (
 )
 
 type ConsumerConfig struct {
-	Address       string            `valid:"required" schema:"Адрес брокера"`
-	Queue         string            `valid:"required" schema:"Очередь"`
+	Address       string            `validate:"required" schema:"Адрес брокера"`
+	Queue         string            `validate:"required" schema:"Очередь"`
 	Concurrency   int               `schema:"Кол-во обработчиков,по умолчанию 1"`
 	PrefetchCount int               `schema:"Кол-во предзагруженных сообщений,по умолчанию не используется"`
 	Username      string            `schema:"Имя пользователя"`
@@ -58,8 +58,8 @@ func DefaultConsumer(cfg ConsumerConfig, handler consumer.Handler, logger log.Lo
 }
 
 type PublisherConfig struct {
-	Address     string            `valid:"required" schema:"Адрес брокера"`
-	Queue       string            `valid:"required" schema:"Очередь"`
+	Address     string            `validate:"required" schema:"Адрес брокера"`
+	Queue       string            `validate:"required" schema:"Очередь"`
 	Username    string            `schema:"Имя пользователя"`
 	Password    string            `schema:"Пароль"`
 	ConnHeaders map[string]string `schema:"Дополнительные параметры подключения"`
