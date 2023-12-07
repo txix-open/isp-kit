@@ -21,7 +21,10 @@ func New() Adapter {
 	uni := ut.New(en, en)
 	translator, _ := uni.GetTranslator("en")
 	validator := validator.New()
-	_ = en_translations.RegisterDefaultTranslations(validator, translator)
+	err := en_translations.RegisterDefaultTranslations(validator, translator)
+	if err != nil {
+		panic(err)
+	}
 	return Adapter{
 		validator:  validator,
 		translator: translator,
