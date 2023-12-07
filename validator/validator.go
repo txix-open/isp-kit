@@ -17,8 +17,8 @@ type Adapter struct {
 }
 
 func New() Adapter {
-	en := en.New()
-	uni := ut.New(en, en)
+	enTranslator := en.New()
+	uni := ut.New(enTranslator, enTranslator)
 	translator, _ := uni.GetTranslator("en")
 	validator := validator.New()
 	err := en_translations.RegisterDefaultTranslations(validator, translator)
