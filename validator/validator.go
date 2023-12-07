@@ -65,23 +65,13 @@ const (
 )
 
 func (a Adapter) collectDetails(err error) (map[string]string, error) {
-	e, ok := err.(validator.ValidationErrors)
-	if !ok {
+	var e validator.ValidationErrors
+	if !errors.As(err, &e) {
 		return nil, err
 	}
 	result := make(map[string]string, len(e))
 	for _, err := range e {
 		field := []byte(err.Namespace())[len(prefixToDelete):]
-		// fieldParts := strings.Split(field, ".")
-		// var builder strings.Builder
-		// for _, part := range fieldParts {
-		// 	if part == "" {
-		// 		continue
-		// 	}
-		// 	builder.WriteString(strings.ToLower(part[0:1]))
-		// 	builder.WriteString(part[1:])
-		// }
-		// field = strings.ToLower(string(field[0])) + field[1:]
 		if field[0] == '.' {
 			field = field[1:]
 		}
