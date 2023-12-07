@@ -13,26 +13,25 @@ type ConfigSchema struct {
 }
 
 type Generator struct {
-	ref *jsonschema.Reflector
+	Reflector *jsonschema.Reflector
 }
 
-func NewGenerator(ref *jsonschema.Reflector) *Generator {
+func NewGenerator() *Generator {
 	return &Generator{
-		ref: ref,
+		Reflector: &jsonschema.Reflector{
+			FieldNameReflector: GetNameAndRequiredFlag,
+			FieldReflector:     SetProperties,
+			ExpandedStruct:     true,
+		},
 	}
 }
 
 func (g *Generator) Generate(obj any) Schema {
-	return g.ref.Reflect(obj)
+	return g.Reflector.Reflect(obj)
 }
 
 func GenerateConfigSchema(cfgPtr any) Schema {
-	ref := jsonschema.Reflector{
-		FieldNameReflector: GetNameAndRequiredFlag,
-		FieldReflector:     SetProperties,
-		ExpandedStruct:     true,
-	}
-	s := ref.Reflect(cfgPtr)
+	s := NewGenerator().Generate(cfgPtr)
 	s.Title = "Remote config"
 	s.Version = ""
 	return s
