@@ -71,8 +71,29 @@ func (a Adapter) collectDetails(err error) (map[string]string, error) {
 	}
 	result := make(map[string]string, len(e))
 	for _, err := range e {
-		field := err.Namespace()[len(prefixToDelete):]
-		result[field] = err.Translate(a.translator)
+		field := []byte(err.Namespace())[len(prefixToDelete):]
+		// fieldParts := strings.Split(field, ".")
+		// var builder strings.Builder
+		// for _, part := range fieldParts {
+		// 	if part == "" {
+		// 		continue
+		// 	}
+		// 	builder.WriteString(strings.ToLower(part[0:1]))
+		// 	builder.WriteString(part[1:])
+		// }
+		// field = strings.ToLower(string(field[0])) + field[1:]
+		if field[0] == '.' {
+			field = field[1:]
+		}
+		firstLetter := 0
+		for i := 0; i < len(field); i++ {
+			if field[i] == '.' {
+				field[firstLetter] = strings.ToLower(string(field[firstLetter]))[0]
+				firstLetter = i + 1
+			}
+		}
+		field[firstLetter] = strings.ToLower(string(field[firstLetter]))[0]
+		result[string(field)] = err.Translate(a.translator)
 	}
 	return result, nil
 }

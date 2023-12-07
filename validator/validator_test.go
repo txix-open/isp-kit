@@ -23,7 +23,7 @@ func TestValidateNil(t *testing.T) {
 	require.Empty(details)
 
 	ok, details = validator.Default.Validate(Struct{Optional: &SubStruct{}})
-	expectedDetails := map[string]string{".Optional.A": "A is a required field"}
+	expectedDetails := map[string]string{"optional.a": "A is a required field"}
 	require.False(ok)
 	require.EqualValues(expectedDetails, details)
 }
@@ -37,7 +37,7 @@ func TestValidateArray(t *testing.T) {
 		A: "",
 	}}
 	ok, details := validator.Default.Validate(arr)
-	expectedDetails := map[string]string{"[1].A": "A is a required field"}
+	expectedDetails := map[string]string{"[1].a": "A is a required field"}
 	require.False(ok)
 	require.EqualValues(expectedDetails, details)
 
@@ -46,7 +46,7 @@ func TestValidateArray(t *testing.T) {
 	}
 	value := s{Array: arr}
 	ok, details = validator.Default.Validate(value)
-	expectedDetails = map[string]string{".Array[1].A": "A is a required field"}
+	expectedDetails = map[string]string{"array[1].a": "A is a required field"}
 	require.False(ok)
 	require.EqualValues(expectedDetails, details)
 }
@@ -59,7 +59,7 @@ func TestMap(t *testing.T) {
 		"key2": {A: "2"},
 	}
 	ok, details := validator.Default.Validate(m)
-	expectedDetails := map[string]string{"[key].A": "A is a required field"}
+	expectedDetails := map[string]string{"[key].a": "A is a required field"}
 	require.False(ok)
 	require.EqualValues(expectedDetails, details)
 }
@@ -103,10 +103,10 @@ func TestCompositeDataType(t *testing.T) {
 	}
 	ok, details := validator.Default.Validate(obj)
 	expectedDetails := map[string]string{
-		".Array":                 "Array must contain at maximum 1 item",
-		".Map[key].Arr":          "Arr must contain at maximum 1 item",
-		".Map[sub][map].A":       "A is a required field",
-		".SomeStruct.Optional.A": "A is a required field",
+		"array":                 "Array must contain at maximum 1 item",
+		"map[key].arr":          "Arr must contain at maximum 1 item",
+		"map[sub][map].a":       "A is a required field",
+		"someStruct.optional.a": "A is a required field",
 	}
 	require.False(ok)
 	require.EqualValues(expectedDetails, details)
@@ -124,8 +124,8 @@ func TestOneOf(t *testing.T) {
 	}
 	ok, details := validator.Default.Validate(obj)
 	expDetails := map[string]string{
-		".Int": "Int must be one of [5 22 913]",
-		".Str": "Str must be one of ['some string' 'str']",
+		"int": "Int must be one of [5 22 913]",
+		"str": "Str must be one of ['some string' 'str']",
 	}
 	require.False(ok)
 	require.EqualValues(expDetails, details)

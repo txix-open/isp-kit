@@ -88,7 +88,7 @@ func TestGrpcValidation(t *testing.T) {
 		ErrorCode:    400,
 		ErrorMessage: "invalid request body",
 		Details: map[string]any{
-			".A": "A is a required field",
+			"a": "A is a required field",
 		},
 	}, *apiError)
 	require.EqualValues(0, atomic.LoadInt32(&callCount))
