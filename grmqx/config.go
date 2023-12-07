@@ -70,7 +70,7 @@ type RetryPolicy struct {
 
 type Binding struct {
 	Exchange     string `validate:"required" schema:"Точка обмена"`
-	ExchangeType string `validate:"required,in(direct|fanout|topic)" schema:"Тип точки обмена"`
+	ExchangeType string `validate:"required,oneof=direct fanout topic" schema:"Тип точки обмена"`
 	RoutingKey   string `validate:"required" schema:"Ключ маршрутизации"`
 }
 
