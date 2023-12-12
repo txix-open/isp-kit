@@ -72,7 +72,7 @@ func (c Config) Middleware() httpcli.Middleware {
 				span.RecordError(err)
 				span.SetStatus(codes.Error, err.Error())
 			}
-			if resp != nil {
+			if resp != nil && resp.Raw != nil {
 				attributes = append(attributes, semconvutil.HTTPClientResponse(resp.Raw)...)
 				span.SetStatus(semconvutil.HTTPClientStatus(resp.StatusCode()))
 			}
