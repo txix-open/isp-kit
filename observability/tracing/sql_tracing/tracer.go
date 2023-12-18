@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/integration-system/isp-kit/metrics/sql_metrics"
 	"github.com/integration-system/isp-kit/observability/tracing"
@@ -20,6 +21,12 @@ const (
 	QueryParametersKey = attribute.Key("pgx.query.parameters")
 )
 
+type contextKey struct{}
+
+var (
+	contextKeyValue = contextKey{}
+)
+
 type Tracer struct {
 	tracer trace.Tracer
 	config Config
@@ -32,12 +39,14 @@ func NewTracer(tracer trace.Tracer, config Config) Tracer {
 	}
 }
 
-func (t Tracer) TraceQueryStart(ctx context.Context, conn *pgx.Conn, data pgx.TraceQueryStartData) context.Context {
-	if !trace.SpanFromContext(ctx).IsRecording() {
-		return ctx
-	}
-
+func (t Tracer) TraceQueryStart(ctx context.Context, _ *pgx.Conn, data pgx.TraceQueryStartData) context.Context {
 	label := sql_metrics.OperationLabelFromContext(ctx)
+	if label == "" && strings.HasPrefix(data.SQL, "begin") {
+		label = "BEGIN"
+	}
+	if label == "" && strings.HasPrefix(data.SQL, "commit") {
+		label = "COMMIT"
+	}
 	if label == "" {
 		return ctx
 	}
@@ -62,13 +71,16 @@ func (t Tracer) TraceQueryStart(ctx context.Context, conn *pgx.Conn, data pgx.Tr
 	}
 
 	spanName := fmt.Sprintf("SQL query %s", label)
-	ctx, _ = t.tracer.Start(ctx, spanName, opts...)
+	ctx, span := t.tracer.Start(ctx, spanName, opts...)
 
-	return ctx
+	return context.WithValue(ctx, contextKeyValue, span)
 }
 
-func (t Tracer) TraceQueryEnd(ctx context.Context, conn *pgx.Conn, data pgx.TraceQueryEndData) {
-	span := trace.SpanFromContext(ctx)
+func (t Tracer) TraceQueryEnd(ctx context.Context, _ *pgx.Conn, data pgx.TraceQueryEndData) {
+	span, _ := ctx.Value(contextKeyValue).(trace.Span)
+	if span == nil {
+		return
+	}
 
 	err := data.Err
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {

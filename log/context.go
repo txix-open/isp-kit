@@ -4,18 +4,18 @@ import (
 	"context"
 )
 
-type contextLogKey struct{}
+type contextKey struct{}
 
 var (
-	contextKey = contextLogKey{}
+	contextKeyValue = contextKey{}
 )
 
 func ContextLogValues(ctx context.Context) []Field {
-	value, _ := ctx.Value(contextKey).([]Field)
+	value, _ := ctx.Value(contextKeyValue).([]Field)
 	return value
 }
 
 func ToContext(ctx context.Context, kvs ...Field) context.Context {
 	existedValues := append(ContextLogValues(ctx), kvs...)
-	return context.WithValue(ctx, contextKey, existedValues)
+	return context.WithValue(ctx, contextKeyValue, existedValues)
 }
