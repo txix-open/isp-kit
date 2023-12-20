@@ -70,6 +70,7 @@ func (p *Publisher) publish(ctx context.Context, queue string, msg *Message) err
 	err = conn.Send(queue, msg.ContentType, msg.Body, msg.Opts...)
 	if err != nil {
 		p.lock.Lock()
+		_ = conn.MustDisconnect()
 		p.conn = nil
 		p.lock.Unlock()
 		return errors.WithMessage(err, "stomp send")
