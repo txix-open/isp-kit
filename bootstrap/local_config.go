@@ -9,8 +9,17 @@ type LocalConfig struct {
 	MigrationsDirPath       string
 	RemoteConfigOverride    string
 	LogFile                 LogFile
+	Logs                    Logs
 	Observability           Observability
 	InfraServerPort         int
+}
+
+type Logs struct {
+	Sampling struct {
+		Enable       bool
+		MaxPerSecond int
+		PassEvery    int
+	}
 }
 
 type LogFile struct {

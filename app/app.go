@@ -18,28 +18,22 @@ type Application struct {
 	closers []Closer
 }
 
-func New(isDev bool, cfgOpts ...config.Option) (*Application, error) {
-	cfg, err := config.New(cfgOpts...)
+func New(opts ...Option) (*Application, error) {
+	appConfig := DefaultConfig()
+	for _, opt := range opts {
+		opt(appConfig)
+	}
+	return NewFromConfig(*appConfig)
+}
+
+func NewFromConfig(appConfig Config) (*Application, error) {
+	cfg, err := config.New(appConfig.ConfigOptions...)
 	if err != nil {
 		return nil, errors.WithMessage(err, "create config")
 	}
 
-	loggerOpts := []log.Option{log.WithDevelopmentMode(), log.WithLevel(log.DebugLevel)}
-	if !isDev {
-		loggerOpts = []log.Option{log.WithLevel(log.InfoLevel)}
-		logFilePath := cfg.Optional().String("LOGFILE.PATH", "")
-		if logFilePath != "" {
-			rotation := log.Rotation{
-				File:       logFilePath,
-				MaxSizeMb:  cfg.Optional().Int("LOGFILE.MAXSIZEMB", 512),
-				MaxDays:    0,
-				MaxBackups: cfg.Optional().Int("LOGFILE.MAXBACKUPS", 4),
-				Compress:   cfg.Optional().Bool("LOGFILE.COMPRESS", true),
-			}
-			loggerOpts = append(loggerOpts, log.WithFileRotation(rotation))
-		}
-	}
-	logger, err := log.New(loggerOpts...)
+	loggerConfig := appConfig.LoggerConfigSupplier(cfg)
+	logger, err := log.NewFromConfig(loggerConfig)
 	if err != nil {
 		return nil, errors.WithMessage(err, "create logger")
 	}

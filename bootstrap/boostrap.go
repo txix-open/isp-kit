@@ -21,7 +21,9 @@ import (
 	"github.com/integration-system/isp-kit/infra/pprof"
 	"github.com/integration-system/isp-kit/json"
 	"github.com/integration-system/isp-kit/log"
+	"github.com/integration-system/isp-kit/log/file"
 	"github.com/integration-system/isp-kit/metrics"
+	"github.com/integration-system/isp-kit/metrics/app_metrics"
 	"github.com/integration-system/isp-kit/observability/sentry"
 	"github.com/integration-system/isp-kit/observability/tracing"
 	"github.com/integration-system/isp-kit/rc"
@@ -45,22 +47,11 @@ type Bootstrap struct {
 
 func New(moduleVersion string, remoteConfig any, endpoints []cluster.EndpointDescriptor) *Bootstrap {
 	isDev := strings.ToLower(os.Getenv("APP_MODE")) == "dev"
-	localConfigPath, err := configFilePath(isDev)
+	appConfig, err := appConfig(isDev)
 	if err != nil {
-		stdlog.Fatal(errors.WithMessage(err, "resolve local config path"))
-		return nil
+		stdlog.Fatal(errors.WithMessage(err, "app config"))
 	}
-	configsOpts := []config.Option{
-		config.WithValidator(validator.Default),
-		config.WithEnvPrefix(os.Getenv("APP_CONFIG_ENV_PREFIX")),
-	}
-	if localConfigPath != "" {
-		configsOpts = append(configsOpts, config.WithExtraSource(config.NewYamlConfig(localConfigPath)))
-	}
-	app, err := app.New(
-		isDev,
-		configsOpts...,
-	)
+	app, err := app.NewFromConfig(*appConfig)
 	if err != nil {
 		stdlog.Fatal(errors.WithMessage(err, "create app"))
 		return nil
@@ -364,4 +355,59 @@ func kitVersion() string {
 		}
 	}
 	return "0.0.0"
+}
+
+func appConfig(isDev bool) (*app.Config, error) {
+	localConfigPath, err := configFilePath(isDev)
+	if err != nil {
+		return nil, errors.WithMessage(err, "resolve local config path")
+	}
+	configsOpts := []config.Option{
+		config.WithValidator(validator.Default),
+		config.WithEnvPrefix(os.Getenv("APP_CONFIG_ENV_PREFIX")),
+	}
+	if localConfigPath != "" {
+		configsOpts = append(configsOpts, config.WithExtraSource(config.NewYamlConfig(localConfigPath)))
+	}
+
+	logConfigSupplier := app.LoggerConfigSupplier(func(cfg *config.Config) log.Config {
+		initialLevel := log.InfoLevel
+		if isDev {
+			initialLevel = log.DebugLevel
+		}
+
+		var fileOutput *file.Output
+		logFilePath := cfg.Optional().String("LOGFILE.PATH", "")
+		if !isDev && logFilePath != "" {
+			fileOutput = &file.Output{
+				File:       logFilePath,
+				MaxSizeMb:  cfg.Optional().Int("LOGFILE.MAXSIZEMB", 512),
+				MaxDays:    0,
+				MaxBackups: cfg.Optional().Int("LOGFILE.MAXBACKUPS", 4),
+				Compress:   cfg.Optional().Bool("LOGFILE.COMPRESS", true),
+			}
+		}
+
+		var sampling *log.SamplingConfig
+		isEnableSampling := cfg.Optional().Bool("LOGS.SAMPLING.ENABLE", true)
+		if !isDev && isEnableSampling {
+			sampling = &log.SamplingConfig{
+				Initial:    cfg.Optional().Int("LOGS.SAMPLING.MAXPERSECOND", 1000),
+				Thereafter: cfg.Optional().Int("LOGS.SAMPLING.PASSEVERY", 100),
+				Hook:       app_metrics.LogSamplingHook(metrics.DefaultRegistry),
+			}
+		}
+
+		return log.Config{
+			IsInDevMode:  isDev,
+			FileOutput:   fileOutput,
+			Sampling:     sampling,
+			InitialLevel: initialLevel,
+		}
+	})
+
+	return &app.Config{
+		LoggerConfigSupplier: logConfigSupplier,
+		ConfigOptions:        configsOpts,
+	}, nil
 }
