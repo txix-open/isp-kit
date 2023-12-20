@@ -5,51 +5,50 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/integration-system/isp-kit/log/file"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 type Adapter struct {
-	devMode      bool
-	rotation     *Rotation
-	initialLevel Level
-
 	logger *zap.Logger
 	level  zap.AtomicLevel
 }
 
 func New(opts ...Option) (*Adapter, error) {
-	a := &Adapter{
-		devMode:      false,
-		rotation:     nil,
-		initialLevel: InfoLevel,
-	}
+	config := DefaultConfig()
 	for _, opt := range opts {
-		opt(a)
+		opt(config)
 	}
+	return NewFromConfig(*config)
+}
 
+func NewFromConfig(config Config) (*Adapter, error) {
 	cfg := zap.NewProductionConfig()
-	if a.devMode {
+	if config.IsInDevMode {
 		cfg = zap.NewDevelopmentConfig()
 	}
 	cfg.DisableStacktrace = true
 	cfg.DisableCaller = true
 	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	if a.rotation != nil {
-		outputUrl := rotationToUrl(*a.rotation)
+	cfg.Sampling = config.Sampling
+	if config.FileOutput != nil {
+		outputUrl := file.ConfigToUrl(*config.FileOutput)
 		cfg.OutputPaths = append(cfg.OutputPaths, outputUrl.String())
 	}
-	level := zap.NewAtomicLevelAt(a.initialLevel)
+	level := zap.NewAtomicLevelAt(config.InitialLevel)
 	cfg.Level = level
+
 	logger, err := cfg.Build()
 	if err != nil {
 		return nil, errors.WithMessage(err, "build logger")
 	}
-	a.logger = logger
-	a.level = level
 
-	return a, nil
+	return &Adapter{
+		logger: logger,
+		level:  level,
+	}, nil
 }
 
 func (a *Adapter) Fatal(ctx context.Context, message any, fields ...Field) {
@@ -73,7 +72,7 @@ func (a *Adapter) Debug(ctx context.Context, message any, fields ...Field) {
 }
 
 func (a *Adapter) Log(ctx context.Context, level Level, message any, fields ...Field) {
-	entry := a.logger.Check(level, fmt.Sprintf("%v", message))
+	entry := a.logger.Check(level, castString(message))
 	if entry != nil {
 		arr := append(ContextLogValues(ctx), fields...)
 		entry.Write(arr...)
@@ -103,4 +102,15 @@ func StdLoggerWithLevel(adapter Logger, level Level, withFields ...Field) *log.L
 		panic(err)
 	}
 	return stdLogger
+}
+
+func castString(v any) string {
+	switch typed := v.(type) {
+	case string:
+		return typed
+	case error:
+		return typed.Error()
+	default:
+		return fmt.Sprintf("%v", v)
+	}
 }

@@ -1,4 +1,4 @@
-package log
+package file
 
 import (
 	"io"
@@ -16,18 +16,18 @@ const (
 
 func init() {
 	err := zap.RegisterSink(lumberjackSchema, func(u *url.URL) (zap.Sink, error) {
-		r, err := rotationFromUrl(u)
+		r, err := fileOutputConfigFromUrl(u)
 		if err != nil {
 			return nil, errors.WithMessage(err, "unmarshal rotation config")
 		}
-		return newSink(NewFileRotationWriter(*r)), nil
+		return newSink(NewFileWriter(*r)), nil
 	})
 	if err != nil {
 		panic(err)
 	}
 }
 
-type Rotation struct {
+type Output struct {
 	File       string
 	MaxSizeMb  int
 	MaxDays    int
@@ -35,7 +35,7 @@ type Rotation struct {
 	Compress   bool
 }
 
-func rotationToUrl(r Rotation) url.URL {
+func ConfigToUrl(r Output) url.URL {
 	values := url.Values{
 		"file":       {r.File},
 		"maxSizeMb":  {strconv.Itoa(r.MaxSizeMb)},
@@ -50,7 +50,7 @@ func rotationToUrl(r Rotation) url.URL {
 	return u
 }
 
-func rotationFromUrl(u *url.URL) (*Rotation, error) {
+func fileOutputConfigFromUrl(u *url.URL) (*Output, error) {
 	values, err := url.ParseQuery(u.RawQuery)
 	if err != nil {
 		return nil, errors.WithMessage(err, "parse lumberjack params")
@@ -72,7 +72,7 @@ func rotationFromUrl(u *url.URL) (*Rotation, error) {
 	if err != nil {
 		return nil, errors.WithMessage(err, "parse compress")
 	}
-	return &Rotation{
+	return &Output{
 		File:       file,
 		MaxSizeMb:  maxSizeMb,
 		MaxDays:    maxDays,
@@ -81,7 +81,7 @@ func rotationFromUrl(u *url.URL) (*Rotation, error) {
 	}, nil
 }
 
-func NewFileRotationWriter(r Rotation) io.WriteCloser {
+func NewFileWriter(r Output) io.WriteCloser {
 	return &lumberjack.Logger{
 		Filename:   r.File,
 		MaxSize:    r.MaxSizeMb,

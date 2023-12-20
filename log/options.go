@@ -1,21 +1,25 @@
 package log
 
-type Option func(a *Adapter)
+import (
+	"github.com/integration-system/isp-kit/log/file"
+)
+
+type Option func(cfg *Config)
 
 func WithDevelopmentMode() Option {
-	return func(a *Adapter) {
-		a.devMode = true
+	return func(a *Config) {
+		a.IsInDevMode = true
 	}
 }
 
-func WithFileRotation(r Rotation) Option {
-	return func(a *Adapter) {
-		a.rotation = &r
+func WithFileOutput(fileOutput file.Output) Option {
+	return func(a *Config) {
+		a.FileOutput = &fileOutput
 	}
 }
 
 func WithLevel(level Level) Option {
-	return func(a *Adapter) {
-		a.initialLevel = level
+	return func(a *Config) {
+		a.InitialLevel = level
 	}
 }
