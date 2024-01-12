@@ -4,10 +4,17 @@ import (
 	"context"
 	"reflect"
 	"sync"
+	"time"
 
 	"github.com/integration-system/grmq"
 	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
+	"github.com/rabbitmq/amqp091-go"
+)
+
+const (
+	DefaultHeartbeat   = 3 * time.Second
+	DefaultDialTimeout = 5 * time.Second
 )
 
 type Client struct {
@@ -27,40 +34,11 @@ func New(logger log.Logger) *Client {
 }
 
 func (c *Client) Upgrade(ctx context.Context, config Config) error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	return c.upgrade(ctx, config, false)
+}
 
-	c.logger.Debug(ctx, "rmq client: received new config")
-
-	if reflect.DeepEqual(c.prevCfg, config) {
-		c.logger.Debug(ctx, "rmq client: configs are equal. skipping initialization")
-		return nil
-	}
-
-	c.logger.Debug(ctx, "rmq client: initialization began")
-
-	if c.cli != nil {
-		c.cli.Shutdown()
-		c.cli = nil
-	}
-
-	cli := grmq.New(
-		config.Url,
-		grmq.WithPublishers(config.Publishers...),
-		grmq.WithConsumers(config.Consumers...),
-		grmq.WithDeclarations(config.Declarations),
-		grmq.WithObserver(NewLogObserver(ctx, c.logger)),
-	)
-	err := cli.Run(ctx)
-	if err != nil {
-		return err
-	}
-
-	c.cli = cli
-	c.prevCfg = config
-
-	return nil
-
+func (c *Client) UpgradeAndServe(ctx context.Context, config Config) {
+	_ = c.upgrade(ctx, config, true)
 }
 
 func (c *Client) Healthcheck(ctx context.Context) error {
@@ -86,4 +64,51 @@ func (c *Client) Close() {
 	if cli != nil {
 		cli.Shutdown()
 	}
+}
+
+func (c *Client) upgrade(ctx context.Context, config Config, justServe bool) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	c.logger.Debug(ctx, "rmq client: received new config")
+
+	if reflect.DeepEqual(c.prevCfg, config) {
+		c.logger.Debug(ctx, "rmq client: configs are equal. skipping initialization")
+		return nil
+	}
+
+	c.logger.Debug(ctx, "rmq client: initialization began")
+
+	if c.cli != nil {
+		c.cli.Shutdown()
+		c.cli = nil
+	}
+
+	cli := grmq.New(
+		config.Url,
+		grmq.WithDialConfig(grmq.DialConfig{
+			Config: amqp091.Config{
+				Heartbeat: DefaultHeartbeat,
+				Locale:    "en_US",
+			},
+			DialTimeout: DefaultDialTimeout,
+		}),
+		grmq.WithPublishers(config.Publishers...),
+		grmq.WithConsumers(config.Consumers...),
+		grmq.WithDeclarations(config.Declarations),
+		grmq.WithObserver(NewLogObserver(ctx, c.logger)),
+	)
+
+	if justServe {
+		cli.Serve(ctx)
+	} else {
+		err := cli.Run(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	c.cli = cli
+	c.prevCfg = config
+	return nil
 }
