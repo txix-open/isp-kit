@@ -53,7 +53,12 @@ func Log(logger log.Logger) Middleware {
 
 			switch {
 			case result.Ack:
-				logger.Debug(ctx, "rmq client: message will be acknowledged")
+				logger.Debug(
+					ctx,
+					"rmq client: message will be acknowledged",
+					log.String("exchange", exchange),
+					log.String("routingKey", routingKey),
+				)
 			case result.Requeue:
 				logger.Error(
 					ctx,
