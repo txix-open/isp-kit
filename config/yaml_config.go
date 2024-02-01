@@ -34,7 +34,7 @@ func (y YamlFileSource) Config() (map[string]string, error) {
 		return nil, errors.WithMessage(err, "yaml decode")
 	}
 
-	flatten := bellows.Flatten(fileProps, ".")
+	flatten := bellows.Flatten(fileProps)
 	config := map[string]string{}
 	for key, value := range flatten {
 		config[key] = fmt.Sprintf("%v", value)
