@@ -14,7 +14,7 @@ require (
 	github.com/go-resty/resty/v2 v2.11.0
 	github.com/go-stomp/stomp/v3 v3.0.5
 	github.com/iancoleman/strcase v0.3.0
-	github.com/integration-system/bellows v1.0.2-0.20240201091917-c57d76db7362
+	github.com/integration-system/bellows v1.0.2-0.20240201110359-074b29cfed82
 	github.com/integration-system/bgjob v1.3.0
 	github.com/integration-system/grmq v1.5.0
 	github.com/integration-system/isp-etp-go/v2 v2.1.3
