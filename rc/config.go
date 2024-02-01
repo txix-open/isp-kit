@@ -15,14 +15,16 @@ type Validator interface {
 type Config struct {
 	prevConfig     []byte
 	overrideConfig []byte
+	delim          string
 	validator      Validator
 	lock           sync.Locker
 }
 
-func New(validator Validator, overrideData []byte) *Config {
+func New(validator Validator, overrideData []byte, delim string) *Config {
 	return &Config{
 		prevConfig:     nil,
 		overrideConfig: overrideData,
+		delim:          delim,
 		validator:      validator,
 		lock:           &sync.Mutex{},
 	}
@@ -74,12 +76,12 @@ func (c *Config) mergeWithOverride(data []byte) ([]byte, error) {
 		}
 	}
 
-	config = bellows.Flatten(config)
-	overrideData = bellows.Flatten(overrideData)
+	config = bellows.Flatten(config, c.delim)
+	overrideData = bellows.Flatten(overrideData, c.delim)
 	for k, v := range overrideData {
 		config[k] = v
 	}
-	result := bellows.Expand(config)
+	result := bellows.Expand(config, c.delim)
 	if result == nil {
 		result = make(map[string]any)
 	}

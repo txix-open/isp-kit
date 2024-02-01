@@ -18,7 +18,7 @@ func TestConfig_Upgrade(t *testing.T) {
 	require := require.New(t)
 
 	override := `{"a": {"a": 1}}`
-	config := rc.New(noneValidation{}, []byte(override))
+	config := rc.New(noneValidation{}, []byte(override), ".")
 
 	type cfgType struct {
 		A struct {
