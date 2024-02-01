@@ -18,7 +18,7 @@ func TestConfig_Upgrade(t *testing.T) {
 	require := require.New(t)
 
 	override := `{"a": {"a": 1}}`
-	config := rc.New(noneValidation{}, []byte(override), ".")
+	config := rc.New(noneValidation{}, []byte(override))
 
 	type cfgType struct {
 		A struct {
@@ -58,6 +58,23 @@ func TestConfig_Upgrade(t *testing.T) {
 	newCfg = cfgType{}
 	prevCfg = cfgType{}
 	err = config.Upgrade([]byte(cfg2), &newCfg, &prevCfg)
+	require.NoError(err)
+	require.EqualValues(expectedNewCfg, newCfg)
+	require.EqualValues(expectedPrevCfg, prevCfg)
+}
+
+func TestConfig_Delim(t *testing.T) {
+	require := require.New(t)
+	config := rc.New(noneValidation{}, []byte{})
+	cfg := []byte(`{"map.key.1":"map.value","map.key.2":"map.value"}`)
+	expectedNewCfg := map[string]string{
+		"map.key.1": "map.value",
+		"map.key.2": "map.value",
+	}
+	expectedPrevCfg := make(map[string]string)
+	newCfg := make(map[string]string)
+	prevCfg := make(map[string]string)
+	err := config.Upgrade(cfg, &newCfg, &prevCfg)
 	require.NoError(err)
 	require.EqualValues(expectedNewCfg, newCfg)
 	require.EqualValues(expectedPrevCfg, prevCfg)
