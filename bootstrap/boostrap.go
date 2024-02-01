@@ -140,11 +140,7 @@ func bootstrap(
 		sentry.WrapErrorLogger(application.Logger(), sentryHub),
 	)
 
-	delim := localConfig.RemoteConfigOverride.Delim
-	if delim == "" {
-		delim = "."
-	}
-	rc := rc.New(validator.Default, []byte(localConfig.RemoteConfigOverride.Data), delim)
+	rc := rc.New(validator.Default, []byte(localConfig.RemoteConfigOverride))
 
 	bindingAddress := net.JoinHostPort(localConfig.GrpcInnerAddress.IP, strconv.Itoa(localConfig.GrpcInnerAddress.Port))
 

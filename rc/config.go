@@ -20,11 +20,11 @@ type Config struct {
 	lock           sync.Locker
 }
 
-func New(validator Validator, overrideData []byte, delim string) *Config {
+func New(validator Validator, overrideData []byte) *Config {
 	return &Config{
 		prevConfig:     nil,
 		overrideConfig: overrideData,
-		delim:          delim,
+		delim:          "~",
 		validator:      validator,
 		lock:           &sync.Mutex{},
 	}
