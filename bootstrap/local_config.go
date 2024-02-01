@@ -7,16 +7,11 @@ type LocalConfig struct {
 	ModuleName              string `validate:"required"`
 	DefaultRemoteConfigPath string
 	MigrationsDirPath       string
-	RemoteConfigOverride    remoteConfigOverride
+	RemoteConfigOverride    string
 	LogFile                 LogFile
 	Logs                    Logs
 	Observability           Observability
 	InfraServerPort         int
-}
-
-type remoteConfigOverride struct {
-	Data  string
-	Delim string
 }
 
 type Logs struct {
