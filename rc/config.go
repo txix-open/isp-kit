@@ -76,12 +76,12 @@ func (c *Config) mergeWithOverride(data []byte) ([]byte, error) {
 		}
 	}
 
-	config = bellows.Flatten(config, c.delim)
-	overrideData = bellows.Flatten(overrideData, c.delim)
+	config = bellows.Flatten(config, bellows.WithSep(c.delim))
+	overrideData = bellows.Flatten(overrideData, bellows.WithSep(c.delim))
 	for k, v := range overrideData {
 		config[k] = v
 	}
-	result := bellows.Expand(config, c.delim)
+	result := bellows.Expand(config, bellows.WithSep(c.delim))
 	if result == nil {
 		result = make(map[string]any)
 	}
