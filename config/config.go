@@ -92,7 +92,7 @@ func (c *Config) Read(ptr any) error {
 	for key, value := range c.config {
 		expanded[key] = value
 	}
-	toDecode := bellows.Expand(expanded)
+	toDecode := bellows.Expand(expanded, ".")
 	err = decoder.Decode(toDecode)
 	if err != nil {
 		return errors.WithMessage(err, "decode config")

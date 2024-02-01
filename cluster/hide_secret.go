@@ -24,7 +24,7 @@ func HideSecrets(data []byte) ([]byte, error) {
 		return nil, errors.WithMessage(err, "unmarshal config for replacement secret")
 	}
 
-	flattenConf := bellows.Flatten(config)
+	flattenConf := bellows.Flatten(config, ".")
 
 	for key := range flattenConf {
 		if flattenConf[key] == "" {
@@ -37,7 +37,7 @@ func HideSecrets(data []byte) ([]byte, error) {
 		}
 	}
 
-	expandConf := bellows.Expand(flattenConf)
+	expandConf := bellows.Expand(flattenConf, ".")
 	if expandConf == nil {
 		expandConf = make(map[string]any)
 	}
