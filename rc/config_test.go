@@ -62,3 +62,21 @@ func TestConfig_Upgrade(t *testing.T) {
 	require.EqualValues(expectedNewCfg, newCfg)
 	require.EqualValues(expectedPrevCfg, prevCfg)
 }
+
+func TestConfig_Delim(t *testing.T) {
+	require := require.New(t)
+	override := []byte(`{"map.key.1": "overridden.value"}`)
+	config := rc.New(noneValidation{}, override)
+	cfg := []byte(`{"map.key.1":"map.value","map.key.2":"map.value"}`)
+	expectedNewCfg := map[string]string{
+		"map.key.1": "overridden.value",
+		"map.key.2": "map.value",
+	}
+	expectedPrevCfg := make(map[string]string)
+	newCfg := make(map[string]string)
+	prevCfg := make(map[string]string)
+	err := config.Upgrade(cfg, &newCfg, &prevCfg)
+	require.NoError(err)
+	require.EqualValues(expectedNewCfg, newCfg)
+	require.EqualValues(expectedPrevCfg, prevCfg)
+}

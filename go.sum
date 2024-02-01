@@ -124,12 +124,12 @@ github.com/iancoleman/strcase v0.3.0 h1:nTXanmYxhfFAMjZL34Ov6gkzEsSJZ5DbhxWjvSAS
 github.com/iancoleman/strcase v0.3.0/go.mod h1:iwCmte+B7n89clKwxIoIXy/HfoL7AsD47ZCWhYzw7ho=
 github.com/imdario/mergo v0.3.16 h1:wwQJbIsHYGMUyLSPrEq1CT16AhnhNJQ51+4fdHUnCl4=
 github.com/imdario/mergo v0.3.16/go.mod h1:WBLT9ZmE3lPoWsEzCh9LPo3TiwVN+ZKEjmz+hD27ysY=
-github.com/integration-system/bellows v1.0.1 h1:7g1lhD/6EcvsSo9iuiFqw98XGS78Sko6kUKPzfte/SY=
-github.com/integration-system/bellows v1.0.1/go.mod h1:qHPg1ptN3AHHr0f/wvoicfA2LOCprOyrbXnIa5QIRe0=
+github.com/integration-system/bellows v1.0.2-0.20240201110359-074b29cfed82 h1:dVIA/cC/6Kjhv7UPwpoXVwbez82y6eB9LWyqEL3hmgc=
+github.com/integration-system/bellows v1.0.2-0.20240201110359-074b29cfed82/go.mod h1:qHPg1ptN3AHHr0f/wvoicfA2LOCprOyrbXnIa5QIRe0=
+github.com/integration-system/bellows v1.1.0 h1:ruUiP7iivtVpONmzEXvQr8zmb2ECor5cIj4dFvWzefA=
+github.com/integration-system/bellows v1.1.0/go.mod h1:qHPg1ptN3AHHr0f/wvoicfA2LOCprOyrbXnIa5QIRe0=
 github.com/integration-system/bgjob v1.3.0 h1:QK/ozgAw3ARYuVIJ5ac0x21SHXGhJQkmugk0OAHTIjI=
 github.com/integration-system/bgjob v1.3.0/go.mod h1:KYaolHZc3OYhtY+lPN71M0y+1DJXEzRanaya1MU0KvU=
-github.com/integration-system/grmq v1.4.2 h1:BFO9ahqnb3SpMCt5zxaRAh1iiILkC8tqmNcxRHHpmh8=
-github.com/integration-system/grmq v1.4.2/go.mod h1:DeE6Ceo/A+MuvzdPkuZzqajy0VJhOyH7rRxksQqhEYk=
 github.com/integration-system/grmq v1.5.0 h1:WTu2jWzSpHPTdo3jAE7gLJ/eM9VrPmTYLuU7zzsfr/A=
 github.com/integration-system/grmq v1.5.0/go.mod h1:qFowVNwfz8tl8PGLqyZ3P5vGQBh8GQKbJY/Ypka9Xdo=
 github.com/integration-system/isp-etp-go/v2 v2.1.3 h1:vcHP/PE7p1G3rxqoVKrKtXzoSxFA4ryxigd+zPkAb3w=
