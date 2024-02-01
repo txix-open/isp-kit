@@ -65,10 +65,11 @@ func TestConfig_Upgrade(t *testing.T) {
 
 func TestConfig_Delim(t *testing.T) {
 	require := require.New(t)
-	config := rc.New(noneValidation{}, []byte{})
+	override := []byte(`{"map.key.1": "overridden.value"}`)
+	config := rc.New(noneValidation{}, override)
 	cfg := []byte(`{"map.key.1":"map.value","map.key.2":"map.value"}`)
 	expectedNewCfg := map[string]string{
-		"map.key.1": "map.value",
+		"map.key.1": "overridden.value",
 		"map.key.2": "map.value",
 	}
 	expectedPrevCfg := make(map[string]string)
