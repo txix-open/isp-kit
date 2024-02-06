@@ -29,6 +29,7 @@ import (
 	"github.com/integration-system/isp-kit/rc"
 	"github.com/integration-system/isp-kit/validator"
 	"github.com/pkg/errors"
+	"go.uber.org/zap/zapcore"
 )
 
 type Bootstrap struct {
@@ -388,13 +389,15 @@ func appConfig(isDev bool) (*app.Config, error) {
 			}
 		}
 
+		logCounter := app_metrics.NewLogCounter(metrics.DefaultRegistry)
+
 		var sampling *log.SamplingConfig
 		isEnableSampling := cfg.Optional().Bool("LOGS.SAMPLING.ENABLE", true)
 		if !isDev && isEnableSampling {
 			sampling = &log.SamplingConfig{
 				Initial:    cfg.Optional().Int("LOGS.SAMPLING.MAXPERSECOND", 1000),
 				Thereafter: cfg.Optional().Int("LOGS.SAMPLING.PASSEVERY", 100),
-				Hook:       app_metrics.LogSamplingHook(metrics.DefaultRegistry),
+				Hook:       logCounter.DroppedLogCounter(),
 			}
 		}
 
@@ -403,6 +406,9 @@ func appConfig(isDev bool) (*app.Config, error) {
 			FileOutput:   fileOutput,
 			Sampling:     sampling,
 			InitialLevel: initialLevel,
+			Hooks: []func(entry zapcore.Entry) error{
+				logCounter.SampledLogCounter(),
+			},
 		}
 	})
 

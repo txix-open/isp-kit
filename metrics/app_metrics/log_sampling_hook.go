@@ -12,7 +12,11 @@ type keeper struct {
 	dropped prometheus.Counter
 }
 
-func LogSamplingHook(registry *metrics.Registry) func(zapcore.Entry, zapcore.SamplingDecision) {
+type LogCounter struct {
+	counters map[log.Level]keeper
+}
+
+func NewLogCounter(registry *metrics.Registry) LogCounter {
 	counter := metrics.GetOrRegister[*prometheus.CounterVec](
 		registry,
 		prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -35,16 +39,31 @@ func LogSamplingHook(registry *metrics.Registry) func(zapcore.Entry, zapcore.Sam
 			dropped: counter.WithLabelValues(level.String(), "dropped"),
 		}
 	}
+	return LogCounter{
+		counters: counters,
+	}
+}
+
+func (c LogCounter) SampledLogCounter() func(entry zapcore.Entry) error {
+	return func(entry zapcore.Entry) error {
+		keeper, ok := c.counters[entry.Level]
+		if !ok {
+			return nil
+		}
+		keeper.sampled.Inc()
+		return nil
+	}
+}
+
+func (c LogCounter) DroppedLogCounter() func(zapcore.Entry, zapcore.SamplingDecision) {
 	return func(entry zapcore.Entry, decision zapcore.SamplingDecision) {
-		keeper, ok := counters[entry.Level]
+		if decision != zapcore.LogDropped {
+			return
+		}
+		keeper, ok := c.counters[entry.Level]
 		if !ok {
 			return
 		}
-		switch decision {
-		case zapcore.LogSampled:
-			keeper.sampled.Inc()
-		case zapcore.LogDropped:
-			keeper.dropped.Inc()
-		}
+		keeper.dropped.Inc()
 	}
 }
