@@ -40,7 +40,12 @@ func NewFromConfig(config Config) (*Adapter, error) {
 	level := zap.NewAtomicLevelAt(config.InitialLevel)
 	cfg.Level = level
 
-	logger, err := cfg.Build()
+	var opts []zap.Option
+	if len(config.Hooks) > 0 {
+		opts = append(opts, zap.Hooks(config.Hooks...))
+	}
+
+	logger, err := cfg.Build(opts...)
 	if err != nil {
 		return nil, errors.WithMessage(err, "build logger")
 	}
