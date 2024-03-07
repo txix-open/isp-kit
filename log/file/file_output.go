@@ -35,7 +35,7 @@ type Output struct {
 	Compress   bool
 }
 
-func ConfigToUrl(r Output) url.URL {
+func ConfigToUrl(r Output) *url.URL {
 	values := url.Values{
 		"file":       {r.File},
 		"maxSizeMb":  {strconv.Itoa(r.MaxSizeMb)},
@@ -43,7 +43,7 @@ func ConfigToUrl(r Output) url.URL {
 		"maxBackups": {strconv.Itoa(r.MaxBackups)},
 		"compress":   {strconv.FormatBool(r.Compress)},
 	}
-	u := url.URL{
+	u := &url.URL{
 		Scheme:   lumberjackSchema,
 		RawQuery: values.Encode(),
 	}

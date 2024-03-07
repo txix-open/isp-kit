@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/integration-system/isp-kit/log/file"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 type Adapter struct {
+	cfg    Config
 	logger *zap.Logger
 	level  zap.AtomicLevel
 }
@@ -33,10 +33,7 @@ func NewFromConfig(config Config) (*Adapter, error) {
 	cfg.DisableCaller = true
 	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	cfg.Sampling = config.Sampling
-	if config.FileOutput != nil {
-		outputUrl := file.ConfigToUrl(*config.FileOutput)
-		cfg.OutputPaths = append(cfg.OutputPaths, outputUrl.String())
-	}
+	cfg.OutputPaths = append(cfg.OutputPaths, config.OutputPaths...)
 	level := zap.NewAtomicLevelAt(config.InitialLevel)
 	cfg.Level = level
 
@@ -51,6 +48,7 @@ func NewFromConfig(config Config) (*Adapter, error) {
 	}
 
 	return &Adapter{
+		cfg:    config,
 		logger: logger,
 		level:  level,
 	}, nil
@@ -94,6 +92,10 @@ func (a *Adapter) Enabled(level Level) bool {
 
 func (a *Adapter) Sync() error {
 	return a.logger.Sync()
+}
+
+func (a *Adapter) Config() Config {
+	return a.cfg
 }
 
 func StdLoggerWithLevel(adapter Logger, level Level, withFields ...Field) *log.Logger {
