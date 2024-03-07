@@ -377,16 +377,17 @@ func appConfig(isDev bool) (*app.Config, error) {
 			initialLevel = log.DebugLevel
 		}
 
-		var fileOutput *file.Output
+		var outputPaths []string
 		logFilePath := cfg.Optional().String("LOGFILE.PATH", "")
 		if !isDev && logFilePath != "" {
-			fileOutput = &file.Output{
+			fileOutput := file.Output{
 				File:       logFilePath,
 				MaxSizeMb:  cfg.Optional().Int("LOGFILE.MAXSIZEMB", 512),
 				MaxDays:    0,
 				MaxBackups: cfg.Optional().Int("LOGFILE.MAXBACKUPS", 4),
 				Compress:   cfg.Optional().Bool("LOGFILE.COMPRESS", true),
 			}
+			outputPaths = append(outputPaths, file.ConfigToUrl(fileOutput).String())
 		}
 
 		logCounter := app_metrics.NewLogCounter(metrics.DefaultRegistry)
@@ -403,7 +404,7 @@ func appConfig(isDev bool) (*app.Config, error) {
 
 		return log.Config{
 			IsInDevMode:  isDev,
-			FileOutput:   fileOutput,
+			OutputPaths:  outputPaths,
 			Sampling:     sampling,
 			InitialLevel: initialLevel,
 			Hooks: []func(entry zapcore.Entry) error{

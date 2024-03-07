@@ -14,7 +14,7 @@ func WithDevelopmentMode() Option {
 
 func WithFileOutput(fileOutput file.Output) Option {
 	return func(a *Config) {
-		a.FileOutput = &fileOutput
+		a.OutputPaths = append(a.OutputPaths, file.ConfigToUrl(fileOutput).String())
 	}
 }
 
