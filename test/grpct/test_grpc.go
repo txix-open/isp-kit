@@ -5,35 +5,30 @@ import (
 
 	"github.com/integration-system/isp-kit/grpc"
 	"github.com/integration-system/isp-kit/grpc/client"
-	endpoint2 "github.com/integration-system/isp-kit/grpc/endpoint"
+	"github.com/integration-system/isp-kit/grpc/endpoint"
 	"github.com/integration-system/isp-kit/grpc/isp"
-	"github.com/integration-system/isp-kit/log"
 	"github.com/integration-system/isp-kit/test"
 )
 
 type MockServer struct {
-	srv           *grpc.Server
-	logger        log.Logger
-	mockEndpoints map[string]any
+	Wrapper endpoint.Wrapper
+	srv     *grpc.Server
+	router  *grpc.Mux
 }
 
 func NewMock(t *test.Test) (*MockServer, *client.Client) {
 	srv, cli := TestServer(t, grpc.NewMux())
+	router := grpc.NewMux()
+	srv.Upgrade(router)
 	return &MockServer{
-		srv:           srv,
-		logger:        t.Logger(),
-		mockEndpoints: make(map[string]any),
+		Wrapper: endpoint.DefaultWrapper(t.Logger()),
+		srv:     srv,
+		router:  router,
 	}, cli
 }
 
 func (m *MockServer) Mock(endpoint string, handler any) *MockServer {
-	m.mockEndpoints[endpoint] = handler
-	wrapper := endpoint2.DefaultWrapper(m.logger)
-	muxer := grpc.NewMux()
-	for e, handler := range m.mockEndpoints {
-		muxer.Handle(e, wrapper.Endpoint(handler))
-	}
-	m.srv.Upgrade(muxer)
+	m.router.Handle(endpoint, m.Wrapper.Endpoint(handler))
 	return m
 }
 

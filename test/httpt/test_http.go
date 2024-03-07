@@ -7,15 +7,13 @@ import (
 	"github.com/integration-system/isp-kit/http/endpoint"
 	"github.com/integration-system/isp-kit/http/httpcli"
 	"github.com/integration-system/isp-kit/http/router"
-	"github.com/integration-system/isp-kit/log"
 	"github.com/integration-system/isp-kit/test"
 )
 
 type MockServer struct {
-	wrapper endpoint.Wrapper
+	Wrapper endpoint.Wrapper
 	srv     *httptest.Server
 	router  *router.Router
-	l       log.Logger
 }
 
 func NewMock(t *test.Test) *MockServer {
@@ -26,10 +24,9 @@ func NewMock(t *test.Test) *MockServer {
 	})
 	wrapper := endpoint.DefaultWrapper(t.Logger())
 	return &MockServer{
-		wrapper: wrapper,
+		Wrapper: wrapper,
 		srv:     srv,
 		router:  router,
-		l:       t.Logger(),
 	}
 }
 
@@ -52,6 +49,6 @@ func (m *MockServer) GET(path string, handler any) *MockServer {
 }
 
 func (m *MockServer) Mock(method string, path string, handler any) *MockServer {
-	m.router.Handler(method, path, m.wrapper.WithMiddlewares(endpoint.ErrorHandler(m.l)).Endpoint(handler))
+	m.router.Handler(method, path, m.Wrapper.Endpoint(handler))
 	return m
 }
