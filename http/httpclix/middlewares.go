@@ -68,9 +68,15 @@ func Log(logger log.Logger) httpcli.Middleware {
 			}
 			logger.Debug(ctx, "http client: request", requestFields...)
 
+			now := time.Now()
 			resp, err := next.RoundTrip(ctx, request)
 			if err != nil {
-				logger.Debug(ctx, "http client: response", log.Any("error", err))
+				logger.Debug(
+					ctx,
+					"http client: response with error",
+					log.Any("error", err),
+					log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()),
+				)
 				return resp, err
 			}
 
@@ -81,6 +87,7 @@ func Log(logger log.Logger) httpcli.Middleware {
 				responseBody, _ := resp.Body()
 				responseFields = append(responseFields, log.ByteString("responseBody", responseBody))
 			}
+			responseFields = append(responseFields, log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()))
 			logger.Debug(ctx, "http client: response", responseFields...)
 
 			return resp, err
