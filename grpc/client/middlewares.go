@@ -36,9 +36,15 @@ func Log(logger log.Logger) request.Middleware {
 				log.ByteString("requestBody", message.GetBytesBody()),
 			)
 
+			now := time.Now()
 			resp, err := next(ctx, builder, message)
 			if err != nil {
-				logger.Debug(ctx, "grpc client: response", log.Any("error", err))
+				logger.Debug(
+					ctx,
+					"grpc client: response with error",
+					log.Any("error", err),
+					log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()),
+				)
 				return resp, err
 			}
 
@@ -46,6 +52,7 @@ func Log(logger log.Logger) request.Middleware {
 				ctx,
 				"grpc client: response",
 				log.ByteString("responseBody", resp.GetBytesBody()),
+				log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()),
 			)
 
 			return resp, err
