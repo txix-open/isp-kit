@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/integration-system/isp-kit/grmqx"
-	"github.com/integration-system/isp-kit/healthcheck"
-	"github.com/integration-system/isp-kit/test"
-	"github.com/integration-system/isp-kit/test/grmqt"
+	"github.com/txix-open/isp-kit/grmqx"
+	"github.com/txix-open/isp-kit/healthcheck"
+	"github.com/txix-open/isp-kit/test"
+	"github.com/txix-open/isp-kit/test/grmqt"
 )
 
 func TestRegistry(t *testing.T) {

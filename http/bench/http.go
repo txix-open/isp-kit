@@ -10,12 +10,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/integration-system/isp-kit/http"
-	"github.com/integration-system/isp-kit/http/endpoint"
-	"github.com/integration-system/isp-kit/log"
-	"github.com/integration-system/isp-kit/validator"
 	"github.com/julienschmidt/httprouter"
 	"github.com/labstack/echo/v4"
+	"github.com/txix-open/isp-kit/http"
+	"github.com/txix-open/isp-kit/http/endpoint"
+	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/validator"
 )
 
 type Request struct {

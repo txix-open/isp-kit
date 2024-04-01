@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	http2 "github.com/integration-system/isp-kit/http"
-	"github.com/integration-system/isp-kit/http/endpoint/buffer"
-	"github.com/integration-system/isp-kit/metrics/http_metrics"
+	http2 "github.com/txix-open/isp-kit/http"
+	"github.com/txix-open/isp-kit/http/endpoint/buffer"
+	"github.com/txix-open/isp-kit/metrics/http_metrics"
 )
 
 type scSource interface {

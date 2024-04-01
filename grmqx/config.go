@@ -5,14 +5,14 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/integration-system/grmq/consumer"
-	"github.com/integration-system/grmq/publisher"
-	"github.com/integration-system/grmq/retry"
-	"github.com/integration-system/grmq/topology"
-	"github.com/integration-system/isp-kit/metrics"
-	rabbitmq_metircs "github.com/integration-system/isp-kit/metrics/rabbitmq_metrics"
-	"github.com/integration-system/isp-kit/observability/tracing/rabbitmq/publisher_tracing"
 	"github.com/rabbitmq/amqp091-go"
+	"github.com/txix-open/grmq/consumer"
+	"github.com/txix-open/grmq/publisher"
+	"github.com/txix-open/grmq/retry"
+	"github.com/txix-open/grmq/topology"
+	"github.com/txix-open/isp-kit/metrics"
+	rabbitmq_metircs "github.com/txix-open/isp-kit/metrics/rabbitmq_metrics"
+	"github.com/txix-open/isp-kit/observability/tracing/rabbitmq/publisher_tracing"
 )
 
 type Connection struct {

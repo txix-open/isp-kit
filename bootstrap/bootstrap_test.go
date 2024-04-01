@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/integration-system/isp-kit/bootstrap"
-	"github.com/integration-system/isp-kit/cluster"
 	"github.com/stretchr/testify/require"
+	"github.com/txix-open/isp-kit/bootstrap"
+	"github.com/txix-open/isp-kit/cluster"
 )
 
 type RemoteConfig struct {

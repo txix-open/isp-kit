@@ -7,9 +7,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/integration-system/isp-kit/http/apierrors"
-	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/http/apierrors"
+	"github.com/txix-open/isp-kit/log"
 )
 
 type service struct {

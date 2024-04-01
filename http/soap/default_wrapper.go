@@ -1,13 +1,13 @@
 package soap
 
 import (
-	"github.com/integration-system/isp-kit/http"
-	"github.com/integration-system/isp-kit/http/endpoint"
-	"github.com/integration-system/isp-kit/log"
-	"github.com/integration-system/isp-kit/metrics"
-	"github.com/integration-system/isp-kit/metrics/http_metrics"
-	"github.com/integration-system/isp-kit/observability/tracing/http/server_tracing"
-	"github.com/integration-system/isp-kit/validator"
+	"github.com/txix-open/isp-kit/http"
+	"github.com/txix-open/isp-kit/http/endpoint"
+	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/metrics"
+	"github.com/txix-open/isp-kit/metrics/http_metrics"
+	"github.com/txix-open/isp-kit/observability/tracing/http/server_tracing"
+	"github.com/txix-open/isp-kit/validator"
 )
 
 const (

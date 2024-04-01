@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 
-	"github.com/integration-system/isp-kit/grpc/isp"
+	"github.com/txix-open/isp-kit/grpc/isp"
 )
 
 type HandlerFunc func(ctx context.Context, message *isp.Message) (*isp.Message, error)

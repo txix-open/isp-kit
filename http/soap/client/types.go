@@ -3,7 +3,7 @@ package client
 import (
 	"encoding/xml"
 
-	"github.com/integration-system/isp-kit/http/soap"
+	"github.com/txix-open/isp-kit/http/soap"
 )
 
 type embedEnvelope struct {

@@ -3,7 +3,7 @@ package migration
 import (
 	"log"
 
-	kitLog "github.com/integration-system/isp-kit/log"
+	kitLog "github.com/txix-open/isp-kit/log"
 )
 
 type logger struct {

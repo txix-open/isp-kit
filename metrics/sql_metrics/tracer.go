@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/integration-system/isp-kit/metrics"
 	"github.com/jackc/pgx/v5"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/txix-open/isp-kit/metrics"
 )
 
 type tracerContextKey int

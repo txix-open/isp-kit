@@ -6,10 +6,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/integration-system/isp-kit/http/httpcli"
-	"github.com/integration-system/isp-kit/http/soap"
-	"github.com/integration-system/isp-kit/log"
 	"github.com/stretchr/testify/require"
+	"github.com/txix-open/isp-kit/http/httpcli"
+	"github.com/txix-open/isp-kit/http/soap"
+	"github.com/txix-open/isp-kit/log"
 )
 
 type Req struct {

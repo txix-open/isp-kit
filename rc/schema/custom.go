@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/integration-system/jsonschema"
+	"github.com/txix-open/jsonschema"
 )
 
 type CustomGenerator func(field reflect.StructField, s *jsonschema.Schema)

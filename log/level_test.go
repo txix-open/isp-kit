@@ -3,9 +3,9 @@ package log_test
 import (
 	"testing"
 
-	"github.com/integration-system/isp-kit/json"
-	"github.com/integration-system/isp-kit/log"
 	"github.com/stretchr/testify/require"
+	"github.com/txix-open/isp-kit/json"
+	"github.com/txix-open/isp-kit/log"
 )
 
 type someStruct struct {

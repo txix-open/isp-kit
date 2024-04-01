@@ -3,9 +3,9 @@ package app
 import (
 	"context"
 
-	"github.com/integration-system/isp-kit/config"
-	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/config"
+	"github.com/txix-open/isp-kit/log"
 )
 
 type Application struct {

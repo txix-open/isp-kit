@@ -3,9 +3,9 @@ package rc
 import (
 	"sync"
 
-	"github.com/integration-system/bellows"
-	"github.com/integration-system/isp-kit/json"
 	"github.com/pkg/errors"
+	"github.com/txix-open/bellows"
+	"github.com/txix-open/isp-kit/json"
 )
 
 type Validator interface {

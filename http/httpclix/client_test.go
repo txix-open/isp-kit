@@ -5,15 +5,15 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/integration-system/isp-kit/http/apierrors"
-	"github.com/integration-system/isp-kit/http/httpcli"
-	"github.com/integration-system/isp-kit/http/httpclix"
-	"github.com/integration-system/isp-kit/log"
-	"github.com/integration-system/isp-kit/metrics/http_metrics"
-	"github.com/integration-system/isp-kit/requestid"
-	"github.com/integration-system/isp-kit/test"
-	"github.com/integration-system/isp-kit/test/httpt"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/http/apierrors"
+	"github.com/txix-open/isp-kit/http/httpcli"
+	"github.com/txix-open/isp-kit/http/httpclix"
+	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/metrics/http_metrics"
+	"github.com/txix-open/isp-kit/requestid"
+	"github.com/txix-open/isp-kit/test"
+	"github.com/txix-open/isp-kit/test/httpt"
 )
 
 type example struct {

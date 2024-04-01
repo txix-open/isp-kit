@@ -3,8 +3,8 @@ package rc_test
 import (
 	"testing"
 
-	"github.com/integration-system/isp-kit/rc"
 	"github.com/stretchr/testify/require"
+	"github.com/txix-open/isp-kit/rc"
 )
 
 type noneValidation struct {

@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/integration-system/isp-kit/grpc"
-	"github.com/integration-system/isp-kit/grpc/isp"
-	"github.com/integration-system/isp-kit/json"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/grpc"
+	"github.com/txix-open/isp-kit/grpc/isp"
+	"github.com/txix-open/isp-kit/json"
 	"google.golang.org/grpc/metadata"
 )
 

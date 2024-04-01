@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/integration-system/isp-kit/json"
+	"github.com/txix-open/isp-kit/json"
 )
 
 type RequestBodyWriter interface {

@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/integration-system/isp-kit/http/endpoint"
-	"github.com/integration-system/isp-kit/http/httpcli"
-	"github.com/integration-system/isp-kit/http/router"
-	"github.com/integration-system/isp-kit/test"
+	"github.com/txix-open/isp-kit/http/endpoint"
+	"github.com/txix-open/isp-kit/http/httpcli"
+	"github.com/txix-open/isp-kit/http/router"
+	"github.com/txix-open/isp-kit/test"
 )
 
 type MockServer struct {

@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/integration-system/bgjob"
-	"github.com/integration-system/isp-kit/bgjobx"
-	"github.com/integration-system/isp-kit/dbx"
-	"github.com/integration-system/isp-kit/test"
-	"github.com/integration-system/isp-kit/test/dbt"
+	"github.com/txix-open/bgjob"
+	"github.com/txix-open/isp-kit/bgjobx"
+	"github.com/txix-open/isp-kit/dbx"
+	"github.com/txix-open/isp-kit/test"
+	"github.com/txix-open/isp-kit/test/dbt"
 )
 
 func TestClient(t *testing.T) {

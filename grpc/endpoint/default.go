@@ -1,12 +1,12 @@
 package endpoint
 
 import (
-	"github.com/integration-system/isp-kit/grpc"
-	"github.com/integration-system/isp-kit/log"
-	"github.com/integration-system/isp-kit/metrics"
-	"github.com/integration-system/isp-kit/metrics/grpc_metrics"
-	"github.com/integration-system/isp-kit/observability/tracing/grpc/server_tracing"
-	"github.com/integration-system/isp-kit/validator"
+	"github.com/txix-open/isp-kit/grpc"
+	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/metrics"
+	"github.com/txix-open/isp-kit/metrics/grpc_metrics"
+	"github.com/txix-open/isp-kit/observability/tracing/grpc/server_tracing"
+	"github.com/txix-open/isp-kit/validator"
 )
 
 func DefaultWrapper(logger log.Logger, restMiddlewares ...grpc.Middleware) Wrapper {

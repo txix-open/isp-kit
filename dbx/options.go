@@ -1,9 +1,9 @@
 package dbx
 
 import (
-	"github.com/integration-system/isp-kit/dbx/migration"
-	"github.com/integration-system/isp-kit/log"
 	"github.com/jackc/pgx/v5"
+	"github.com/txix-open/isp-kit/dbx/migration"
+	"github.com/txix-open/isp-kit/log"
 )
 
 type Option func(db *Client)

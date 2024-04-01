@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"reflect"
 
-	http2 "github.com/integration-system/isp-kit/http"
-	"github.com/integration-system/isp-kit/log"
+	http2 "github.com/txix-open/isp-kit/http"
+	"github.com/txix-open/isp-kit/log"
 )
 
 type HttpError interface {

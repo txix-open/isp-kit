@@ -3,7 +3,7 @@ package bgjobx
 import (
 	"time"
 
-	"github.com/integration-system/bgjob"
+	"github.com/txix-open/bgjob"
 )
 
 type WorkerConfig struct {

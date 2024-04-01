@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/integration-system/grmq/consumer"
-	"github.com/integration-system/isp-kit/log"
+	"github.com/txix-open/grmq/consumer"
+	"github.com/txix-open/isp-kit/log"
 )
 
 type ConsumerMetricStorage interface {

@@ -5,9 +5,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/integration-system/bellows"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
+	"github.com/txix-open/bellows"
 )
 
 type Validator interface {

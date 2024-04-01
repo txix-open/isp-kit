@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/integration-system/isp-kit/grmqx"
-	"github.com/integration-system/isp-kit/json"
-	"github.com/integration-system/isp-kit/test"
 	"github.com/rabbitmq/amqp091-go"
+	"github.com/txix-open/isp-kit/grmqx"
+	"github.com/txix-open/isp-kit/json"
+	"github.com/txix-open/isp-kit/test"
 )
 
 type Client struct {

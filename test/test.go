@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/integration-system/isp-kit/config"
-	"github.com/integration-system/isp-kit/log"
 	"github.com/stretchr/testify/require"
+	"github.com/txix-open/isp-kit/config"
+	"github.com/txix-open/isp-kit/log"
 )
 
 type Test struct {

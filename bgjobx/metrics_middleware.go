@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/integration-system/bgjob"
+	"github.com/txix-open/bgjob"
 )
 
 type MetricStorage interface {

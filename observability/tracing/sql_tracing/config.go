@@ -1,8 +1,8 @@
 package sql_tracing
 
 import (
-	"github.com/integration-system/isp-kit/observability/tracing"
 	"github.com/jackc/pgx/v5"
+	"github.com/txix-open/isp-kit/observability/tracing"
 )
 
 const (

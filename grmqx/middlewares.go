@@ -4,11 +4,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/integration-system/grmq/consumer"
-	"github.com/integration-system/grmq/publisher"
-	"github.com/integration-system/isp-kit/log"
-	"github.com/integration-system/isp-kit/requestid"
 	"github.com/rabbitmq/amqp091-go"
+	"github.com/txix-open/grmq/consumer"
+	"github.com/txix-open/grmq/publisher"
+	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/requestid"
 )
 
 const (

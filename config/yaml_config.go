@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/integration-system/bellows"
 	"github.com/pkg/errors"
+	"github.com/txix-open/bellows"
 	"gopkg.in/yaml.v3"
 )
 

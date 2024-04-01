@@ -1,10 +1,10 @@
 package httpclix
 
 import (
-	"github.com/integration-system/isp-kit/http/httpcli"
-	"github.com/integration-system/isp-kit/metrics"
-	"github.com/integration-system/isp-kit/metrics/http_metrics"
-	"github.com/integration-system/isp-kit/observability/tracing/http/client_tracing"
+	"github.com/txix-open/isp-kit/http/httpcli"
+	"github.com/txix-open/isp-kit/metrics"
+	"github.com/txix-open/isp-kit/metrics/http_metrics"
+	"github.com/txix-open/isp-kit/observability/tracing/http/client_tracing"
 )
 
 func Default(opts ...httpcli.Option) *httpcli.Client {

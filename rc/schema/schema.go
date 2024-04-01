@@ -1,7 +1,7 @@
 package schema
 
 import (
-	"github.com/integration-system/jsonschema"
+	"github.com/txix-open/jsonschema"
 )
 
 type Schema *jsonschema.Schema

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/integration-system/isp-kit/dbx"
 	"github.com/stretchr/testify/require"
+	"github.com/txix-open/isp-kit/dbx"
 )
 
 func TestOpen(t *testing.T) {

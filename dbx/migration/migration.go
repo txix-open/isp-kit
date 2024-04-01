@@ -5,9 +5,9 @@ import (
 	"os"
 	"sync"
 
-	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
 	"github.com/pressly/goose/v3"
+	"github.com/txix-open/isp-kit/log"
 )
 
 var (

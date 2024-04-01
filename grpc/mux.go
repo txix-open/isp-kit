@@ -3,9 +3,9 @@ package grpc
 import (
 	"context"
 
-	"github.com/integration-system/isp-kit/grpc/isp"
-	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/grpc/isp"
+	"github.com/txix-open/isp-kit/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"

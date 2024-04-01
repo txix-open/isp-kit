@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/integration-system/isp-kit/stompx/consumer"
+	"github.com/txix-open/isp-kit/stompx/consumer"
 )
 
 type ConsumerGroup struct {

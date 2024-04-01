@@ -4,9 +4,9 @@ import (
 	"context"
 	"sync/atomic"
 
-	"github.com/integration-system/isp-kit/grpc/client/request"
-	"github.com/integration-system/isp-kit/grpc/isp"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/grpc/client/request"
+	"github.com/txix-open/isp-kit/grpc/isp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/resolver"
 	"google.golang.org/grpc/resolver/manual"

@@ -3,8 +3,8 @@ package validator_test
 import (
 	"testing"
 
-	"github.com/integration-system/isp-kit/validator"
 	"github.com/stretchr/testify/require"
+	"github.com/txix-open/isp-kit/validator"
 )
 
 type Struct struct {

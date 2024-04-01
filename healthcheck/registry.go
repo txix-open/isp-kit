@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/integration-system/isp-kit/json"
+	"github.com/txix-open/isp-kit/json"
 )
 
 const (

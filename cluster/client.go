@@ -5,10 +5,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/integration-system/isp-kit/lb"
-	"github.com/integration-system/isp-kit/log"
-	"github.com/integration-system/isp-kit/requestid"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/lb"
+	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/requestid"
 )
 
 type Client struct {
