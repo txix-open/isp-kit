@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/integration-system/isp-kit/test/fake"
 	"github.com/stretchr/testify/require"
+	"github.com/txix-open/isp-kit/test/fake"
 )
 
 type SomeStruct struct {

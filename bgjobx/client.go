@@ -4,12 +4,12 @@ import (
 	"context"
 	"sync"
 
-	"github.com/integration-system/bgjob"
-	"github.com/integration-system/isp-kit/dbx"
-	"github.com/integration-system/isp-kit/log"
-	"github.com/integration-system/isp-kit/metrics"
-	"github.com/integration-system/isp-kit/metrics/bgjob_metrics"
 	"github.com/pkg/errors"
+	"github.com/txix-open/bgjob"
+	"github.com/txix-open/isp-kit/dbx"
+	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/metrics"
+	"github.com/txix-open/isp-kit/metrics/bgjob_metrics"
 )
 
 type DBProvider interface {

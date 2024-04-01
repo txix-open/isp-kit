@@ -3,8 +3,8 @@ package endpoint
 import (
 	"net/http"
 
-	"github.com/integration-system/isp-kit/json"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/json"
 )
 
 type JsonResponseMapper struct {

@@ -3,9 +3,9 @@ package client
 import (
 	"encoding/xml"
 
-	"github.com/integration-system/isp-kit/http/httpcli"
-	"github.com/integration-system/isp-kit/http/soap"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/http/httpcli"
+	"github.com/txix-open/isp-kit/http/soap"
 )
 
 type Response struct {

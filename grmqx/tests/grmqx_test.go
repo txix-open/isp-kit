@@ -6,15 +6,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/integration-system/grmq/consumer"
-	"github.com/integration-system/isp-kit/grmqx"
-	"github.com/integration-system/isp-kit/grmqx/handler"
-	"github.com/integration-system/isp-kit/log"
-	"github.com/integration-system/isp-kit/requestid"
-	"github.com/integration-system/isp-kit/test"
-	"github.com/integration-system/isp-kit/test/grmqt"
 	"github.com/pkg/errors"
 	"github.com/rabbitmq/amqp091-go"
+	"github.com/txix-open/grmq/consumer"
+	"github.com/txix-open/isp-kit/grmqx"
+	"github.com/txix-open/isp-kit/grmqx/handler"
+	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/requestid"
+	"github.com/txix-open/isp-kit/test"
+	"github.com/txix-open/isp-kit/test/grmqt"
 )
 
 func TestRequestIdChain(t *testing.T) {

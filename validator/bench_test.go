@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/integration-system/isp-kit/validator"
+	"github.com/txix-open/isp-kit/validator"
 )
 
 type inner struct {

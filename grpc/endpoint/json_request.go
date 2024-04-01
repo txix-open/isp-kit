@@ -5,10 +5,10 @@ import (
 	"reflect"
 	"unicode"
 
-	"github.com/integration-system/isp-kit/grpc/apierrors"
-	"github.com/integration-system/isp-kit/grpc/isp"
-	"github.com/integration-system/isp-kit/json"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/grpc/apierrors"
+	"github.com/txix-open/isp-kit/grpc/isp"
+	"github.com/txix-open/isp-kit/json"
 )
 
 const (

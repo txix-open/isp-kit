@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/integration-system/isp-kit/log"
-	"github.com/integration-system/isp-kit/requestid"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/requestid"
 )
 
 const (

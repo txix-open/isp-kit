@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/integration-system/isp-kit/test"
-	"github.com/integration-system/isp-kit/test/httpt"
+	"github.com/txix-open/isp-kit/test"
+	"github.com/txix-open/isp-kit/test/httpt"
 )
 
 type resp struct {

@@ -1,9 +1,9 @@
 package app_metrics
 
 import (
-	"github.com/integration-system/isp-kit/log"
-	"github.com/integration-system/isp-kit/metrics"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/metrics"
 	"go.uber.org/zap/zapcore"
 )
 

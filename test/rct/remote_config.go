@@ -5,10 +5,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/integration-system/isp-kit/json"
-	"github.com/integration-system/isp-kit/rc"
-	"github.com/integration-system/isp-kit/validator"
 	"github.com/stretchr/testify/require"
+	"github.com/txix-open/isp-kit/json"
+	"github.com/txix-open/isp-kit/rc"
+	"github.com/txix-open/isp-kit/validator"
 	"github.com/xeipuuv/gojsonschema"
 )
 

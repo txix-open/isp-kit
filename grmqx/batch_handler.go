@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/integration-system/grmq/consumer"
+	"github.com/txix-open/grmq/consumer"
 )
 
 type BatchHandlerAdapter interface {

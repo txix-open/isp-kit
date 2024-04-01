@@ -3,10 +3,10 @@ package grmqx
 import (
 	"context"
 
-	"github.com/integration-system/grmq"
-	"github.com/integration-system/grmq/consumer"
-	"github.com/integration-system/grmq/publisher"
-	"github.com/integration-system/isp-kit/log"
+	"github.com/txix-open/grmq"
+	"github.com/txix-open/grmq/consumer"
+	"github.com/txix-open/grmq/publisher"
+	"github.com/txix-open/isp-kit/log"
 )
 
 type LogObserver struct {

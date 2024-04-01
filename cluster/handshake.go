@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	etpclient "github.com/integration-system/isp-etp-go/v2/client"
-	"github.com/integration-system/isp-kit/json"
-	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
+	etpclient "github.com/txix-open/isp-etp-go/v2/client"
+	"github.com/txix-open/isp-kit/json"
+	"github.com/txix-open/isp-kit/log"
 )
 
 type HandshakeConfirmer interface {

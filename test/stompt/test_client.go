@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/integration-system/isp-kit/stompx"
-	"github.com/integration-system/isp-kit/stompx/consumer"
-	"github.com/integration-system/isp-kit/test"
+	"github.com/txix-open/isp-kit/stompx"
+	"github.com/txix-open/isp-kit/stompx/consumer"
+	"github.com/txix-open/isp-kit/test"
 )
 
 type Client struct {

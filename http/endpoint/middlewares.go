@@ -9,15 +9,15 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
-	http2 "github.com/integration-system/isp-kit/http"
-	"github.com/integration-system/isp-kit/http/apierrors"
-	"github.com/integration-system/isp-kit/http/endpoint/buffer"
-	"github.com/integration-system/isp-kit/log/logutil"
-	sentry2 "github.com/integration-system/isp-kit/observability/sentry"
+	http2 "github.com/txix-open/isp-kit/http"
+	"github.com/txix-open/isp-kit/http/apierrors"
+	"github.com/txix-open/isp-kit/http/endpoint/buffer"
+	"github.com/txix-open/isp-kit/log/logutil"
+	sentry2 "github.com/txix-open/isp-kit/observability/sentry"
 
-	"github.com/integration-system/isp-kit/log"
-	"github.com/integration-system/isp-kit/requestid"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/requestid"
 )
 
 const (

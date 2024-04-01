@@ -7,9 +7,9 @@ import (
 	"reflect"
 	"unicode"
 
-	"github.com/integration-system/isp-kit/http/apierrors"
-	"github.com/integration-system/isp-kit/json"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/http/apierrors"
+	"github.com/txix-open/isp-kit/json"
 )
 
 type Validator interface {

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/integration-system/isp-kit/metrics/http_metrics"
 	"github.com/julienschmidt/httprouter"
+	"github.com/txix-open/isp-kit/metrics/http_metrics"
 )
 
 type Params = httprouter.Params

@@ -13,11 +13,11 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/integration-system/isp-kit/http/httpcli"
-	"github.com/integration-system/isp-kit/json"
-	"github.com/integration-system/isp-kit/retry"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
+	"github.com/txix-open/isp-kit/http/httpcli"
+	"github.com/txix-open/isp-kit/json"
+	"github.com/txix-open/isp-kit/retry"
 	"golang.org/x/sync/errgroup"
 )
 

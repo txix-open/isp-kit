@@ -3,8 +3,8 @@ package rct_test
 import (
 	"testing"
 
-	"github.com/integration-system/isp-kit/test/rct"
 	"github.com/stretchr/testify/assert"
+	"github.com/txix-open/isp-kit/test/rct"
 )
 
 type Child struct {

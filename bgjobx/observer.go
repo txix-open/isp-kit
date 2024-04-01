@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/integration-system/bgjob"
-	"github.com/integration-system/isp-kit/log"
+	"github.com/txix-open/bgjob"
+	"github.com/txix-open/isp-kit/log"
 )
 
 type Observer struct {

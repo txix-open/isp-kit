@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/integration-system/isp-kit/config"
-	"github.com/integration-system/isp-kit/validator"
 	"github.com/stretchr/testify/require"
+	"github.com/txix-open/isp-kit/config"
+	"github.com/txix-open/isp-kit/validator"
 )
 
 type Subst struct {

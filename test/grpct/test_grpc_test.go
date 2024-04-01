@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/integration-system/isp-kit/test"
-	"github.com/integration-system/isp-kit/test/grpct"
+	"github.com/txix-open/isp-kit/test"
+	"github.com/txix-open/isp-kit/test/grpct"
 )
 
 func TestMockServer_Mock(t *testing.T) {

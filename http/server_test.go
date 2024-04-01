@@ -7,12 +7,12 @@ import (
 	"testing"
 
 	"github.com/go-resty/resty/v2"
-	isphttp "github.com/integration-system/isp-kit/http"
-	"github.com/integration-system/isp-kit/http/apierrors"
-	"github.com/integration-system/isp-kit/http/endpoint"
-	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
+	isphttp "github.com/txix-open/isp-kit/http"
+	"github.com/txix-open/isp-kit/http/apierrors"
+	"github.com/txix-open/isp-kit/http/endpoint"
+	"github.com/txix-open/isp-kit/log"
 )
 
 type Request struct {

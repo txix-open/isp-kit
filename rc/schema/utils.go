@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/integration-system/jsonschema"
+	"github.com/txix-open/jsonschema"
 )
 
 const (

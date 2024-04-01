@@ -3,8 +3,8 @@ package dbx
 import (
 	"context"
 
-	"github.com/integration-system/isp-kit/log"
 	"github.com/jackc/pgx/v5"
+	"github.com/txix-open/isp-kit/log"
 )
 
 type LogTracer struct {

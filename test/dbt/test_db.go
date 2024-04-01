@@ -7,11 +7,11 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/integration-system/isp-kit/db"
-	"github.com/integration-system/isp-kit/dbx"
-	"github.com/integration-system/isp-kit/test"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
+	"github.com/txix-open/isp-kit/db"
+	"github.com/txix-open/isp-kit/dbx"
+	"github.com/txix-open/isp-kit/test"
 )
 
 type TestDb struct {

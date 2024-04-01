@@ -7,8 +7,8 @@ import (
 
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
-	"github.com/integration-system/validator/v10"
-	en_translations "github.com/integration-system/validator/v10/translations/en"
+	"github.com/txix-open/validator/v10"
+	en_translations "github.com/txix-open/validator/v10/translations/en"
 )
 
 type Adapter struct {

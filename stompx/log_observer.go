@@ -3,8 +3,8 @@ package stompx
 import (
 	"context"
 
-	"github.com/integration-system/isp-kit/log"
-	"github.com/integration-system/isp-kit/stompx/consumer"
+	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/stompx/consumer"
 )
 
 type LogObserver struct {

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/integration-system/isp-kit/cluster"
 	"github.com/stretchr/testify/require"
+	"github.com/txix-open/isp-kit/cluster"
 )
 
 const ExpectData = `

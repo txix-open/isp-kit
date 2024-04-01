@@ -7,9 +7,9 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/integration-system/isp-kit/db"
 	"github.com/jackc/pgx/v5"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/db"
 )
 
 var (

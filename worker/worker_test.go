@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/integration-system/isp-kit/worker"
 	"github.com/stretchr/testify/require"
+	"github.com/txix-open/isp-kit/worker"
 )
 
 type job struct {

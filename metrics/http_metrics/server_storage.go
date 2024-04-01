@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/integration-system/isp-kit/metrics"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/txix-open/isp-kit/metrics"
 )
 
 type serverEndpointContextKey struct{}

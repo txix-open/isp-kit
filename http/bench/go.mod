@@ -1,15 +1,17 @@
-module github.com/integration-system/isp-kit/http/bench
+module github.com/txix-open/isp-kit/http/bench
 
-go 1.21
+go 1.22
 
-replace github.com/integration-system/isp-kit => ./../..
+toolchain go1.22.1
+
+replace github.com/txix-open/isp-kit => ./../..
 
 require (
 	github.com/gin-gonic/gin v1.7.7
 	github.com/google/uuid v1.3.0
-	github.com/integration-system/isp-kit v1.3.0
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/labstack/echo/v4 v4.7.2
+	github.com/txix-open/isp-kit v1.3.0
 )
 
 require (
@@ -32,8 +34,8 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.19.0 // indirect
 	github.com/prometheus/client_model v0.6.0 // indirect
-	github.com/prometheus/common v0.50.0 // indirect
-	github.com/prometheus/procfs v0.12.0 // indirect
+	github.com/prometheus/common v0.51.1 // indirect
+	github.com/prometheus/procfs v0.13.0 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.1 // indirect

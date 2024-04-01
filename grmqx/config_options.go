@@ -1,9 +1,9 @@
 package grmqx
 
 import (
-	"github.com/integration-system/grmq/consumer"
-	"github.com/integration-system/grmq/publisher"
-	"github.com/integration-system/grmq/topology"
+	"github.com/txix-open/grmq/consumer"
+	"github.com/txix-open/grmq/publisher"
+	"github.com/txix-open/grmq/topology"
 )
 
 type ConfigOption func(c *Config)

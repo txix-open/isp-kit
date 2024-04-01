@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/integration-system/grmq"
-	"github.com/integration-system/isp-kit/log"
 	"github.com/pkg/errors"
 	"github.com/rabbitmq/amqp091-go"
+	"github.com/txix-open/grmq"
+	"github.com/txix-open/isp-kit/log"
 )
 
 const (
