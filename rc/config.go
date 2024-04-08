@@ -97,3 +97,8 @@ func (c *Config) mergeWithOverride(data []byte) ([]byte, error) {
 
 	return data, nil
 }
+
+func Upgrade[T any](rc *Config, data []byte) (newCfg T, prevCfg T, err error) {
+	err = rc.Upgrade(data, &newCfg, &prevCfg)
+	return newCfg, prevCfg, err
+}
