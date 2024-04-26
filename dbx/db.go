@@ -17,7 +17,7 @@ var (
 )
 
 type MigrationRunner interface {
-	Run(db *sql.DB) error
+	Run(ctx context.Context, db *sql.DB) error
 }
 
 type Client struct {
@@ -58,7 +58,7 @@ func Open(ctx context.Context, config Config, opts ...Option) (*Client, error) {
 	dbCli.SetConnMaxIdleTime(90 * time.Second)
 
 	if cli.migrationRunner != nil {
-		err = cli.migrationRunner.Run(dbCli.DB.DB)
+		err = cli.migrationRunner.Run(ctx, dbCli.DB.DB)
 		if err != nil {
 			return nil, errors.WithMessage(err, "migration run")
 		}

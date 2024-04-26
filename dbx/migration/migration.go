@@ -1,54 +1,89 @@
 package migration
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
 	"os"
-	"sync"
+	"path/filepath"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/pressly/goose/v3"
 	"github.com/txix-open/isp-kit/log"
 )
 
-var (
-	setLoggerLock = sync.Mutex{}
+const (
+	DialectPostgreSQL = goose.DialectPostgres
+	DialectSqlite3    = goose.DialectSQLite3
+	DialectClickhouse = goose.DialectClickHouse
 )
 
 type Runner struct {
+	dialect      goose.Dialect
 	migrationDir string
+	logger       log.Logger
 }
 
-func NewRunner(migrationDir string, logger log.Logger) Runner {
-	if logger != nil {
-		setLoggerLock.Lock()
-		defer setLoggerLock.Unlock()
-
-		goose.SetLogger(newLogger(logger))
-	}
+func NewRunner(
+	dialect goose.Dialect,
+	migrationDir string,
+	logger log.Logger,
+) Runner {
 	return Runner{
+		dialect:      dialect,
 		migrationDir: migrationDir,
+		logger:       logger,
 	}
 }
 
-func (r Runner) Run(db *sql.DB) error {
+func (r Runner) Run(ctx context.Context, db *sql.DB) error {
+	ctx = log.ToContext(ctx, log.String("worker", "goose_db_migration"))
+
 	_, err := os.Stat(r.migrationDir)
 	if err != nil {
 		return errors.WithMessage(err, "get file info")
 	}
 
-	err = goose.Version(db, r.migrationDir)
+	provider, err := goose.NewProvider(r.dialect, db, os.DirFS(r.migrationDir))
 	if err != nil {
-		return errors.WithMessage(err, "print goose version")
+		return errors.WithMessage(err, "get goose provider")
 	}
 
-	err = goose.Status(db, r.migrationDir)
+	dbVersion, err := provider.GetDBVersion(ctx)
 	if err != nil {
-		return errors.WithMessage(err, "print goose status")
+		return errors.WithMessage(err, "get db version")
+	}
+	r.logger.Info(ctx, fmt.Sprintf("current db version: %d", dbVersion))
+
+	migrations, err := provider.Status(ctx)
+	if err != nil {
+		return errors.WithMessage(err, "get status migrations")
+	}
+	r.logger.Info(ctx, "print migration list")
+	if len(migrations) == 0 {
+		r.logger.Info(ctx, "no migrations")
+	}
+	for _, migration := range migrations {
+		appliedAt := "Pending"
+		if !migration.AppliedAt.IsZero() {
+			appliedAt = migration.AppliedAt.Format(time.ANSIC)
+		}
+		msg := fmt.Sprintf(
+			"migration: %s %s %s",
+			filepath.Base(migration.Source.Path),
+			migration.State,
+			appliedAt,
+		)
+		r.logger.Info(ctx, msg)
 	}
 
-	err = goose.Up(db, r.migrationDir)
+	result, err := provider.Up(ctx)
 	if err != nil {
-		return errors.WithMessage(err, "run goose up")
+		return errors.WithMessage(err, "apply pending migrations")
+	}
+	for _, migrationResult := range result {
+		r.logger.Info(ctx, fmt.Sprintf("applied migration: %s", migrationResult.String()))
 	}
 
 	return nil
