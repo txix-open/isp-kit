@@ -10,7 +10,7 @@ type Option func(db *Client)
 
 func WithMigrationRunner(migrationDir string, logger log.Logger) Option {
 	return func(db *Client) {
-		db.migrationRunner = migration.NewRunner(migrationDir, logger)
+		db.migrationRunner = migration.NewRunner(migration.DialectPostgreSQL, migrationDir, logger)
 	}
 }
 

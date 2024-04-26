@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/pkg/errors"
-	etpclient "github.com/txix-open/isp-etp-go/v2/client"
+	"github.com/txix-open/etp/v3"
 	"github.com/txix-open/isp-kit/json"
 	"github.com/txix-open/isp-kit/log"
 )
@@ -51,10 +50,7 @@ type HandshakeData struct {
 }
 
 func (h Handshake) Do(ctx context.Context, host string) (w *clientWrapper, err error) {
-	etpCli := etpclient.NewClient(etpclient.Config{
-		ConnectionReadLimit: 4 * 1024 * 1024,
-		HttpClient:          http.DefaultClient,
-	})
+	etpCli := etp.NewClient(etp.WithClientReadLimit(4 * 1024 * 1024))
 	cli := newClientWrapper(ctx, etpCli, h.logger)
 
 	remoteConfigChan := cli.EventChan(ConfigSendConfigWhenConnected)

@@ -19,7 +19,7 @@ type Client struct {
 	logger          log.Logger
 	sessionIsActive *atomic.Int32
 
-	close context.CancelFunc
+	cli *clientWrapper
 }
 
 func NewClient(moduleInfo ModuleInfo, configData ConfigData, hosts []string, logger log.Logger) *Client {
@@ -33,15 +33,10 @@ func NewClient(moduleInfo ModuleInfo, configData ConfigData, hosts []string, log
 }
 
 func (c *Client) Run(ctx context.Context, eventHandler *EventHandler) error {
-	ctx, cancel := context.WithCancel(ctx)
-	c.close = cancel
 	c.eventHandler = eventHandler
 
 	for {
 		err := c.runSession(ctx)
-		if errors.Is(err, context.Canceled) {
-			return nil
-		}
 
 		c.logger.Error(ctx, errors.WithMessage(err, "run config service session"))
 
@@ -54,7 +49,9 @@ func (c *Client) Run(ctx context.Context, eventHandler *EventHandler) error {
 }
 
 func (c *Client) Close() error {
-	c.close()
+	if c.cli != nil {
+		return c.cli.Close()
+	}
 	return nil
 }
 
@@ -74,8 +71,6 @@ func (c *Client) runSession(ctx context.Context) error {
 	}
 
 	sessionId := requestid.Next()
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
 	ctx = log.ToContext(ctx, log.String("configService", host), log.String("sessionId", sessionId))
 
 	requiredModules := make([]string, 0)
@@ -88,20 +83,15 @@ func (c *Client) runSession(ctx context.Context) error {
 	}
 
 	handshake := NewHandshake(c.moduleInfo, c.configData, requirements, c, c.logger)
-	cli, err := handshake.Do(ctx, host)
+	c.cli, err = handshake.Do(ctx, host)
 	if err != nil {
 		return errors.WithMessage(err, "do handshake")
 	}
-	defer func() {
-		if !cli.IsClosed() {
-			_ = cli.Close()
-		}
-	}()
 
 	for moduleName := range c.eventHandler.requiredModules {
 		event := ModuleConnectedEvent(moduleName)
 		upgrader := c.eventHandler.requiredModules[moduleName]
-		cli.On(event, func(data []byte) {
+		c.cli.On(event, func(data []byte) {
 			hosts, err := readHosts(data)
 			if err != nil {
 				c.logger.Error(ctx, errors.WithMessage(err, "read hosts"), log.String("event", event))
@@ -110,7 +100,7 @@ func (c *Client) runSession(ctx context.Context) error {
 			upgrader.Upgrade(hosts)
 		})
 	}
-	cli.On(ConfigSendConfigChanged, func(data []byte) {
+	c.cli.On(ConfigSendConfigChanged, func(data []byte) {
 		c.logger.Info(ctx, "remote config applying...")
 		err := c.applyRemoteConfig(ctx, data)
 		if err != nil {
@@ -119,7 +109,7 @@ func (c *Client) runSession(ctx context.Context) error {
 		}
 		c.logger.Info(ctx, "remote config successfully applied")
 	})
-	cli.On(ConfigSendRoutesChanged, func(data []byte) {
+	c.cli.On(ConfigSendRoutesChanged, func(data []byte) {
 		routes, err := readRoutes(data)
 		if err != nil {
 			c.logger.Error(ctx, errors.WithMessage(err, "read route"), log.String("event", ConfigSendRoutesChanged))
@@ -134,7 +124,7 @@ func (c *Client) runSession(ctx context.Context) error {
 	c.sessionIsActive.Store(1)
 
 	for {
-		err := c.waitAndPing(ctx, cli)
+		err := c.waitAndPing(ctx)
 		if err != nil {
 			return err
 		}
@@ -178,7 +168,7 @@ func (c *Client) applyRemoteConfig(ctx context.Context, config []byte) (err erro
 	}
 }
 
-func (c *Client) waitAndPing(ctx context.Context, cli *clientWrapper) error {
+func (c *Client) waitAndPing(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -188,8 +178,8 @@ func (c *Client) waitAndPing(ctx context.Context, cli *clientWrapper) error {
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
-	err := cli.Ping(ctx)
-	if err != nil && !errors.Is(err, context.Canceled) {
+	err := c.cli.Ping(ctx)
+	if err != nil {
 		return errors.WithMessage(err, "ping config service")
 	}
 
