@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -67,12 +68,12 @@ func (r Runner) Run(ctx context.Context, db *sql.DB) error {
 	for _, migration := range migrations {
 		appliedAt := "Pending"
 		if !migration.AppliedAt.IsZero() {
-			appliedAt = migration.AppliedAt.Format(time.ANSIC)
+			appliedAt = migration.AppliedAt.Format(time.RFC3339)
 		}
 		msg := fmt.Sprintf(
 			"migration: %s %s %s",
 			filepath.Base(migration.Source.Path),
-			migration.State,
+			strings.ToUpper(string(migration.State)),
 			appliedAt,
 		)
 		r.logger.Info(ctx, msg)

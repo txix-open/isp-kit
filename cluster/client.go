@@ -37,6 +37,9 @@ func (c *Client) Run(ctx context.Context, eventHandler *EventHandler) error {
 
 	for {
 		err := c.runSession(ctx)
+		if errors.Is(err, context.Canceled) {
+			return nil
+		}
 
 		c.logger.Error(ctx, errors.WithMessage(err, "run config service session"))
 

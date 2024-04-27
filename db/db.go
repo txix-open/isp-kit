@@ -6,7 +6,6 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
-	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
@@ -26,14 +25,11 @@ func Open(ctx context.Context, dsn string, opts ...Option) (*Client, error) {
 	if err != nil {
 		return nil, errors.WithMessage(err, "parse config")
 	}
-
 	cfg.Tracer = db.queryTracers
+
 	sqlDb := stdlib.OpenDB(*cfg)
 
 	pgDb := sqlx.NewDb(sqlDb, "pgx")
-	if err != nil {
-		return nil, errors.WithMessage(err, "open database with pgx driver")
-	}
 	pgDb.MapperFunc(ToSnakeCase)
 	err = pgDb.PingContext(ctx)
 	if err != nil {
@@ -55,7 +51,7 @@ func (db *Client) RunInTransaction(ctx context.Context, txFunc TxFunc, opts ...T
 	}
 	defer func() {
 		p := recover()
-		if p != nil { // do rollback and repanic
+		if p != nil { //rollback and repanic
 			_ = tx.Rollback()
 			panic(p)
 		}
