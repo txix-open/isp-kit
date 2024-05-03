@@ -9,6 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/pkg/errors"
+	"github.com/pressly/goose/v3"
 	"github.com/txix-open/isp-kit/db"
 )
 
@@ -17,7 +18,7 @@ var (
 )
 
 type MigrationRunner interface {
-	Run(ctx context.Context, db *sql.DB) error
+	Run(ctx context.Context, db *sql.DB, gooseOpts ...goose.ProviderOption) error
 }
 
 type Client struct {
