@@ -38,7 +38,7 @@ func NewRunner(
 	}
 }
 
-func (r Runner) Run(ctx context.Context, db *sql.DB) error {
+func (r Runner) Run(ctx context.Context, db *sql.DB, gooseOpts ...goose.ProviderOption) error {
 	ctx = log.ToContext(ctx, log.String("worker", "goose_db_migration"))
 
 	_, err := os.Stat(r.migrationDir)
@@ -46,7 +46,7 @@ func (r Runner) Run(ctx context.Context, db *sql.DB) error {
 		return errors.WithMessage(err, "get file info")
 	}
 
-	provider, err := goose.NewProvider(r.dialect, db, os.DirFS(r.migrationDir))
+	provider, err := goose.NewProvider(r.dialect, db, os.DirFS(r.migrationDir), gooseOpts...)
 	if err != nil {
 		return errors.WithMessage(err, "get goose provider")
 	}
