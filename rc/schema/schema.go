@@ -6,12 +6,6 @@ import (
 
 type Schema *jsonschema.Schema
 
-type ConfigSchema struct {
-	Version       string         `json:"version"`
-	Schema        Schema         `json:"schema"`
-	DefaultConfig map[string]any `json:"config"`
-}
-
 type Generator struct {
 	Reflector *jsonschema.Reflector
 }
