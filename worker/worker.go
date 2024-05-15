@@ -59,7 +59,6 @@ func (w *Worker) run(ctx context.Context) {
 		case <-time.After(w.interval):
 
 		}
-		continue
 	}
 }
 
