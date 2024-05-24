@@ -123,13 +123,17 @@ type BatchConsumer struct {
 	DisableAutoDeclare bool         `schema:"Отключить автоматическое объявление,по умолчанию  exchange, queue и binding будут созданы автоматически"`
 	Binding            *Binding     `schema:"Настройки топологии"`
 	RetryPolicy        *RetryPolicy `schema:"Политика повторной обработки"`
+	Concurrency        int          `schema:"Количество обработчиков,по умолчанию - 1"`
 }
 
 func (b BatchConsumer) ConsumerConfig() Consumer {
+	if b.Concurrency == 0 {
+		b.Concurrency = 1
+	}
 	return Consumer{
 		Queue:              b.Queue,
 		Dlq:                b.Dlq,
-		PrefetchCount:      b.BatchSize,
+		PrefetchCount:      b.BatchSize * b.Concurrency,
 		Concurrency:        1,
 		DisableAutoDeclare: b.DisableAutoDeclare,
 		Binding:            b.Binding,
@@ -144,6 +148,23 @@ func (b BatchConsumer) DefaultConsumer(handler BatchHandlerAdapter, restMiddlewa
 		b.BatchSize,
 	)
 	consumer := b.ConsumerConfig().DefaultConsumer(batchHandler, restMiddlewares...)
+	consumer.Closer = batchHandler
+	return consumer
+}
+
+func (b BatchConsumer) ConcurrencyConsumer(handler BatchHandlerAdapter, concurrency int,
+	restMiddlewares ...consumer.Middleware) consumer.Consumer {
+	batchHandler := NewBatchHandler(
+		handler,
+		time.Duration(b.PurgeIntervalInMs)*time.Millisecond,
+		b.BatchSize,
+		WithConcurrency(concurrency),
+	)
+	consumerCfg := b.ConsumerConfig()
+	consumerCfg.Concurrency = concurrency
+	consumerCfg.PrefetchCount = b.BatchSize * concurrency * 2
+
+	consumer := consumerCfg.DefaultConsumer(batchHandler, restMiddlewares...)
 	consumer.Closer = batchHandler
 	return consumer
 }

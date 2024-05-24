@@ -130,7 +130,7 @@ func TestRetry(t *testing.T) {
 	require.EqualValues(1, cli.QueueLength("test.DLQ"))
 }
 
-func TestBatchHandler(t *testing.T) {
+func TestBatchHandlerByCount(t *testing.T) {
 	t.Parallel()
 	test, require := test.New(t)
 
@@ -147,7 +147,7 @@ func TestBatchHandler(t *testing.T) {
 	})
 	consumerCfg := grmqx.BatchConsumer{
 		Queue:             "test",
-		BatchSize:         100,
+		BatchSize:         3,
 		PurgeIntervalInMs: 60000,
 	}
 	consumer := consumerCfg.DefaultConsumer(handler, grmqx.ConsumerLog(test.Logger()))
@@ -169,5 +169,131 @@ func TestBatchHandler(t *testing.T) {
 	cli.GrmqxCli.Close()
 
 	require.EqualValues(101, deliveryCount.Load())
+	require.EqualValues(0, cli.QueueLength("test"))
+}
+
+func TestBatchHandlerByTime(t *testing.T) {
+	t.Parallel()
+	test, require := test.New(t)
+
+	pub := grmqx.Publisher{
+		RoutingKey: "test",
+	}.DefaultPublisher()
+	deliveryCount := atomic.Int32{}
+	handler := grmqx.BatchHandlerAdapterFunc(func(batch []grmqx.BatchItem) {
+		for _, item := range batch {
+			err := item.Delivery.Ack()
+			require.NoError(err)
+			deliveryCount.Add(1)
+		}
+	})
+	consumerCfg := grmqx.BatchConsumer{
+		Queue:             "test",
+		BatchSize:         200,
+		PurgeIntervalInMs: 10,
+	}
+	consumer := consumerCfg.DefaultConsumer(handler, grmqx.ConsumerLog(test.Logger()))
+	cli := grmqt.New(test)
+	config := grmqx.NewConfig("",
+		grmqx.WithConsumers(consumer),
+		grmqx.WithPublishers(pub),
+		grmqx.WithDeclarations(grmqx.TopologyFromConsumers(consumerCfg.ConsumerConfig())),
+	)
+	cli.Upgrade(config)
+
+	for i := 0; i < 101; i++ {
+		err := pub.Publish(context.Background(), &amqp091.Publishing{})
+		require.NoError(err)
+	}
+
+	time.Sleep(2 * time.Second)
+
+	cli.GrmqxCli.Close()
+
+	require.EqualValues(101, deliveryCount.Load())
+	require.EqualValues(0, cli.QueueLength("test"))
+}
+
+func TestConcurrencyBatchHandlerByCount(t *testing.T) {
+	t.Parallel()
+	test, require := test.New(t)
+
+	pub := grmqx.Publisher{
+		RoutingKey: "test",
+	}.DefaultPublisher()
+	deliveryCount := atomic.Int32{}
+	handler := grmqx.BatchHandlerAdapterFunc(func(batch []grmqx.BatchItem) {
+		for _, item := range batch {
+			err := item.Delivery.Ack()
+			require.NoError(err)
+			deliveryCount.Add(1)
+		}
+	})
+	consumerCfg := grmqx.BatchConsumer{
+		Queue:             "test",
+		BatchSize:         3,
+		PurgeIntervalInMs: 10000,
+	}
+	consumer := consumerCfg.ConcurrencyConsumer(handler, 3, grmqx.ConsumerLog(test.Logger()))
+	cli := grmqt.New(test)
+	config := grmqx.NewConfig("",
+		grmqx.WithConsumers(consumer),
+		grmqx.WithPublishers(pub),
+		grmqx.WithDeclarations(grmqx.TopologyFromConsumers(consumerCfg.ConsumerConfig())),
+	)
+	cli.Upgrade(config)
+
+	for i := 0; i < 101; i++ {
+		err := pub.Publish(context.Background(), &amqp091.Publishing{})
+		require.NoError(err)
+	}
+
+	time.Sleep(2 * time.Second)
+
+	cli.GrmqxCli.Close()
+
+	require.EqualValues(int32(101), deliveryCount.Load())
+	require.EqualValues(0, cli.QueueLength("test"))
+}
+
+func TestConcurrencyBatchHandlerByTime(t *testing.T) {
+	t.Parallel()
+	test, require := test.New(t)
+
+	pub := grmqx.Publisher{
+		RoutingKey: "test",
+	}.DefaultPublisher()
+	deliveryCount := atomic.Int32{}
+	handler := grmqx.BatchHandlerAdapterFunc(func(batch []grmqx.BatchItem) {
+		for _, item := range batch {
+			err := item.Delivery.Ack()
+			require.NoError(err)
+			deliveryCount.Add(1)
+		}
+	})
+	consumerCfg := grmqx.BatchConsumer{
+		Queue:             "test",
+		BatchSize:         200,
+		PurgeIntervalInMs: 100,
+	}
+	consumer := consumerCfg.ConcurrencyConsumer(handler, 3, grmqx.ConsumerLog(test.Logger()))
+	cli := grmqt.New(test)
+	config := grmqx.NewConfig("",
+		grmqx.WithConsumers(consumer),
+		grmqx.WithPublishers(pub),
+		grmqx.WithDeclarations(grmqx.TopologyFromConsumers(consumerCfg.ConsumerConfig())),
+	)
+	cli.Upgrade(config)
+
+	for i := 0; i < 101; i++ {
+		err := pub.Publish(context.Background(), &amqp091.Publishing{})
+		require.NoError(err)
+	}
+
+	time.Sleep(2 * time.Second)
+
+	cli.GrmqxCli.Close()
+
+	require.EqualValues(int32(101), deliveryCount.Load())
 	require.EqualValues(0, cli.QueueLength("test"))
 }

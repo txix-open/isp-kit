@@ -27,26 +27,55 @@ type BatchHandler struct {
 	adapter       BatchHandlerAdapter
 	purgeInterval time.Duration
 	maxSize       int
-	batch         []BatchItem
+	batch         [][]BatchItem
 	c             chan BatchItem
-	runner        *sync.Once
+	runner        []*sync.Once
 	closed        bool
 	lock          sync.Locker
+	concurrency   int
+}
+
+type BatchHandlerOption func(h *BatchHandler)
+
+func WithConcurrency(concurrency int) BatchHandlerOption {
+	return func(bh *BatchHandler) {
+		fillConcurrency(bh, concurrency)
+	}
+}
+
+func fillConcurrency(bh *BatchHandler, concurrency int) {
+	bh.concurrency = concurrency
+	bh.runner = make([]*sync.Once, concurrency)
+	for i := range concurrency {
+		bh.runner[i] = &sync.Once{}
+	}
+	bh.batch = make([][]BatchItem, concurrency)
 }
 
 func NewBatchHandler(
 	adapter BatchHandlerAdapter,
 	purgeInterval time.Duration,
 	maxSize int,
+	opts ...BatchHandlerOption,
 ) *BatchHandler {
-	return &BatchHandler{
+	bh := BatchHandler{
 		adapter:       adapter,
 		purgeInterval: purgeInterval,
 		maxSize:       maxSize,
 		c:             make(chan BatchItem),
-		runner:        &sync.Once{},
 		lock:          &sync.Mutex{},
+		concurrency:   1,
 	}
+
+	for _, opt := range opts {
+		opt(&bh)
+	}
+
+	if bh.concurrency == 1 {
+		fillConcurrency(&bh, 1)
+	}
+
+	return &bh
 }
 
 func (r *BatchHandler) Handle(ctx context.Context, delivery *consumer.Delivery) {
@@ -57,20 +86,23 @@ func (r *BatchHandler) Handle(ctx context.Context, delivery *consumer.Delivery) 
 		_ = delivery.Nack(true)
 	}
 
-	r.runner.Do(func() {
-		go r.run()
-	})
+	for idx := range r.concurrency {
+		r.runner[idx].Do(func() {
+			go r.run(idx)
+		})
+	}
+
 	r.c <- BatchItem{
 		Context:  ctx,
 		Delivery: delivery,
 	}
 }
 
-func (r *BatchHandler) run() {
+func (r *BatchHandler) run(idx int) {
 	var timer *time.Timer
 	defer func() {
-		if len(r.batch) > 0 {
-			r.adapter.Handle(r.batch)
+		if len(r.batch[idx]) > 0 {
+			r.adapter.Handle(r.batch[idx])
 		}
 		if timer != nil {
 			timer.Stop()
@@ -88,18 +120,18 @@ func (r *BatchHandler) run() {
 			if !ok {
 				return
 			}
-			r.batch = append(r.batch, item)
-			if len(r.batch) < r.maxSize {
+			r.batch[idx] = append(r.batch[idx], item)
+			if len(r.batch[idx]) < r.maxSize {
 				continue
 			}
 		case <-timer.C:
-			if len(r.batch) == 0 {
+			if len(r.batch[idx]) == 0 {
 				continue
 			}
 		}
 
-		r.adapter.Handle(r.batch)
-		r.batch = nil
+		r.adapter.Handle(r.batch[idx])
+		r.batch[idx] = make([]BatchItem, 0)
 	}
 }
 
