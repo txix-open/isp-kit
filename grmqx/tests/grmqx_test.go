@@ -111,6 +111,9 @@ func TestRetry(t *testing.T) {
 				MaxAttempts: 3,
 			}},
 		},
+		QueueArgs: map[string]any{
+			"x-single-active-consumer": true,
+		},
 	}
 	consumer := consumerCfg.DefaultConsumer(handler, grmqx.ConsumerLog(test.Logger()))
 	cli := grmqt.New(test)
