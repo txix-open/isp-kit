@@ -82,6 +82,7 @@ type Consumer struct {
 	DisableAutoDeclare bool         `schema:"Отключить автоматическое объявление,по умолчанию  exchange, queue и binding будут созданы автоматически"`
 	Binding            *Binding     `schema:"Настройки топологии"`
 	RetryPolicy        *RetryPolicy `schema:"Политика повторной обработки"`
+	QueueArgs          map[string]any `schema:"Аргументы очереди"`
 }
 
 func (c Consumer) DefaultConsumer(handler consumer.Handler, restMiddlewares ...consumer.Middleware) consumer.Consumer {
@@ -124,6 +125,7 @@ type BatchConsumer struct {
 	Binding            *Binding     `schema:"Настройки топологии"`
 	RetryPolicy        *RetryPolicy `schema:"Политика повторной обработки"`
 	Concurrency        int          `schema:"Количество обработчиков,по умолчанию - 1"`
+	QueueArgs          map[string]any `schema:"Аргументы очереди"`
 }
 
 func (b BatchConsumer) ConsumerConfig() Consumer {
@@ -133,11 +135,12 @@ func (b BatchConsumer) ConsumerConfig() Consumer {
 	return Consumer{
 		Queue:              b.Queue,
 		Dlq:                b.Dlq,
-		PrefetchCount:      b.BatchSize * b.Concurrency,
+		PrefetchCount:      b.BatchSize,
 		Concurrency:        1,
 		DisableAutoDeclare: b.DisableAutoDeclare,
 		Binding:            b.Binding,
 		RetryPolicy:        b.RetryPolicy,
+		QueueArgs:          b.QueueArgs,
 	}
 }
 
@@ -179,6 +182,10 @@ func TopologyFromConsumers(consumers ...Consumer) topology.Declarations {
 		queueOpts := []topology.QueueOption{
 			topology.WithDLQ(consumer.Dlq),
 		}
+		for k, v := range consumer.QueueArgs {
+			queueOpts = append(queueOpts, topology.WithQueueArg(k, v))
+		}
+
 		if consumer.RetryPolicy != nil {
 			policy := retryPolicyFromConfig(*consumer.RetryPolicy)
 			queueOpts = append(queueOpts, topology.WithRetryPolicy(policy))
