@@ -75,13 +75,14 @@ type Binding struct {
 }
 
 type Consumer struct {
-	Queue              string       `validate:"required" schema:"Наименование очереди"`
-	Dlq                bool         `schema:"Создать очередь DLQ"`
-	PrefetchCount      int          `schema:"Количество предзагруженных сообщений,по умолчанию - 1"`
-	Concurrency        int          `schema:"Количество обработчиков,по умолчанию - 1, рекомендовано использовать значение = prefetchCount"`
-	DisableAutoDeclare bool         `schema:"Отключить автоматическое объявление,по умолчанию  exchange, queue и binding будут созданы автоматически"`
-	Binding            *Binding     `schema:"Настройки топологии"`
-	RetryPolicy        *RetryPolicy `schema:"Политика повторной обработки"`
+	Queue              string         `validate:"required" schema:"Наименование очереди"`
+	Dlq                bool           `schema:"Создать очередь DLQ"`
+	PrefetchCount      int            `schema:"Количество предзагруженных сообщений,по умолчанию - 1"`
+	Concurrency        int            `schema:"Количество обработчиков,по умолчанию - 1, рекомендовано использовать значение = prefetchCount"`
+	DisableAutoDeclare bool           `schema:"Отключить автоматическое объявление,по умолчанию  exchange, queue и binding будут созданы автоматически"`
+	Binding            *Binding       `schema:"Настройки топологии"`
+	RetryPolicy        *RetryPolicy   `schema:"Политика повторной обработки"`
+	QueueArgs          map[string]any `schema:"Аргументы очереди"`
 }
 
 func (c Consumer) DefaultConsumer(handler consumer.Handler, restMiddlewares ...consumer.Middleware) consumer.Consumer {
@@ -116,13 +117,14 @@ func (c Consumer) DefaultConsumer(handler consumer.Handler, restMiddlewares ...c
 }
 
 type BatchConsumer struct {
-	Queue              string       `validate:"required" schema:"Наименование очереди"`
-	Dlq                bool         `schema:"Создать очередь DLQ"`
-	BatchSize          int          `validate:"required" schema:"Количество сообщений в пачке"`
-	PurgeIntervalInMs  int          `validate:"required" schema:"Интервал обработки"`
-	DisableAutoDeclare bool         `schema:"Отключить автоматическое объявление,по умолчанию  exchange, queue и binding будут созданы автоматически"`
-	Binding            *Binding     `schema:"Настройки топологии"`
-	RetryPolicy        *RetryPolicy `schema:"Политика повторной обработки"`
+	Queue              string         `validate:"required" schema:"Наименование очереди"`
+	Dlq                bool           `schema:"Создать очередь DLQ"`
+	BatchSize          int            `validate:"required" schema:"Количество сообщений в пачке"`
+	PurgeIntervalInMs  int            `validate:"required" schema:"Интервал обработки"`
+	DisableAutoDeclare bool           `schema:"Отключить автоматическое объявление,по умолчанию  exchange, queue и binding будут созданы автоматически"`
+	Binding            *Binding       `schema:"Настройки топологии"`
+	RetryPolicy        *RetryPolicy   `schema:"Политика повторной обработки"`
+	QueueArgs          map[string]any `schema:"Аргументы очереди"`
 }
 
 func (b BatchConsumer) ConsumerConfig() Consumer {
@@ -134,6 +136,7 @@ func (b BatchConsumer) ConsumerConfig() Consumer {
 		DisableAutoDeclare: b.DisableAutoDeclare,
 		Binding:            b.Binding,
 		RetryPolicy:        b.RetryPolicy,
+		QueueArgs:          b.QueueArgs,
 	}
 }
 
@@ -158,6 +161,10 @@ func TopologyFromConsumers(consumers ...Consumer) topology.Declarations {
 		queueOpts := []topology.QueueOption{
 			topology.WithDLQ(consumer.Dlq),
 		}
+		for k, v := range consumer.QueueArgs {
+			queueOpts = append(queueOpts, topology.WithQueueArg(k, v))
+		}
+
 		if consumer.RetryPolicy != nil {
 			policy := retryPolicyFromConfig(*consumer.RetryPolicy)
 			queueOpts = append(queueOpts, topology.WithRetryPolicy(policy))
