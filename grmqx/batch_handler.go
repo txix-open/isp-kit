@@ -55,6 +55,7 @@ func (r *BatchHandler) Handle(ctx context.Context, delivery *consumer.Delivery) 
 
 	if r.closed {
 		_ = delivery.Nack(true)
+		return
 	}
 
 	r.runner.Do(func() {
