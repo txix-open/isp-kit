@@ -21,11 +21,6 @@ type MigrationRunner interface {
 	Run(ctx context.Context, db *sql.DB, gooseOpts ...goose.ProviderOption) error
 }
 
-type Listener struct {
-	dataChan chan []byte
-	errChan  chan error
-}
-
 type Client struct {
 	*db.Client
 
