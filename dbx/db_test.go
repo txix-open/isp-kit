@@ -10,7 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/txix-open/isp-kit/dbrx"
 	"github.com/txix-open/isp-kit/dbx"
+	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/requestid"
 	"github.com/txix-open/isp-kit/test"
+	"go.uber.org/zap/zapcore"
 )
 
 func TestOpen(t *testing.T) {
@@ -71,12 +74,28 @@ func TestOpenListener(t *testing.T) {
 	var countGet, countSend int
 
 	// для dbx.Client создаем listener
-	l, err := db2.NewListener(ctx, tst.Logger(), chanName, func(ctx context.Context, msg []byte) {
+	l, err := db2.NewListener(tst.Logger(), chanName, func(ctx context.Context, msg []byte) {
 		if len(msg) > 0 {
+			tst.Logger().Debug(ctx, "got message",
+				log.Field{
+					Key:    "message",
+					Type:   zapcore.StringType,
+					String: string(msg),
+				},
+				log.Field{
+					Key:    "requestId",
+					Type:   zapcore.StringType,
+					String: requestid.FromContext(ctx),
+				},
+			)
 			require.EqualValues("test message", string(msg))
 			countGet++
 		}
 	})
+	require.NoError(err)
+
+	// запускаем ФП
+	err = db2.UpgradeListener(ctx, l)
 	require.NoError(err)
 
 	// ФП отправки сообщения через notify

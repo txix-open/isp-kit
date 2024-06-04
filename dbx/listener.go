@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/requestid"
 )
 
 type ListenerHandler func(ctx context.Context, msg []byte)
@@ -21,7 +22,7 @@ type Listener struct {
 	logger   log.Logger
 }
 
-func (c *Client) NewListener(ctx context.Context, logger log.Logger, name string, fn ListenerHandler) (*Listener, error) {
+func (c *Client) NewListener(logger log.Logger, name string, fn ListenerHandler) (*Listener, error) {
 	doneChan := make(chan struct{})
 
 	l := &Listener{
@@ -30,8 +31,6 @@ func (c *Client) NewListener(ctx context.Context, logger log.Logger, name string
 		fn:       fn,
 		logger:   logger,
 	}
-
-	go c.start(ctx, name, l)
 
 	return l, nil
 }
@@ -97,7 +96,12 @@ func (c *Client) start(ctx context.Context, name string, l *Listener) {
 					continue
 				}
 				if len(note.Payload) > 0 {
-					l.fn(ctx, []byte(note.Payload))
+					nextCtx := ctx
+					if len(requestid.FromContext(ctx)) == 0 {
+						nextCtx = requestid.ToContext(ctx, requestid.Next())
+					}
+
+					l.fn(nextCtx, []byte(note.Payload))
 				}
 			}
 		}(ctx, connWithWaitNotification, l)
