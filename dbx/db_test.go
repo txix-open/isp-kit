@@ -67,40 +67,31 @@ func TestOpenListener(t *testing.T) {
 	db2, err := db.DB()
 	require.NoError(err)
 
-	// для dbx.Client создаем listener
-	l, err := db2.NewListener(ctx, chanName)
-	require.NoError(err)
-
 	// счетчики отправки/получения
 	var countGet, countSend int
 
-	// ФП получения данных из listener
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case msg := <-l.DataChan():
-				if len(msg) > 0 {
-					require.EqualValues("test message", string(msg))
-					countGet++
-				}
-			case err = <-l.ErrChan():
-				tst.Logger().Debug(ctx, "err="+err.Error())
-			}
+	// для dbx.Client создаем listener
+	l, err := db2.NewListener(ctx, tst.Logger(), chanName, func(ctx context.Context, msg []byte) {
+		if len(msg) > 0 {
+			require.EqualValues("test message", string(msg))
+			countGet++
 		}
-	}()
+	})
+	require.NoError(err)
 
 	// ФП отправки сообщения через notify
-	go func() {
+	tmpChan := make(chan struct{})
+	go func(ctx context.Context, db2 *dbx.Client) {
 		time.Sleep(time.Second / 3)
 		for {
-			_, err = db2.Exec(ctx, "notify "+chanName+", 'test message'")
+			_, err := db2.Exec(ctx, "notify "+chanName+", 'test message'")
 			if err != nil {
 				return
 			}
 			countSend++
 			select {
+			case <-tmpChan:
+				return
 			case <-ctx.Done():
 				return
 			default:
@@ -108,12 +99,13 @@ func TestOpenListener(t *testing.T) {
 				continue
 			}
 		}
-	}()
+	}(ctx, db2)
 
 	// даем поработать
 	time.Sleep(3 * time.Second)
 
 	// пересоздаем соедение с БД
+	close(tmpChan)
 	cfg.MaxOpenConn = 12 // нужно, чтобы изменение произошло
 	err = db.Upgrade(ctx, cfg)
 	require.NoError(err)
@@ -134,6 +126,7 @@ func TestOpenListener(t *testing.T) {
 	err = db.Close()
 	require.NoError(err)
 
-	l.ListenerClose()
+	err = l.Close()
+	require.NoError(err)
 	time.Sleep(time.Second)
 }

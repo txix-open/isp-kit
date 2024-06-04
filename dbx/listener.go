@@ -3,28 +3,32 @@ package dbx
 import (
 	"context"
 	"net"
+	"sync"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/log"
 )
 
+type ListenerHandler func(ctx context.Context, msg []byte)
+
 type Listener struct {
+	sync.Mutex
 	name     string
-	dataChan chan []byte
-	errChan  chan error
 	doneChan chan struct{}
+	fn       ListenerHandler
+	logger   log.Logger
 }
 
-func (c *Client) NewListener(ctx context.Context, name string) (*Listener, error) {
-	dataChan := make(chan []byte)
-	errChan := make(chan error)
+func (c *Client) NewListener(ctx context.Context, logger log.Logger, name string, fn ListenerHandler) (*Listener, error) {
 	doneChan := make(chan struct{})
 
 	l := &Listener{
 		name:     name,
-		dataChan: dataChan,
-		errChan:  errChan,
 		doneChan: doneChan,
+		fn:       fn,
+		logger:   logger,
 	}
 
 	go c.start(ctx, name, l)
@@ -33,6 +37,9 @@ func (c *Client) NewListener(ctx context.Context, name string) (*Listener, error
 }
 
 func (c *Client) UpgradeListener(ctx context.Context, l *Listener) error {
+	l.Lock()
+	defer l.Unlock()
+
 	close(l.doneChan)
 
 	doneChan := make(chan struct{})
@@ -44,16 +51,9 @@ func (c *Client) UpgradeListener(ctx context.Context, l *Listener) error {
 	return nil
 }
 
-func (l *Listener) ListenerClose() {
+func (l *Listener) Close() error {
 	close(l.doneChan)
-}
-
-func (l *Listener) ErrChan() <-chan error {
-	return l.errChan
-}
-
-func (l *Listener) DataChan() <-chan []byte {
-	return l.dataChan
+	return nil
 }
 
 func (c *Client) start(ctx context.Context, name string, l *Listener) {
@@ -74,7 +74,7 @@ func (c *Client) start(ctx context.Context, name string, l *Listener) {
 			panic("error listening " + name + ": " + err.Error())
 		}
 
-		go func() {
+		go func(ctx context.Context, connWithWaitNotification *pgx.Conn, l *Listener) {
 			select {
 			case <-ctx.Done():
 				return
@@ -82,23 +82,25 @@ func (c *Client) start(ctx context.Context, name string, l *Listener) {
 				_ = connWithWaitNotification.Close(ctx)
 				return
 			}
-		}()
+		}(ctx, connWithWaitNotification, l)
 
-		go func() {
+		go func(ctx context.Context, connWithWaitNotification *pgx.Conn, l *Listener) {
 			for {
 				note, err := connWithWaitNotification.WaitForNotification(ctx)
 				if err != nil {
 					if errors.Is(err, context.Canceled) || errors.Is(err, net.ErrClosed) {
 						return
 					}
-					l.errChan <- err
+					if l.logger != nil {
+						l.logger.Warn(ctx, "error listening "+name+": "+err.Error())
+					}
 					continue
 				}
 				if len(note.Payload) > 0 {
-					l.dataChan <- []byte(note.Payload)
+					l.fn(ctx, []byte(note.Payload))
 				}
 			}
-		}()
+		}(ctx, connWithWaitNotification, l)
 
 		return nil
 	})
