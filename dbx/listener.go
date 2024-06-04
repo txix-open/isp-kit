@@ -96,12 +96,7 @@ func (c *Client) start(ctx context.Context, name string, l *Listener) {
 					continue
 				}
 				if len(note.Payload) > 0 {
-					nextCtx := ctx
-					if len(requestid.FromContext(ctx)) == 0 {
-						nextCtx = requestid.ToContext(ctx, requestid.Next())
-					}
-
-					l.fn(nextCtx, []byte(note.Payload))
+					l.fn(requestid.ToContext(ctx, requestid.Next()), []byte(note.Payload))
 				}
 			}
 		}(ctx, connWithWaitNotification, l)
