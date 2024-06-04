@@ -4,8 +4,8 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/txix-open/isp-kit/grpc"
-	"github.com/txix-open/isp-kit/grpc/isp"
+	"gitlab.txix.ru/isp/isp-kit/grpc"
+	"gitlab.txix.ru/isp/isp-kit/grpc/isp"
 )
 
 type GrpcError interface {

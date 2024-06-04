@@ -1,7 +1,7 @@
 package publisher
 
 import (
-	"github.com/txix-open/isp-kit/stompx/consumer"
+	"gitlab.txix.ru/isp/isp-kit/stompx/consumer"
 )
 
 type Option func(p *Publisher)

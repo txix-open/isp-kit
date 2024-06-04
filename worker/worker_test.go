@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/txix-open/isp-kit/worker"
+	"gitlab.txix.ru/isp/isp-kit/worker"
 )
 
 type job struct {

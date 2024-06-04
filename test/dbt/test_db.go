@@ -9,9 +9,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
-	"github.com/txix-open/isp-kit/db"
-	"github.com/txix-open/isp-kit/dbx"
-	"github.com/txix-open/isp-kit/test"
+	"gitlab.txix.ru/isp/isp-kit/db"
+	"gitlab.txix.ru/isp/isp-kit/dbx"
+	"gitlab.txix.ru/isp/isp-kit/test"
 )
 
 type TestDb struct {
@@ -22,7 +22,7 @@ type TestDb struct {
 
 func New(t *test.Test, opts ...dbx.Option) *TestDb {
 	cfg := t.Config()
-	schema := fmt.Sprintf("test_%s", t.Id()) //name must start from none digit
+	schema := fmt.Sprintf("test_%s", t.Id()) // name must start from none digit
 	dbConfig := dbx.Config{
 		Host:        cfg.Optional().String("PG_HOST", "127.0.0.1"),
 		Port:        cfg.Optional().Int("PG_PORT", 5432),
@@ -56,7 +56,7 @@ func (db *TestDb) DB() (*dbx.Client, error) {
 	return db.Client, nil
 }
 
-func (db *TestDb) Must() must { //for test purposes
+func (db *TestDb) Must() must { // for test purposes
 	return db.must
 }
 

@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/txix-open/isp-kit/db/jsonb"
-	"github.com/txix-open/isp-kit/test"
-	"github.com/txix-open/isp-kit/test/dbt"
+	"gitlab.txix.ru/isp/isp-kit/db/jsonb"
+	"gitlab.txix.ru/isp/isp-kit/test"
+	"gitlab.txix.ru/isp/isp-kit/test/dbt"
 )
 
 type record struct {
@@ -35,7 +35,7 @@ create table data (
 	db.Must().Exec("insert into data values ($1, $2)", expected.Id, expected.Data)
 	actual := record{}
 	db.Must().SelectRow(&actual, "select * from data where id = $1", 1)
-	actual.Data = bytes.ReplaceAll(actual.Data, []byte(" "), []byte("")) //pg add extra spaces
+	actual.Data = bytes.ReplaceAll(actual.Data, []byte(" "), []byte("")) // pg add extra spaces
 	assert.EqualValues(expected, actual)
 
 	expected = record{Id: 2, Data: nil}

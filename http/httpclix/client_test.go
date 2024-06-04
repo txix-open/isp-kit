@@ -6,14 +6,14 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
-	"github.com/txix-open/isp-kit/http/apierrors"
-	"github.com/txix-open/isp-kit/http/httpcli"
-	"github.com/txix-open/isp-kit/http/httpclix"
-	"github.com/txix-open/isp-kit/log"
-	"github.com/txix-open/isp-kit/metrics/http_metrics"
-	"github.com/txix-open/isp-kit/requestid"
-	"github.com/txix-open/isp-kit/test"
-	"github.com/txix-open/isp-kit/test/httpt"
+	"gitlab.txix.ru/isp/isp-kit/http/apierrors"
+	"gitlab.txix.ru/isp/isp-kit/http/httpcli"
+	"gitlab.txix.ru/isp/isp-kit/http/httpclix"
+	"gitlab.txix.ru/isp/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/metrics/http_metrics"
+	"gitlab.txix.ru/isp/isp-kit/requestid"
+	"gitlab.txix.ru/isp/isp-kit/test"
+	"gitlab.txix.ru/isp/isp-kit/test/httpt"
 )
 
 type example struct {

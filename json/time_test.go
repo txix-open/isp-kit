@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/txix-open/isp-kit/json"
+	"gitlab.txix.ru/isp/isp-kit/json"
 )
 
 func TestFormat(t *testing.T) {

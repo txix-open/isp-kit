@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/txix-open/isp-kit/cluster"
+	"gitlab.txix.ru/isp/isp-kit/cluster"
 )
 
 const ExpectData = `

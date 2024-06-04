@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/txix-open/isp-kit/validator"
+	"gitlab.txix.ru/isp/isp-kit/validator"
 )
 
 type Struct struct {

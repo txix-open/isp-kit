@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/txix-open/isp-kit/dbrx"
-	"github.com/txix-open/isp-kit/dbx"
-	"github.com/txix-open/isp-kit/log"
-	"github.com/txix-open/isp-kit/requestid"
-	"github.com/txix-open/isp-kit/test"
+	"gitlab.txix.ru/isp/isp-kit/dbrx"
+	"gitlab.txix.ru/isp/isp-kit/dbx"
+	"gitlab.txix.ru/isp/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/requestid"
+	"gitlab.txix.ru/isp/isp-kit/test"
 	"go.uber.org/zap/zapcore"
 )
 

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/txix-open/isp-kit/test/fake"
+	"gitlab.txix.ru/isp/isp-kit/test/fake"
 )
 
 type SomeStruct struct {

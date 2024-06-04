@@ -9,10 +9,10 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
-	isphttp "github.com/txix-open/isp-kit/http"
-	"github.com/txix-open/isp-kit/http/apierrors"
-	"github.com/txix-open/isp-kit/http/endpoint"
-	"github.com/txix-open/isp-kit/log"
+	isphttp "gitlab.txix.ru/isp/isp-kit/http"
+	"gitlab.txix.ru/isp/isp-kit/http/apierrors"
+	"gitlab.txix.ru/isp/isp-kit/http/endpoint"
+	"gitlab.txix.ru/isp/isp-kit/log"
 )
 
 type Request struct {

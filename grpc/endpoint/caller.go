@@ -5,7 +5,7 @@ import (
 	"reflect"
 
 	"github.com/pkg/errors"
-	"github.com/txix-open/isp-kit/grpc/isp"
+	"gitlab.txix.ru/isp/isp-kit/grpc/isp"
 )
 
 type param struct {
@@ -45,7 +45,7 @@ func NewCaller(
 		paramType := p.String()
 		mapper, ok := paramMappers[paramType]
 
-		if !ok { //maybe it's a request body
+		if !ok { // maybe it's a request body
 			if reqBodyIndex != -1 {
 				return nil, errors.Errorf("param mapper not found for type %s", paramType)
 			}

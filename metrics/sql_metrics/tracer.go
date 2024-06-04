@@ -6,7 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/txix-open/isp-kit/metrics"
+	"gitlab.txix.ru/isp/isp-kit/metrics"
 )
 
 type tracerContextKey int

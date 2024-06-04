@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
-	"github.com/txix-open/isp-kit/json"
+	"gitlab.txix.ru/isp/isp-kit/json"
 )
 
 type JsonResponseMapper struct {

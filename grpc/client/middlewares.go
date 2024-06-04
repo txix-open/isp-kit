@@ -4,11 +4,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/txix-open/isp-kit/grpc"
-	"github.com/txix-open/isp-kit/grpc/client/request"
-	"github.com/txix-open/isp-kit/grpc/isp"
-	"github.com/txix-open/isp-kit/log"
-	"github.com/txix-open/isp-kit/requestid"
+	"gitlab.txix.ru/isp/isp-kit/grpc"
+	"gitlab.txix.ru/isp/isp-kit/grpc/client/request"
+	"gitlab.txix.ru/isp/isp-kit/grpc/isp"
+	"gitlab.txix.ru/isp/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/requestid"
 	"google.golang.org/grpc/metadata"
 )
 

@@ -2,7 +2,7 @@ package sql_tracing
 
 import (
 	"github.com/jackc/pgx/v5"
-	"github.com/txix-open/isp-kit/observability/tracing"
+	"gitlab.txix.ru/isp/isp-kit/observability/tracing"
 )
 
 const (

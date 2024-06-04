@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 
 	"github.com/pkg/errors"
-	"github.com/txix-open/isp-kit/grpc/isp"
+	"gitlab.txix.ru/isp/isp-kit/grpc/isp"
 	"google.golang.org/grpc"
 )
 

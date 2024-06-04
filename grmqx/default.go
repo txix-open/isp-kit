@@ -1,11 +1,11 @@
 package grmqx
 
 import (
-	"github.com/txix-open/isp-kit/grmqx/handler"
-	"github.com/txix-open/isp-kit/log"
-	"github.com/txix-open/isp-kit/metrics"
-	rabbitmq_metircs "github.com/txix-open/isp-kit/metrics/rabbitmq_metrics"
-	"github.com/txix-open/isp-kit/observability/tracing/rabbitmq/consumer_tracing"
+	"gitlab.txix.ru/isp/isp-kit/grmqx/handler"
+	"gitlab.txix.ru/isp/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/metrics"
+	rabbitmq_metircs "gitlab.txix.ru/isp/isp-kit/metrics/rabbitmq_metrics"
+	"gitlab.txix.ru/isp/isp-kit/observability/tracing/rabbitmq/consumer_tracing"
 )
 
 func NewResultHandler(logger log.Logger, adapter handler.SyncHandlerAdapter) handler.Sync {

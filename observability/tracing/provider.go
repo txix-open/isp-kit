@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-logr/stdr"
 	"github.com/pkg/errors"
-	"github.com/txix-open/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
@@ -64,7 +64,7 @@ func NewProviderFromConfiguration(ctx context.Context, logger log.Logger, config
 	provider := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter),
 		sdktrace.WithResource(res),
-		sdktrace.WithSampler(sdktrace.AlwaysSample()), //TODO consider configuration, but pass all for now
+		sdktrace.WithSampler(sdktrace.AlwaysSample()), // TODO consider configuration, but pass all for now
 	)
 	return provider, nil
 }

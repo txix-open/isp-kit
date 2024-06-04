@@ -1,7 +1,7 @@
 package log
 
 import (
-	"github.com/txix-open/isp-kit/log/file"
+	"gitlab.txix.ru/isp/isp-kit/log/file"
 )
 
 type Option func(cfg *Config)

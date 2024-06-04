@@ -9,15 +9,15 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
-	http2 "github.com/txix-open/isp-kit/http"
-	"github.com/txix-open/isp-kit/http/apierrors"
-	"github.com/txix-open/isp-kit/http/endpoint/buffer"
-	"github.com/txix-open/isp-kit/log/logutil"
-	sentry2 "github.com/txix-open/isp-kit/observability/sentry"
+	http2 "gitlab.txix.ru/isp/isp-kit/http"
+	"gitlab.txix.ru/isp/isp-kit/http/apierrors"
+	"gitlab.txix.ru/isp/isp-kit/http/endpoint/buffer"
+	"gitlab.txix.ru/isp/isp-kit/log/logutil"
+	sentry2 "gitlab.txix.ru/isp/isp-kit/observability/sentry"
 
 	"github.com/pkg/errors"
-	"github.com/txix-open/isp-kit/log"
-	"github.com/txix-open/isp-kit/requestid"
+	"gitlab.txix.ru/isp/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/requestid"
 )
 
 const (
@@ -79,7 +79,7 @@ func ErrorHandler(logger log.Logger) http2.Middleware {
 				return err
 			}
 
-			//hide error details to prevent potential security leaks
+			// hide error details to prevent potential security leaks
 			err = apierrors.NewInternalServiceError(err).WriteError(w)
 
 			return err

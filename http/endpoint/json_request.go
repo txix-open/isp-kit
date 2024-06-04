@@ -8,8 +8,8 @@ import (
 	"unicode"
 
 	"github.com/pkg/errors"
-	"github.com/txix-open/isp-kit/http/apierrors"
-	"github.com/txix-open/isp-kit/json"
+	"gitlab.txix.ru/isp/isp-kit/http/apierrors"
+	"gitlab.txix.ru/isp/isp-kit/json"
 )
 
 type Validator interface {

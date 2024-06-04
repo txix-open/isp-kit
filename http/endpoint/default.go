@@ -1,12 +1,12 @@
 package endpoint
 
 import (
-	"github.com/txix-open/isp-kit/http"
-	"github.com/txix-open/isp-kit/log"
-	"github.com/txix-open/isp-kit/metrics"
-	"github.com/txix-open/isp-kit/metrics/http_metrics"
-	"github.com/txix-open/isp-kit/observability/tracing/http/server_tracing"
-	"github.com/txix-open/isp-kit/validator"
+	"gitlab.txix.ru/isp/isp-kit/http"
+	"gitlab.txix.ru/isp/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/metrics"
+	"gitlab.txix.ru/isp/isp-kit/metrics/http_metrics"
+	"gitlab.txix.ru/isp/isp-kit/observability/tracing/http/server_tracing"
+	"gitlab.txix.ru/isp/isp-kit/validator"
 )
 
 func DefaultWrapper(logger log.Logger, restMiddlewares ...http.Middleware) Wrapper {

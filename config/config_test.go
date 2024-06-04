@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/txix-open/isp-kit/config"
-	"github.com/txix-open/isp-kit/validator"
+	"gitlab.txix.ru/isp/isp-kit/config"
+	"gitlab.txix.ru/isp/isp-kit/validator"
 )
 
 type Subst struct {

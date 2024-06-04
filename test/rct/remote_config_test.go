@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/txix-open/isp-kit/test/rct"
+	"gitlab.txix.ru/isp/isp-kit/test/rct"
 )
 
 type Child struct {

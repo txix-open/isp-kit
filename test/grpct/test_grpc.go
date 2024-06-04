@@ -3,11 +3,11 @@ package grpct
 import (
 	"net"
 
-	"github.com/txix-open/isp-kit/grpc"
-	"github.com/txix-open/isp-kit/grpc/client"
-	"github.com/txix-open/isp-kit/grpc/endpoint"
-	"github.com/txix-open/isp-kit/grpc/isp"
-	"github.com/txix-open/isp-kit/test"
+	"gitlab.txix.ru/isp/isp-kit/grpc"
+	"gitlab.txix.ru/isp/isp-kit/grpc/client"
+	"gitlab.txix.ru/isp/isp-kit/grpc/endpoint"
+	"gitlab.txix.ru/isp/isp-kit/grpc/isp"
+	"gitlab.txix.ru/isp/isp-kit/test"
 )
 
 type MockServer struct {

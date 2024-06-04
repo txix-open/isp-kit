@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/txix-open/isp-kit/json"
-	"github.com/txix-open/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/json"
+	"gitlab.txix.ru/isp/isp-kit/log"
 )
 
 type someStruct struct {

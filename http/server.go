@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/txix-open/isp-kit/http/apierrors"
-	"github.com/txix-open/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/http/apierrors"
+	"gitlab.txix.ru/isp/isp-kit/log"
 )
 
 type service struct {

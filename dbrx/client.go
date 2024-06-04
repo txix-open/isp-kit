@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/txix-open/isp-kit/db"
-	"github.com/txix-open/isp-kit/dbx"
-	"github.com/txix-open/isp-kit/metrics"
-	"github.com/txix-open/isp-kit/metrics/db_metrics"
-	"github.com/txix-open/isp-kit/metrics/sql_metrics"
-	"github.com/txix-open/isp-kit/observability/tracing/sql_tracing"
+	"gitlab.txix.ru/isp/isp-kit/db"
+	"gitlab.txix.ru/isp/isp-kit/dbx"
+	"gitlab.txix.ru/isp/isp-kit/metrics"
+	"gitlab.txix.ru/isp/isp-kit/metrics/db_metrics"
+	"gitlab.txix.ru/isp/isp-kit/metrics/sql_metrics"
+	"gitlab.txix.ru/isp/isp-kit/observability/tracing/sql_tracing"
 )
 
 var (

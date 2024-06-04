@@ -7,8 +7,8 @@ import (
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/txix-open/grmq/consumer"
 	"github.com/txix-open/grmq/publisher"
-	"github.com/txix-open/isp-kit/log"
-	"github.com/txix-open/isp-kit/requestid"
+	"gitlab.txix.ru/isp/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/requestid"
 )
 
 const (

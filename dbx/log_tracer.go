@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/txix-open/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/log"
 )
 
 type LogTracer struct {

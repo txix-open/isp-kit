@@ -6,9 +6,9 @@ import (
 
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/txix-open/grmq/publisher"
-	"github.com/txix-open/isp-kit/observability/tracing"
-	"github.com/txix-open/isp-kit/observability/tracing/rabbitmq"
-	"github.com/txix-open/isp-kit/requestid"
+	"gitlab.txix.ru/isp/isp-kit/observability/tracing"
+	"gitlab.txix.ru/isp/isp-kit/observability/tracing/rabbitmq"
+	"gitlab.txix.ru/isp/isp-kit/requestid"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"

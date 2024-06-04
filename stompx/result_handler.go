@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/go-stomp/stomp/v3"
-	"github.com/txix-open/isp-kit/log"
-	"github.com/txix-open/isp-kit/stompx/consumer"
+	"gitlab.txix.ru/isp/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/stompx/consumer"
 )
 
 type Result struct {

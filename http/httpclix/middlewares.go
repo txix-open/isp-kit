@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/txix-open/isp-kit/http/httpcli"
-	"github.com/txix-open/isp-kit/log"
-	"github.com/txix-open/isp-kit/metrics/http_metrics"
-	"github.com/txix-open/isp-kit/requestid"
+	"gitlab.txix.ru/isp/isp-kit/http/httpcli"
+	"gitlab.txix.ru/isp/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/metrics/http_metrics"
+	"gitlab.txix.ru/isp/isp-kit/requestid"
 )
 
 const (

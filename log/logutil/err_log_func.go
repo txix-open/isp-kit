@@ -3,7 +3,7 @@ package logutil
 import (
 	"context"
 
-	"github.com/txix-open/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/log"
 )
 
 type LogLevelSpecifier interface {

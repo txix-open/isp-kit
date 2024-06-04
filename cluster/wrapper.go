@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/txix-open/etp/v3"
 	"github.com/txix-open/etp/v3/msg"
-	"github.com/txix-open/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/log"
 )
 
 type clientWrapper struct {

@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/txix-open/isp-kit/dbx"
-	"github.com/txix-open/isp-kit/metrics"
-	"github.com/txix-open/isp-kit/metrics/sql_metrics"
-	"github.com/txix-open/isp-kit/observability/tracing/sql_tracing"
-	"github.com/txix-open/isp-kit/test"
-	"github.com/txix-open/isp-kit/test/dbt"
+	"gitlab.txix.ru/isp/isp-kit/dbx"
+	"gitlab.txix.ru/isp/isp-kit/metrics"
+	"gitlab.txix.ru/isp/isp-kit/metrics/sql_metrics"
+	"gitlab.txix.ru/isp/isp-kit/observability/tracing/sql_tracing"
+	"gitlab.txix.ru/isp/isp-kit/test"
+	"gitlab.txix.ru/isp/isp-kit/test/dbt"
 )
 
 // to see how it works try to modify dbx.NewMetrics struct's methods

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/txix-open/isp-kit/validator"
+	"gitlab.txix.ru/isp/isp-kit/validator"
 )
 
 type inner struct {
@@ -60,7 +60,7 @@ type wrapper struct {
 }
 
 func validateAsaskevich(v any) (ok bool, details map[string]string) {
-	ok, err := govalidator.ValidateStruct(wrapper{v}) //hack
+	ok, err := govalidator.ValidateStruct(wrapper{v}) // hack
 	if ok || err == nil {
 		return true, nil
 	}
@@ -79,7 +79,7 @@ func collectDetails(err error, result map[string]string) error {
 		errName := e.Name
 		if len(e.Path) > 0 {
 			errName = strings.Join(append(e.Path, e.Name), ".")
-			errName = errName[2:] //remove V.
+			errName = errName[2:] // remove V.
 		}
 		result[errName] = e.Err.Error()
 	case govalidator.Errors:

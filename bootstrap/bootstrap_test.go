@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/txix-open/isp-kit/bootstrap"
-	"github.com/txix-open/isp-kit/cluster"
+	"gitlab.txix.ru/isp/isp-kit/bootstrap"
+	"gitlab.txix.ru/isp/isp-kit/cluster"
 )
 
 type RemoteConfig struct {

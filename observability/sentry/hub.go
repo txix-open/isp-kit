@@ -6,8 +6,8 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
-	"github.com/txix-open/isp-kit/log"
-	"github.com/txix-open/isp-kit/requestid"
+	"gitlab.txix.ru/isp/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/requestid"
 )
 
 const (

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/txix-open/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/log"
 )
 
 type NoopHub struct {

@@ -1,7 +1,7 @@
 package client
 
 import (
-	"github.com/txix-open/isp-kit/grpc/client/request"
+	"gitlab.txix.ru/isp/isp-kit/grpc/client/request"
 	"google.golang.org/grpc"
 )
 

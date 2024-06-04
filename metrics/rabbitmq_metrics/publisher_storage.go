@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/txix-open/isp-kit/metrics"
+	"gitlab.txix.ru/isp/isp-kit/metrics"
 )
 
 type PublisherStorage struct {

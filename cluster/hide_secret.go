@@ -5,7 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/txix-open/bellows"
-	"github.com/txix-open/isp-kit/json"
+	"gitlab.txix.ru/isp/isp-kit/json"
 )
 
 var (

@@ -6,7 +6,7 @@ import (
 	"github.com/txix-open/grmq"
 	"github.com/txix-open/grmq/consumer"
 	"github.com/txix-open/grmq/publisher"
-	"github.com/txix-open/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/log"
 )
 
 type LogObserver struct {

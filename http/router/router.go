@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/txix-open/isp-kit/metrics/http_metrics"
+	"gitlab.txix.ru/isp/isp-kit/metrics/http_metrics"
 )
 
 type Params = httprouter.Params

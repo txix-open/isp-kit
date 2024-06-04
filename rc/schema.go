@@ -1,7 +1,7 @@
 package rc
 
 import (
-	"github.com/txix-open/isp-kit/rc/schema"
+	"gitlab.txix.ru/isp/isp-kit/rc/schema"
 )
 
 func GenerateConfigSchema(cfgPtr any) schema.Schema {

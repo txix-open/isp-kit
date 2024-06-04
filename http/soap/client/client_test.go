@@ -7,10 +7,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/txix-open/isp-kit/http/httpclix"
-	"github.com/txix-open/isp-kit/http/soap"
-	"github.com/txix-open/isp-kit/http/soap/client"
-	"github.com/txix-open/isp-kit/test"
+	"gitlab.txix.ru/isp/isp-kit/http/httpclix"
+	"gitlab.txix.ru/isp/isp-kit/http/soap"
+	"gitlab.txix.ru/isp/isp-kit/http/soap/client"
+	"gitlab.txix.ru/isp/isp-kit/test"
 )
 
 type Book struct {

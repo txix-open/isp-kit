@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/txix-open/isp-kit/rc"
+	"gitlab.txix.ru/isp/isp-kit/rc"
 )
 
 type noneValidation struct {

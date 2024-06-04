@@ -15,9 +15,9 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
-	"github.com/txix-open/isp-kit/http/httpcli"
-	"github.com/txix-open/isp-kit/json"
-	"github.com/txix-open/isp-kit/retry"
+	"gitlab.txix.ru/isp/isp-kit/http/httpcli"
+	"gitlab.txix.ru/isp/isp-kit/json"
+	"gitlab.txix.ru/isp/isp-kit/retry"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -245,7 +245,7 @@ func TestRequestBuilder_MultipartData(t *testing.T) {
 	require.True(resp.IsSuccess())
 
 	_, err = file.Read([]byte{0})
-	require.Error(err) //file closed
+	require.Error(err) // file closed
 
 	expected, err := os.ReadFile("test_data/multipart.json")
 	require.NoError(err)

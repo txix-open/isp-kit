@@ -6,9 +6,9 @@ import (
 	"net/http"
 
 	"github.com/rabbitmq/amqp091-go"
-	"github.com/txix-open/isp-kit/grmqx"
-	"github.com/txix-open/isp-kit/json"
-	"github.com/txix-open/isp-kit/test"
+	"gitlab.txix.ru/isp/isp-kit/grmqx"
+	"gitlab.txix.ru/isp/isp-kit/json"
+	"gitlab.txix.ru/isp/isp-kit/test"
 )
 
 type Client struct {
@@ -81,7 +81,7 @@ func (c *Client) QueueLength(queue string) int {
 		err error
 	)
 	c.useChannel(func(ch *amqp091.Channel) {
-		q, err = ch.QueueInspect(queue) //nolint
+		q, err = ch.QueueInspect(queue) // nolint
 		c.t.Assert().NoError(err)
 	})
 	return q.Messages

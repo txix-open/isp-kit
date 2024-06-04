@@ -8,9 +8,9 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/pkg/errors"
-	"github.com/txix-open/isp-kit/metrics/sql_metrics"
-	"github.com/txix-open/isp-kit/observability/tracing"
-	"github.com/txix-open/isp-kit/requestid"
+	"gitlab.txix.ru/isp/isp-kit/metrics/sql_metrics"
+	"gitlab.txix.ru/isp/isp-kit/observability/tracing"
+	"gitlab.txix.ru/isp/isp-kit/requestid"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"

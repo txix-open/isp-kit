@@ -12,10 +12,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
 	"github.com/labstack/echo/v4"
-	"github.com/txix-open/isp-kit/http"
-	"github.com/txix-open/isp-kit/http/endpoint"
-	"github.com/txix-open/isp-kit/log"
-	"github.com/txix-open/isp-kit/validator"
+	"gitlab.txix.ru/isp/isp-kit/http"
+	"gitlab.txix.ru/isp/isp-kit/http/endpoint"
+	"gitlab.txix.ru/isp/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/validator"
 )
 
 type Request struct {

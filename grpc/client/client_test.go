@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/txix-open/isp-kit/grpc"
-	"github.com/txix-open/isp-kit/grpc/client"
-	"github.com/txix-open/isp-kit/grpc/endpoint"
-	"github.com/txix-open/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/grpc"
+	"gitlab.txix.ru/isp/isp-kit/grpc/client"
+	"gitlab.txix.ru/isp/isp-kit/grpc/endpoint"
+	"gitlab.txix.ru/isp/isp-kit/log"
 )
 
 func TestBalancing(t *testing.T) {

@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"net/http"
 
-	http2 "github.com/txix-open/isp-kit/http"
-	"github.com/txix-open/isp-kit/http/endpoint/buffer"
-	"github.com/txix-open/isp-kit/log"
-	"github.com/txix-open/isp-kit/log/logutil"
-	"github.com/txix-open/isp-kit/metrics/http_metrics"
-	"github.com/txix-open/isp-kit/observability/tracing"
-	"github.com/txix-open/isp-kit/observability/tracing/http/semconvutil"
-	"github.com/txix-open/isp-kit/requestid"
+	http2 "gitlab.txix.ru/isp/isp-kit/http"
+	"gitlab.txix.ru/isp/isp-kit/http/endpoint/buffer"
+	"gitlab.txix.ru/isp/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/log/logutil"
+	"gitlab.txix.ru/isp/isp-kit/metrics/http_metrics"
+	"gitlab.txix.ru/isp/isp-kit/observability/tracing"
+	"gitlab.txix.ru/isp/isp-kit/observability/tracing/http/semconvutil"
+	"gitlab.txix.ru/isp/isp-kit/requestid"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
@@ -67,7 +67,7 @@ func (c Config) Middleware() http2.Middleware {
 				spanName = fmt.Sprintf("%s %s", r.Method, r.URL.Path)
 			}
 
-			//TODO some of endpoint exported
+			// TODO some of endpoint exported
 			/*if publicEndpoint {
 				opts = append(opts, trace.WithNewRoot())
 				// Linking incoming span context if any for public endpoint.

@@ -2,8 +2,8 @@ package endpoint
 
 import (
 	"github.com/pkg/errors"
-	"github.com/txix-open/isp-kit/grpc/isp"
-	"github.com/txix-open/isp-kit/json"
+	"gitlab.txix.ru/isp/isp-kit/grpc/isp"
+	"gitlab.txix.ru/isp/isp-kit/json"
 )
 
 type JsonResponseMapper struct {

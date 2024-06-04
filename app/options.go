@@ -1,8 +1,8 @@
 package app
 
 import (
-	"github.com/txix-open/isp-kit/config"
-	"github.com/txix-open/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/config"
+	"gitlab.txix.ru/isp/isp-kit/log"
 )
 
 type LoggerConfigSupplier func(cfg *config.Config) log.Config

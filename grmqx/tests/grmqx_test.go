@@ -9,12 +9,12 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/txix-open/grmq/consumer"
-	"github.com/txix-open/isp-kit/grmqx"
-	"github.com/txix-open/isp-kit/grmqx/handler"
-	"github.com/txix-open/isp-kit/log"
-	"github.com/txix-open/isp-kit/requestid"
-	"github.com/txix-open/isp-kit/test"
-	"github.com/txix-open/isp-kit/test/grmqt"
+	"gitlab.txix.ru/isp/isp-kit/grmqx"
+	"gitlab.txix.ru/isp/isp-kit/grmqx/handler"
+	"gitlab.txix.ru/isp/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/requestid"
+	"gitlab.txix.ru/isp/isp-kit/test"
+	"gitlab.txix.ru/isp/isp-kit/test/grmqt"
 )
 
 func TestRequestIdChain(t *testing.T) {

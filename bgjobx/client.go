@@ -6,10 +6,10 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/txix-open/bgjob"
-	"github.com/txix-open/isp-kit/dbx"
-	"github.com/txix-open/isp-kit/log"
-	"github.com/txix-open/isp-kit/metrics"
-	"github.com/txix-open/isp-kit/metrics/bgjob_metrics"
+	"gitlab.txix.ru/isp/isp-kit/dbx"
+	"gitlab.txix.ru/isp/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/metrics"
+	"gitlab.txix.ru/isp/isp-kit/metrics/bgjob_metrics"
 )
 
 type DBProvider interface {

@@ -1,11 +1,11 @@
 package client
 
 import (
-	ispgrpc "github.com/txix-open/isp-kit/grpc"
-	"github.com/txix-open/isp-kit/grpc/client/request"
-	"github.com/txix-open/isp-kit/metrics"
-	"github.com/txix-open/isp-kit/metrics/grpc_metrics"
-	"github.com/txix-open/isp-kit/observability/tracing/grpc/client_tracing"
+	ispgrpc "gitlab.txix.ru/isp/isp-kit/grpc"
+	"gitlab.txix.ru/isp/isp-kit/grpc/client/request"
+	"gitlab.txix.ru/isp/isp-kit/metrics"
+	"gitlab.txix.ru/isp/isp-kit/metrics/grpc_metrics"
+	"gitlab.txix.ru/isp/isp-kit/observability/tracing/grpc/client_tracing"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

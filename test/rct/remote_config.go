@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/txix-open/isp-kit/json"
-	"github.com/txix-open/isp-kit/rc"
-	"github.com/txix-open/isp-kit/validator"
 	"github.com/xeipuuv/gojsonschema"
+	"gitlab.txix.ru/isp/isp-kit/json"
+	"gitlab.txix.ru/isp/isp-kit/rc"
+	"gitlab.txix.ru/isp/isp-kit/validator"
 )
 
 func Test[T any](t *testing.T, defaultRemoteConfigPath string, remoteConfig T) {

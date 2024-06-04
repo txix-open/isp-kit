@@ -14,21 +14,21 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/txix-open/isp-kit/app"
-	"github.com/txix-open/isp-kit/cluster"
-	"github.com/txix-open/isp-kit/config"
-	"github.com/txix-open/isp-kit/healthcheck"
-	"github.com/txix-open/isp-kit/infra"
-	"github.com/txix-open/isp-kit/infra/pprof"
-	"github.com/txix-open/isp-kit/json"
-	"github.com/txix-open/isp-kit/log"
-	"github.com/txix-open/isp-kit/log/file"
-	"github.com/txix-open/isp-kit/metrics"
-	"github.com/txix-open/isp-kit/metrics/app_metrics"
-	"github.com/txix-open/isp-kit/observability/sentry"
-	"github.com/txix-open/isp-kit/observability/tracing"
-	"github.com/txix-open/isp-kit/rc"
-	"github.com/txix-open/isp-kit/validator"
+	"gitlab.txix.ru/isp/isp-kit/app"
+	"gitlab.txix.ru/isp/isp-kit/cluster"
+	"gitlab.txix.ru/isp/isp-kit/config"
+	"gitlab.txix.ru/isp/isp-kit/healthcheck"
+	"gitlab.txix.ru/isp/isp-kit/infra"
+	"gitlab.txix.ru/isp/isp-kit/infra/pprof"
+	"gitlab.txix.ru/isp/isp-kit/json"
+	"gitlab.txix.ru/isp/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/log/file"
+	"gitlab.txix.ru/isp/isp-kit/metrics"
+	"gitlab.txix.ru/isp/isp-kit/metrics/app_metrics"
+	"gitlab.txix.ru/isp/isp-kit/observability/sentry"
+	"gitlab.txix.ru/isp/isp-kit/observability/tracing"
+	"gitlab.txix.ru/isp/isp-kit/rc"
+	"gitlab.txix.ru/isp/isp-kit/validator"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -351,7 +351,7 @@ func kitVersion() string {
 		return "0.0.0"
 	}
 	for _, dep := range info.Deps {
-		if dep.Path == "github.com/txix-open/isp-kit" {
+		if dep.Path == "gitlab.txix.ru/isp/isp-kit" {
 			return dep.Version
 		}
 	}

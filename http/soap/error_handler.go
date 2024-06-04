@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	http2 "github.com/txix-open/isp-kit/http"
-	"github.com/txix-open/isp-kit/http/endpoint"
-	"github.com/txix-open/isp-kit/log"
+	http2 "gitlab.txix.ru/isp/isp-kit/http"
+	"gitlab.txix.ru/isp/isp-kit/http/endpoint"
+	"gitlab.txix.ru/isp/isp-kit/log"
 )
 
 func ErrorHandler(logger log.Logger) http2.Middleware {
@@ -25,7 +25,7 @@ func ErrorHandler(logger log.Logger) http2.Middleware {
 				return err
 			}
 
-			//hide error details to prevent potential security leaks
+			// hide error details to prevent potential security leaks
 			err = Fault{
 				Code:   "Server",
 				String: "internal server error",

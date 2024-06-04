@@ -4,7 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/prometheus/client_golang/prometheus/collectors"
-	"github.com/txix-open/isp-kit/metrics"
+	"gitlab.txix.ru/isp/isp-kit/metrics"
 )
 
 func Register(reg *metrics.Registry, db *sql.DB, dbName string) {

@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/txix-open/bgjob"
-	"github.com/txix-open/isp-kit/bgjobx"
-	"github.com/txix-open/isp-kit/dbx"
-	"github.com/txix-open/isp-kit/test"
-	"github.com/txix-open/isp-kit/test/dbt"
+	"gitlab.txix.ru/isp/isp-kit/bgjobx"
+	"gitlab.txix.ru/isp/isp-kit/dbx"
+	"gitlab.txix.ru/isp/isp-kit/test"
+	"gitlab.txix.ru/isp/isp-kit/test/dbt"
 )
 
 func TestClient(t *testing.T) {

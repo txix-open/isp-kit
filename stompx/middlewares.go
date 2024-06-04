@@ -3,10 +3,10 @@ package stompx
 import (
 	"context"
 
-	"github.com/txix-open/isp-kit/log"
-	"github.com/txix-open/isp-kit/requestid"
-	"github.com/txix-open/isp-kit/stompx/consumer"
-	"github.com/txix-open/isp-kit/stompx/publisher"
+	"gitlab.txix.ru/isp/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/requestid"
+	"gitlab.txix.ru/isp/isp-kit/stompx/consumer"
+	"gitlab.txix.ru/isp/isp-kit/stompx/publisher"
 )
 
 const (

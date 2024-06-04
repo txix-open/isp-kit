@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/go-stomp/stomp/v3"
-	"github.com/txix-open/isp-kit/stompx"
-	"github.com/txix-open/isp-kit/stompx/publisher"
-	"github.com/txix-open/isp-kit/test"
-	"github.com/txix-open/isp-kit/test/stompt"
+	"gitlab.txix.ru/isp/isp-kit/stompx"
+	"gitlab.txix.ru/isp/isp-kit/stompx/publisher"
+	"gitlab.txix.ru/isp/isp-kit/test"
+	"gitlab.txix.ru/isp/isp-kit/test/stompt"
 	"golang.org/x/sync/errgroup"
 )
 

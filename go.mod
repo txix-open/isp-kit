@@ -1,4 +1,4 @@
-module github.com/txix-open/isp-kit
+module gitlab.txix.ru/isp/isp-kit
 
 go 1.22
 

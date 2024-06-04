@@ -7,7 +7,7 @@ import (
 	"github.com/go-stomp/stomp/v3"
 	"github.com/go-stomp/stomp/v3/frame"
 	"github.com/pkg/errors"
-	"github.com/txix-open/isp-kit/stompx/consumer"
+	"gitlab.txix.ru/isp/isp-kit/stompx/consumer"
 )
 
 type Middleware func(next RoundTripper) RoundTripper

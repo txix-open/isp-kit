@@ -10,9 +10,9 @@ import (
 	"github.com/txix-open/grmq/publisher"
 	"github.com/txix-open/grmq/retry"
 	"github.com/txix-open/grmq/topology"
-	"github.com/txix-open/isp-kit/metrics"
-	rabbitmq_metircs "github.com/txix-open/isp-kit/metrics/rabbitmq_metrics"
-	"github.com/txix-open/isp-kit/observability/tracing/rabbitmq/publisher_tracing"
+	"gitlab.txix.ru/isp/isp-kit/metrics"
+	rabbitmq_metircs "gitlab.txix.ru/isp/isp-kit/metrics/rabbitmq_metrics"
+	"gitlab.txix.ru/isp/isp-kit/observability/tracing/rabbitmq/publisher_tracing"
 )
 
 type Connection struct {

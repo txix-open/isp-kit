@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/txix-open/grmq/consumer"
-	"github.com/txix-open/isp-kit/log"
+	"gitlab.txix.ru/isp/isp-kit/log"
 )
 
 type SyncHandlerAdapter interface {
