@@ -62,6 +62,20 @@ func (p *Publisher) PublishTo(ctx context.Context, queue string, msg *Message) e
 	return p.roundTripper.Publish(ctx, queue, msg)
 }
 
+func (p *Publisher) Close() error {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if p.conn != nil {
+		err := p.conn.Disconnect()
+		p.conn = nil
+		if err != nil {
+			return errors.WithMessage(err, "disconnect")
+		}
+	}
+	return nil
+}
+
 func (p *Publisher) publish(ctx context.Context, queue string, msg *Message) error {
 	conn, err := p.aliveConn()
 	if err != nil {
