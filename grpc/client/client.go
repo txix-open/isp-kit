@@ -46,10 +46,11 @@ func New(initialHosts []string, opts ...Option) (*Client, error) {
 		grpc.WithDefaultServiceConfig(`{"loadBalancingPolicy": "round_robin"}`),
 	)
 
-	grpcCli, err := grpc.Dial(resolverUrl, dialOptions...)
+	grpcCli, err := grpc.NewClient(resolverUrl, dialOptions...)
 	if err != nil {
-		return nil, errors.WithMessage(err, "dial grpc")
+		return nil, errors.WithMessage(err, "new grpc client")
 	}
+	grpcCli.Connect()
 	backendCli := isp.NewBackendServiceClient(grpcCli)
 
 	cli.currentHosts = atomic.Value{}
