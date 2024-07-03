@@ -164,9 +164,11 @@ func (c *Client) executeWithRetries(ctx context.Context, request *Request) (*Res
 		response *Response
 		err      error
 	)
-	body := request.body
 	origCtx := ctx
 	_ = request.retryOptions.retrier.Do(ctx, func() error {
+		if response != nil {
+			response.Close() //prevent context and buffer leak from previous failed attempt
+		}
 		var (
 			ctx    context.Context
 			cancel context.CancelFunc
@@ -176,7 +178,7 @@ func (c *Client) executeWithRetries(ctx context.Context, request *Request) (*Res
 			request.Raw = request.Raw.WithContext(ctx)
 		}
 		if request.body != nil { //it's a none multipart
-			request.Raw.Body = io.NopCloser(bytes.NewBuffer(body))
+			request.Raw.Body = io.NopCloser(bytes.NewBuffer(request.body))
 		}
 		var resp *http.Response
 		resp, err = c.cli.Do(request.Raw)
@@ -187,12 +189,6 @@ func (c *Client) executeWithRetries(ctx context.Context, request *Request) (*Res
 			cancel: cancel,
 		}
 		retryErr := request.retryOptions.condition(err, response)
-		if retryErr != nil {
-			releaseBuffer(buff)
-			if cancel != nil {
-				cancel()
-			}
-		}
 		return retryErr
 	})
 

@@ -43,14 +43,16 @@ func (r *Response) Body() ([]byte, error) {
 }
 
 // Close
-// Release all resources associated with Response (buffer, tcp connection)
+// Release all resources associated with Response (buffer, tcp connection, context)
 // After call, bytes slice returned by Body can not be used
 func (r *Response) Close() {
 	if r.cancel != nil {
 		r.cancel()
 		r.cancel = nil
 	}
-	_ = r.Raw.Body.Close()
+	if r.Raw != nil {
+		_ = r.Raw.Body.Close()
+	}
 	r.body = nil
 	releaseBuffer(r.buff)
 }

@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"io"
+	rand2 "math/rand/v2"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"github.com/txix-open/isp-kit/http/httpcli"
@@ -255,6 +257,8 @@ func TestRequestBuilder_MultipartData(t *testing.T) {
 }
 
 func TestConcurrency(t *testing.T) {
+	t.Parallel()
+
 	srv := echoServer()
 	cli := httpcli.New()
 	group, _ := errgroup.WithContext(context.Background())
@@ -268,6 +272,16 @@ func TestConcurrency(t *testing.T) {
 			resp, err := cli.Post(srv.URL).
 				JsonRequestBody(example{Data: requestData}).
 				JsonResponseBody(&response).
+				Retry(func(err error, response *httpcli.Response) error {
+					_, err = response.Body()
+					if err != nil {
+						return err
+					}
+					if rand2.Int()%2 == 0 {
+						return errors.New("retry")
+					}
+					return nil
+				}, retry.NewExponentialBackoff(500*time.Millisecond)).
 				Do(context.Background())
 			if err != nil {
 				return err
@@ -338,6 +352,9 @@ func echoServer() *httptest.Server {
 		data, err := io.ReadAll(r.Body)
 		if err != nil {
 			panic(err)
+		}
+		if !jsoniter.Valid(data) {
+			panic(errors.Errorf("invalid json: %s", data))
 		}
 		_, err = w.Write(data)
 		if err != nil {
