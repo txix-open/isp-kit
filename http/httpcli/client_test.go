@@ -273,6 +273,9 @@ func TestConcurrency(t *testing.T) {
 				JsonRequestBody(example{Data: requestData}).
 				JsonResponseBody(&response).
 				Retry(func(err error, response *httpcli.Response) error {
+					if err != nil {
+						return err
+					}
 					_, err = response.Body()
 					if err != nil {
 						return err
