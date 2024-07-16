@@ -2,6 +2,7 @@ package stompx
 
 import (
 	"context"
+	"github.com/go-stomp/stomp/v3"
 
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/requestid"
@@ -12,6 +13,36 @@ import (
 const (
 	RequestIdHeader = "x-request-id"
 )
+
+type Middleware func(next HandlerAdapter) HandlerAdapter
+
+func Log(logger log.Logger) Middleware {
+	return func(next HandlerAdapter) HandlerAdapter {
+		return AdapterFunc(func(ctx context.Context, msg *stomp.Message) Result {
+			destination := msg.Destination
+
+			result := next.Handle(ctx, msg)
+
+			switch {
+			case result.ack:
+				logger.Debug(
+					ctx,
+					"stomp client: message will be acknowledged",
+					log.String("destination", destination),
+				)
+			case result.requeue:
+				logger.Error(
+					ctx,
+					"stomp client: message will be requeued",
+					log.Any("error", result.err),
+					log.String("destination", destination),
+				)
+			}
+
+			return result
+		})
+	}
+}
 
 func PublisherPersistent() publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
