@@ -2,7 +2,6 @@ package stompx
 
 import (
 	"context"
-
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/requestid"
 	"github.com/txix-open/isp-kit/stompx/consumer"
