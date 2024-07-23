@@ -2,6 +2,7 @@ package stompt_test
 
 import (
 	"context"
+	"github.com/txix-open/isp-kit/stompx/handler"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -25,9 +26,9 @@ func Test(t *testing.T) {
 	consumerCfg.PrefetchCount = 16
 	consumerCfg.Concurrency = 16
 	counter := &atomic.Int32{}
-	handler := stompx.NewResultHandler(logger, stompx.AdapterFunc(func(ctx context.Context, msg *stomp.Message) stompx.Result {
+	handler := stompx.NewResultHandler(logger, handler.AdapterFunc(func(ctx context.Context, msg *stomp.Message) handler.Result {
 		counter.Add(1)
-		return stompx.Ack()
+		return handler.Ack()
 	}))
 	consumer := stompx.DefaultConsumer(consumerCfg, handler, logger, stompx.ConsumerLog(logger))
 	cli.Upgrade(consumer)
