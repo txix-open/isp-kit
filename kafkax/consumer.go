@@ -23,6 +23,7 @@ type Consumer struct {
 	logger    log.Logger
 	alive     *atomic.Bool
 	TopicName string
+	observer  Observer
 }
 
 func (c *Consumer) Run(ctx context.Context) {
@@ -57,6 +58,9 @@ func (c *Consumer) handleMessages(ctx context.Context) {
 		}
 		if err != nil {
 			c.alive.Store(false)
+
+			c.observer.ConsumerError(*c, err)
+
 			c.logger.Error(ctx, "kafka consumer: unexpected error during fetching messages", log.Any("error", err))
 
 			select {

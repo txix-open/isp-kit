@@ -15,18 +15,34 @@ const (
 	defaultMsgSizeMb = 1
 )
 
+type PublisherMiddleware interface {
+	Publish(ctx context.Context, msg kafka.Message) error
+}
+
+type Middleware func(next PublisherMiddleware) PublisherMiddleware
+
+type PublisherMiddlewareFunc func(ctx context.Context, msg kafka.Message) error
+
+func (f PublisherMiddlewareFunc) Publish(ctx context.Context, msg kafka.Message) error {
+	return f(ctx, msg)
+}
+
 type Publisher struct {
-	w      *kafka.Writer
-	logger log.Logger
-	alive  *atomic.Bool
-	connId string
-	Topic  string
+	w        *kafka.Writer
+	logger   log.Logger
+	alive    *atomic.Bool
+	connId   string
+	Topic    string
+	observer Observer
 }
 
 func (p *Publisher) Publish(ctx context.Context, msg kafka.Message) error {
 	err := p.w.WriteMessages(ctx, msg)
 	if err != nil {
 		p.alive.Store(false)
+
+		p.observer.PublisherError(p, err)
+
 		return errors.WithMessage(err, "write messages")
 	}
 	p.alive.Store(true)
