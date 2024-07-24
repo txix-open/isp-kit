@@ -53,6 +53,7 @@ func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler handler.SyncH
 		close:     make(chan struct{}),
 		alive:     atomic.NewBool(true),
 		TopicName: c.Topic,
+		observer:  NewLogObserver(ctx, logger),
 	}
 }
 
@@ -88,11 +89,12 @@ func (p PublisherConfig) DefaultPublisher(logger log.Logger) *Publisher {
 		}),
 	}
 	return &Publisher{
-		w:      &writer,
-		logger: logger,
-		alive:  atomic.NewBool(true),
-		connId: p.ConnId,
-		Topic:  p.Topic,
+		w:        &writer,
+		logger:   logger,
+		alive:    atomic.NewBool(true),
+		connId:   p.ConnId,
+		Topic:    p.Topic,
+		observer: NewLogObserver(ctx, logger),
 	}
 }
 
