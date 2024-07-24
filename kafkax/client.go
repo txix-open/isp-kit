@@ -1,0 +1,131 @@
+package kafkax
+
+import (
+	"context"
+	"reflect"
+	"sync"
+
+	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/log"
+	"golang.org/x/sync/errgroup"
+)
+
+type Client struct {
+	logger  log.Logger
+	prevCfg Config
+	cli     *KafkaClient
+	lock    sync.Locker
+}
+
+func New(logger log.Logger) *Client {
+	return &Client{
+		logger:  logger,
+		prevCfg: Config{},
+		cli:     nil,
+		lock:    &sync.Mutex{},
+	}
+}
+
+type KafkaClient struct {
+	publishers []*Publisher
+	consumers  []Consumer
+	lock       sync.Locker
+	observer   Observer
+}
+
+func (c *Client) UpgradeAndServe(ctx context.Context, config Config) {
+	_ = c.upgradeAndServe(ctx, config)
+}
+
+func (c *Client) Healthcheck(ctx context.Context) error {
+	for _, consumer := range c.cli.consumers {
+		err := consumer.Healthcheck(ctx)
+		if err != nil {
+			return errors.WithMessage(err, "kafka consumer healthcheck")
+		}
+	}
+
+	for _, publisher := range c.cli.publishers {
+		err := publisher.Healthcheck(ctx)
+		if err != nil {
+			return errors.WithMessage(err, "kafka publisher healthcheck")
+		}
+	}
+
+	return nil
+}
+
+func (c *Client) Close() {
+	c.cli.lock.Lock()
+	defer c.cli.lock.Unlock()
+
+	c.cli.observer.ShutdownStarted()
+
+	consumerGroup, _ := errgroup.WithContext(context.Background())
+	for _, consumer := range c.cli.consumers {
+		consumerGroup.Go(func() error {
+			err := consumer.Close()
+			c.cli.observer.ClientError(err)
+			return nil
+		})
+	}
+
+	publisherGroup, _ := errgroup.WithContext(context.Background())
+	for _, publisher := range c.cli.publishers {
+		consumerGroup.Go(func() error {
+			err := publisher.Close()
+			c.cli.observer.ClientError(err)
+			return nil
+		})
+	}
+
+	_ = consumerGroup.Wait()
+	_ = publisherGroup.Wait()
+
+	c.cli.observer.ShutdownDone()
+}
+
+func (c *Client) upgradeAndServe(ctx context.Context, config Config) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	c.logger.Debug(ctx, "kafka client: received new config")
+
+	if reflect.DeepEqual(c.prevCfg, config) {
+		c.logger.Debug(ctx, "kafka client: configs are equal. skipping initialization")
+		return nil
+	}
+
+	c.logger.Debug(ctx, "kafka client: initialization began")
+
+	if c.cli != nil {
+		c.Close()
+		c.cli = nil
+	}
+
+	cli := c.upgrade(ctx, config)
+
+	cli.run(ctx)
+
+	c.cli.observer.ClientReady()
+
+	c.cli = cli
+	c.prevCfg = config
+	return nil
+}
+
+func (c *Client) upgrade(ctx context.Context, config Config) *KafkaClient {
+	return &KafkaClient{
+		publishers: config.Publishers,
+		consumers:  config.Consumers,
+		lock:       &sync.Mutex{},
+		observer:   NewLogObserver(ctx, c.logger),
+	}
+}
+
+func (c *KafkaClient) run(ctx context.Context) {
+	for _, consumer := range c.consumers {
+		consumerCtx := log.ToContext(ctx, log.String("topic", consumer.TopicName))
+		consumer.Run(consumerCtx)
+	}
+}
