@@ -72,16 +72,8 @@ func (c *Consumer) handleMessages(ctx context.Context) {
 		}
 
 		c.alive.Store(true)
+
 		ctx := log.ToContext(ctx, log.String("requestId", requestid.Next()))
-		c.logger.Debug(
-			ctx,
-			"kafka consumer: consume message",
-			log.String("topic", msg.Topic),
-			log.Int("partition", msg.Partition),
-			log.Int64("offset", msg.Offset),
-			log.ByteString("messageKey", msg.Key),
-			log.ByteString("messageValue", msg.Value),
-		)
 
 		c.handleMessage(ctx, &msg)
 	}
