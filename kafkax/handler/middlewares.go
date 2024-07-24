@@ -73,3 +73,20 @@ func Log(logger log.Logger) Middleware {
 		})
 	}
 }
+
+func ConsumerLog(logger log.Logger) Middleware {
+	return func(next SyncHandlerAdapter) SyncHandlerAdapter {
+		return SyncHandlerAdapterFunc(func(ctx context.Context, msg *kafka.Message) Result {
+			logger.Debug(
+				ctx,
+				"kafka consumer: consume message",
+				log.String("topic", msg.Topic),
+				log.Int("partition", msg.Partition),
+				log.Int64("offset", msg.Offset),
+				log.ByteString("messageKey", msg.Key),
+				log.ByteString("messageValue", msg.Value),
+			)
+			return next.Handle(ctx, msg)
+		})
+	}
+}
