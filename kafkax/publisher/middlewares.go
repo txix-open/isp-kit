@@ -31,14 +31,14 @@ func PublisherMetrics(storage PublisherMetricStorage) Middleware {
 	}
 }
 
-func PublisherLog(logger log.Logger, w *kafka.Writer, connId string) Middleware {
+func PublisherLog(logger log.Logger, addr, topic, connId string) Middleware {
 	return func(next SyncPublisherAdapter) SyncPublisherAdapter {
 		return SyncPublisherAdapterFunc(func(ctx context.Context, msg *kafka.Message) error {
 			logger.Debug(
 				ctx,
 				"kafka client: publish message",
-				log.String("addr", w.Addr.String()),
-				log.String("topic", w.Topic),
+				log.String("addr", addr),
+				log.String("topic", topic),
 				log.String("connId", connId),
 				log.ByteString("messageKey", msg.Key),
 				log.ByteString("messageValue", msg.Value),

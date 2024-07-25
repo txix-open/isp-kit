@@ -1,7 +1,6 @@
 package kafkax
 
 import (
-	"github.com/segmentio/kafka-go"
 	"github.com/txix-open/isp-kit/kafkax/handler"
 	"github.com/txix-open/isp-kit/kafkax/publisher"
 	"github.com/txix-open/isp-kit/log"
@@ -17,10 +16,10 @@ func NewResultHandler(logger log.Logger, adapter handler.SyncHandlerAdapter) han
 	)
 }
 
-func NewPublisher(logger log.Logger, pub publisher.SyncPublisherAdapter, w *kafka.Writer, connId string) publisher.Sync {
+func NewPublisher(logger log.Logger, pub *Publisher) publisher.Sync {
 	return publisher.NewSync(
 		logger,
 		pub,
-		publisher.PublisherLog(logger, w, connId),
+		publisher.PublisherLog(logger, pub.Address, pub.Topic, pub.ConnId),
 	)
 }

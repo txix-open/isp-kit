@@ -19,13 +19,14 @@ type Publisher struct {
 	w        *kafka.Writer
 	logger   log.Logger
 	alive    *atomic.Bool
-	connId   string
+	ConnId   string
 	Topic    string
+	Address  string
 	observer Observer
 }
 
-func (p *Publisher) Publish(ctx context.Context, msg kafka.Message) error {
-	err := p.w.WriteMessages(ctx, msg)
+func (p *Publisher) Publish(ctx context.Context, msg *kafka.Message) error {
+	err := p.w.WriteMessages(ctx, *msg)
 	if err != nil {
 		p.alive.Store(false)
 
