@@ -49,7 +49,7 @@ func (l LogObserver) PublisherError(publisher *Publisher, err error) {
 		l.ctx,
 		"kafka client: unexpected publisher error",
 		log.String("topic", publisher.Topic),
-		log.String("connId", publisher.connId),
+		log.String("connId", publisher.ConnId),
 		log.Any("error", err),
 	)
 }

@@ -107,7 +107,7 @@ func (c *Client) upgradeAndServe(ctx context.Context, config Config) error {
 
 	cli.run(ctx)
 
-	c.cli.observer.ClientReady()
+	cli.observer.ClientReady()
 
 	c.cli = cli
 	c.prevCfg = config

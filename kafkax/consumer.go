@@ -84,16 +84,16 @@ func (c *Consumer) handleMessage(ctx context.Context, msg *kafka.Message) {
 		result := c.handler.Handle(ctx, msg)
 		switch {
 		case result.Commit:
-			c.logger.Debug(ctx, "kafka consumer: message will be committed")
+			// c.logger.Debug(ctx, "kafka consumer: message will be committed")
 			err := c.reader.CommitMessages(ctx, *msg)
 			if err != nil {
 				c.logger.Error(ctx, "kafka consumer: unexpected error during committing messages", log.Any("error", err))
 			}
 			return
 		case result.Retry:
-			c.logger.Error(ctx, "kafka consumer: message will be retried",
-				log.Any("error", result.RetryError), log.String("retryAfter", result.RetryAfter.String()),
-			)
+			//c.logger.Error(ctx, "kafka consumer: message will be retried",
+			//	log.Any("error", result.RetryError), log.String("retryAfter", result.RetryAfter.String()),
+			//)
 			select {
 			case <-ctx.Done():
 				return

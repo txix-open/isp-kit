@@ -25,7 +25,7 @@ type ConsumerConfig struct {
 }
 
 // todo добавить middleware
-func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler handler.SyncHandlerAdapter) *Consumer {
+func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler handler.SyncHandlerAdapter) Consumer {
 	ctx := log.ToContext(context.Background(), log.String("topic", c.Topic))
 
 	reader := kafka.NewReader(kafka.ReaderConfig{
@@ -45,7 +45,7 @@ func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler handler.SyncH
 		}),
 	})
 
-	return &Consumer{
+	return Consumer{
 		reader:    reader,
 		handler:   handler,
 		wg:        &sync.WaitGroup{},
@@ -88,12 +88,14 @@ func (p PublisherConfig) DefaultPublisher(logger log.Logger) *Publisher {
 			logger.Error(ctx, "kafka publisher: "+fmt.Sprintf(s, i...))
 		}),
 	}
+
 	return &Publisher{
 		w:        &writer,
 		logger:   logger,
 		alive:    atomic.NewBool(true),
-		connId:   p.ConnId,
+		ConnId:   p.ConnId,
 		Topic:    p.Topic,
+		Address:  writer.Addr.String(),
 		observer: NewLogObserver(ctx, logger),
 	}
 }
