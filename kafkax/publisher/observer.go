@@ -7,13 +7,13 @@ import (
 )
 
 type Observer interface {
-	PublisherError(publisher *Publisher, err error)
+	PublisherError(err error)
 }
 
 type NoopObserver struct {
 }
 
-func (n NoopObserver) PublisherError(publisher *Publisher, err error) {
+func (n NoopObserver) PublisherError(err error) {
 }
 
 type LogObserver struct {
@@ -29,11 +29,10 @@ func NewLogObserver(ctx context.Context, logger log.Logger) LogObserver {
 	}
 }
 
-func (l LogObserver) PublisherError(publisher *Publisher, err error) {
+func (l LogObserver) PublisherError(err error) {
 	l.logger.Error(
 		l.ctx,
 		"kafka client: unexpected publisher error",
-		log.String("topic", publisher.Topic),
 		log.Any("error", err),
 	)
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/segmentio/kafka-go"
 	"github.com/txix-open/isp-kit/kafkax/handler"
 	"github.com/txix-open/isp-kit/log"
-	"github.com/txix-open/isp-kit/requestid"
 	"go.uber.org/atomic"
 )
 
@@ -94,9 +93,7 @@ func (c *Consumer) handleMessages(ctx context.Context) {
 		}
 		if err != nil {
 			c.alive.Store(false)
-
 			c.observer.ConsumerError(*c, err)
-
 			c.logger.Error(ctx, "kafka consumer: unexpected error during fetching messages", log.Any("error", err))
 
 			select {
@@ -108,8 +105,6 @@ func (c *Consumer) handleMessages(ctx context.Context) {
 		}
 
 		c.alive.Store(true)
-
-		ctx := log.ToContext(ctx, log.String("requestId", requestid.Next()))
 
 		c.handleMessage(ctx, &msg)
 	}

@@ -10,7 +10,6 @@ import (
 func Log(logger log.Logger) Middleware {
 	return func(next SyncHandlerAdapter) SyncHandlerAdapter {
 		return SyncHandlerAdapterFunc(func(ctx context.Context, msg *kafka.Message) Result {
-			topic := msg.Topic
 			partition := msg.Partition
 			offset := msg.Offset
 
@@ -21,7 +20,6 @@ func Log(logger log.Logger) Middleware {
 				logger.Debug(
 					ctx,
 					"kafka client: message will be commited",
-					log.String("topic", topic),
 					log.Int("partition", partition),
 					log.Int64("offset", offset),
 				)
@@ -29,7 +27,6 @@ func Log(logger log.Logger) Middleware {
 				logger.Error(
 					ctx,
 					"kafka client: message will be retried",
-					log.String("topic", topic),
 					log.Int("partition", partition),
 					log.Int64("offset", offset),
 					log.Any("error", result.RetryError),
