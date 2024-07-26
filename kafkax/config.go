@@ -8,8 +8,14 @@ import (
 
 	"github.com/segmentio/kafka-go"
 	"github.com/txix-open/isp-kit/kafkax/handler"
+	"github.com/txix-open/isp-kit/kafkax/publisher"
 	"github.com/txix-open/isp-kit/log"
 	"go.uber.org/atomic"
+)
+
+const (
+	bytesInMb        = 1024 * 1024
+	defaultMsgSizeMb = 1
 )
 
 type Auth struct {
@@ -61,13 +67,12 @@ type PublisherConfig struct {
 	Hosts            []string
 	Topic            string
 	MaxMsgSizeMb     int64
-	ConnId           string
 	WriteTimeoutSec  int
 	RequiredAckLevel int
 	Auth             *Auth
 }
 
-func (p PublisherConfig) DefaultPublisher(logger log.Logger) *Publisher {
+func (p PublisherConfig) DefaultPublisher(logger log.Logger, restMiddlewares ...publisher.Middleware) *publisher.Publisher {
 	ctx := log.ToContext(context.Background(), log.String("topic", p.Topic))
 
 	if p.MaxMsgSizeMb == 0 {
@@ -89,19 +94,23 @@ func (p PublisherConfig) DefaultPublisher(logger log.Logger) *Publisher {
 		}),
 	}
 
-	return &Publisher{
-		w:        &writer,
-		logger:   logger,
-		alive:    atomic.NewBool(true),
-		ConnId:   p.ConnId,
-		Topic:    p.Topic,
-		Address:  writer.Addr.String(),
-		observer: NewLogObserver(ctx, logger),
+	middlewares := []publisher.Middleware{
+		publisher.PublisherRequestId(),
 	}
+	middlewares = append(middlewares, restMiddlewares...)
+
+	pub := publisher.New(&writer, logger,
+		NewLogObserver(ctx, logger),
+		publisher.WithMiddlewares(middlewares...))
+
+	pub.Topic = p.Topic
+	pub.Address = writer.Addr.String()
+
+	return pub
 }
 
 type Config struct {
-	Publishers []*Publisher
+	Publishers []*publisher.Publisher
 	Consumers  []Consumer
 }
 

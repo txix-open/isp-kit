@@ -5,8 +5,12 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/kafka-go/protocol"
 	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/requestid"
 )
+
+const RequestIdHeader = "x-request-id"
 
 type PublisherMetricStorage interface {
 	ObservePublishDuration(topic string, partition int, offset int64, t time.Duration)
@@ -15,8 +19,8 @@ type PublisherMetricStorage interface {
 }
 
 func PublisherMetrics(storage PublisherMetricStorage) Middleware {
-	return func(next SyncPublisherAdapter) SyncPublisherAdapter {
-		return SyncPublisherAdapterFunc(func(ctx context.Context, msg *kafka.Message) error {
+	return func(next RoundTripper) RoundTripper {
+		return RoundTripperFunc(func(ctx context.Context, msg *kafka.Message) error {
 			storage.ObservePublishMsgSize(msg.Topic, msg.Partition, msg.Offset, len(msg.Value))
 			start := time.Now()
 
@@ -31,18 +35,36 @@ func PublisherMetrics(storage PublisherMetricStorage) Middleware {
 	}
 }
 
-func PublisherLog(logger log.Logger, addr, topic, connId string) Middleware {
-	return func(next SyncPublisherAdapter) SyncPublisherAdapter {
-		return SyncPublisherAdapterFunc(func(ctx context.Context, msg *kafka.Message) error {
+func PublisherLog(logger log.Logger) Middleware {
+	return func(next RoundTripper) RoundTripper {
+		return RoundTripperFunc(func(ctx context.Context, msg *kafka.Message) error {
 			logger.Debug(
 				ctx,
 				"kafka client: publish message",
-				log.String("addr", addr),
-				log.String("topic", topic),
-				log.String("connId", connId),
+				log.String("topic", msg.Topic),
+				log.Int("partition", msg.Partition),
 				log.ByteString("messageKey", msg.Key),
 				log.ByteString("messageValue", msg.Value),
 			)
+
+			return next.Publish(ctx, msg)
+		})
+	}
+}
+
+func PublisherRequestId() Middleware {
+	return func(next RoundTripper) RoundTripper {
+		return RoundTripperFunc(func(ctx context.Context, msg *kafka.Message) error {
+			requestId := requestid.FromContext(ctx)
+
+			if requestId == "" {
+				requestId = requestid.Next()
+			}
+
+			msg.Headers = append(msg.Headers, protocol.Header{
+				Key:   RequestIdHeader,
+				Value: []byte(requestId),
+			})
 
 			return next.Publish(ctx, msg)
 		})

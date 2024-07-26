@@ -1,5 +1,7 @@
 package kafkax
 
+import "github.com/txix-open/isp-kit/kafkax/publisher"
+
 type ConfigOption func(c *Config)
 
 func WithConsumers(consumers ...Consumer) ConfigOption {
@@ -8,7 +10,7 @@ func WithConsumers(consumers ...Consumer) ConfigOption {
 	}
 }
 
-func WithPublishers(publishers ...*Publisher) ConfigOption {
+func WithPublishers(publishers ...*publisher.Publisher) ConfigOption {
 	return func(c *Config) {
 		c.Publishers = publishers
 	}

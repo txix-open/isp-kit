@@ -9,6 +9,7 @@ import (
 	gokafka "github.com/segmentio/kafka-go"
 	"github.com/txix-open/isp-kit/kafkax"
 	kafkaHandler "github.com/txix-open/isp-kit/kafkax/handler"
+	"github.com/txix-open/isp-kit/kafkax/publisher"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/requestid"
 	"github.com/txix-open/isp-kit/test"
@@ -28,16 +29,13 @@ func TestRequestIdChain(t *testing.T) {
 		Hosts:           []string{host},
 		Topic:           testTopic,
 		MaxMsgSizeMb:    1,
-		ConnId:          "",
 		WriteTimeoutSec: 0,
 		Auth: &kafkax.Auth{
 			Username: "kkd",
 			Password: "iwrniL1FQbRRQuU3bWJVNluY",
 		},
 	}
-	pub1 := pubCfg1.DefaultPublisher(test.Logger())
-
-	publisher1 := kafkax.NewPublisher(test.Logger(), pub1)
+	pub1 := pubCfg1.DefaultPublisher(test.Logger(), publisher.PublisherLog(test.Logger()))
 
 	consumerCfg1 := kafkax.ConsumerConfig{
 		Brokers: []string{host},
@@ -84,7 +82,7 @@ func TestRequestIdChain(t *testing.T) {
 	ctx := requestid.ToContext(context.Background(), expectedRequestId)
 	ctx = log.ToContext(ctx, log.String("requestId", expectedRequestId))
 
-	err := publisher1.Publish(context.Background(), &gokafka.Message{Value: []byte("паблишер в обертке из логов")})
+	err := pub1.Publish(context.Background(), &gokafka.Message{Value: []byte("publisher with middlewares")})
 	require.NoError(err)
 
 	select {

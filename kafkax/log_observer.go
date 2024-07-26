@@ -3,6 +3,7 @@ package kafkax
 import (
 	"context"
 
+	"github.com/txix-open/isp-kit/kafkax/publisher"
 	"github.com/txix-open/isp-kit/log"
 )
 
@@ -44,12 +45,11 @@ func (l LogObserver) ShutdownDone() {
 	l.logger.Info(l.ctx, "kafka client: shutdown was done")
 }
 
-func (l LogObserver) PublisherError(publisher *Publisher, err error) {
+func (l LogObserver) PublisherError(publisher *publisher.Publisher, err error) {
 	l.logger.Error(
 		l.ctx,
 		"kafka client: unexpected publisher error",
 		log.String("topic", publisher.Topic),
-		log.String("connId", publisher.ConnId),
 		log.Any("error", err),
 	)
 }
