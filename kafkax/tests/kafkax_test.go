@@ -9,7 +9,6 @@ import (
 	gokafka "github.com/segmentio/kafka-go"
 	"github.com/txix-open/isp-kit/kafkax"
 	kafkaHandler "github.com/txix-open/isp-kit/kafkax/handler"
-	"github.com/txix-open/isp-kit/kafkax/publisher"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/requestid"
 	"github.com/txix-open/isp-kit/test"
@@ -35,7 +34,7 @@ func TestRequestIdChain(t *testing.T) {
 			Password: "iwrniL1FQbRRQuU3bWJVNluY",
 		},
 	}
-	pub1 := pubCfg1.DefaultPublisher(test.Logger(), publisher.PublisherLog(test.Logger()))
+	pub1 := pubCfg1.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger()))
 
 	consumerCfg1 := kafkax.ConsumerConfig{
 		Brokers: []string{host},
@@ -58,7 +57,7 @@ func TestRequestIdChain(t *testing.T) {
 		}),
 	)
 
-	cons1 := consumerCfg1.DefaultConsumer(test.Logger(), handler1)
+	cons1 := consumerCfg1.DefaultConsumer(test.Logger(), handler1, kafkax.ConsumerLog(test.Logger()))
 
 	conn := MakeMockConsumerConn(test, consumerCfg1, "nothing")
 	CreateTestTopic(test, conn, testTopic)

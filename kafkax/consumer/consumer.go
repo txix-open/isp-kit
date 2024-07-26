@@ -1,4 +1,4 @@
-package kafkax
+package consumer
 
 import (
 	"context"
@@ -6,24 +6,61 @@ import (
 	"sync"
 	"time"
 
-	"github.com/segmentio/kafka-go"
-	"github.com/txix-open/isp-kit/kafkax/handler"
-
 	"github.com/pkg/errors"
+	"github.com/segmentio/kafka-go"
+	"github.com/txix-open/isp-kit/kafkax"
+	"github.com/txix-open/isp-kit/kafkax/handler"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/requestid"
 	"go.uber.org/atomic"
 )
 
+type Middleware func(next Handler) Handler
+
+type Handler interface {
+	Handle(ctx context.Context, msg *kafka.Message) handler.Result
+}
+
+type HandlerFunc func(ctx context.Context, msg *kafka.Message) handler.Result
+
+func (f HandlerFunc) Handle(ctx context.Context, msg *kafka.Message) handler.Result {
+	return f(ctx, msg)
+}
+
 type Consumer struct {
-	reader    *kafka.Reader
-	handler   handler.SyncHandlerAdapter
-	wg        *sync.WaitGroup
-	close     chan struct{}
-	logger    log.Logger
-	alive     *atomic.Bool
-	TopicName string
-	observer  Observer
+	TopicName   string
+	Middlewares []Middleware
+
+	logger   log.Logger
+	reader   *kafka.Reader
+	handler  Handler
+	wg       *sync.WaitGroup
+	close    chan struct{}
+	alive    *atomic.Bool
+	observer kafkax.Observer
+}
+
+func New(logger log.Logger, reader *kafka.Reader, handler Handler, opts ...Option) *Consumer {
+	c := &Consumer{
+		TopicName: reader.Config().Topic,
+		reader:    reader,
+		handler:   handler,
+		wg:        &sync.WaitGroup{},
+		logger:    logger,
+		close:     make(chan struct{}),
+		alive:     atomic.NewBool(true),
+	}
+
+	for _, opt := range opts {
+		opt(c)
+	}
+
+	for i := len(c.Middlewares) - 1; i >= 0; i-- {
+		handler = c.Middlewares[i](handler)
+	}
+	c.handler = handler
+
+	return c
 }
 
 func (c *Consumer) Run(ctx context.Context) {
@@ -84,16 +121,12 @@ func (c *Consumer) handleMessage(ctx context.Context, msg *kafka.Message) {
 		result := c.handler.Handle(ctx, msg)
 		switch {
 		case result.Commit:
-			// c.logger.Debug(ctx, "kafka consumer: message will be committed")
 			err := c.reader.CommitMessages(ctx, *msg)
 			if err != nil {
 				c.logger.Error(ctx, "kafka consumer: unexpected error during committing messages", log.Any("error", err))
 			}
 			return
 		case result.Retry:
-			//c.logger.Error(ctx, "kafka consumer: message will be retried",
-			//	log.Any("error", result.RetryError), log.String("retryAfter", result.RetryAfter.String()),
-			//)
 			select {
 			case <-ctx.Done():
 				return

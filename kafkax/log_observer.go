@@ -3,6 +3,7 @@ package kafkax
 import (
 	"context"
 
+	"github.com/txix-open/isp-kit/kafkax/consumer"
 	"github.com/txix-open/isp-kit/kafkax/publisher"
 	"github.com/txix-open/isp-kit/log"
 )
@@ -28,7 +29,7 @@ func (l LogObserver) ClientError(err error) {
 	l.logger.Error(l.ctx, "kafka client: unexpected client error", log.Any("error", err))
 }
 
-func (l LogObserver) ConsumerError(consumer Consumer, err error) {
+func (l LogObserver) ConsumerError(consumer consumer.Consumer, err error) {
 	l.logger.Error(
 		l.ctx,
 		"kafka client: unexpected consumer error",
