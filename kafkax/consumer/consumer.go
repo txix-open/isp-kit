@@ -8,7 +8,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/segmentio/kafka-go"
-	"github.com/txix-open/isp-kit/kafkax"
 	"github.com/txix-open/isp-kit/kafkax/handler"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/requestid"
@@ -37,7 +36,7 @@ type Consumer struct {
 	wg       *sync.WaitGroup
 	close    chan struct{}
 	alive    *atomic.Bool
-	observer kafkax.Observer
+	observer Observer
 }
 
 func New(logger log.Logger, reader *kafka.Reader, handler Handler, opts ...Option) *Consumer {

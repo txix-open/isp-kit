@@ -58,7 +58,7 @@ func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler consumer.Hand
 		logger,
 		reader,
 		handler,
-		consumer.WithObserver(NewLogObserver(ctx, logger)),
+		consumer.WithObserver(consumer.NewLogObserver(ctx, logger)),
 		consumer.WithMiddlewares(middlewares...),
 	)
 
@@ -104,7 +104,7 @@ func (p PublisherConfig) DefaultPublisher(logger log.Logger, restMiddlewares ...
 	pub := publisher.New(
 		&writer,
 		logger,
-		publisher.WithObserver(NewLogObserver(ctx, logger)),
+		publisher.WithObserver(publisher.NewLogObserver(ctx, logger)),
 		publisher.WithMiddlewares(middlewares...),
 	)
 
