@@ -14,45 +14,38 @@ import (
 	"github.com/txix-open/isp-kit/test"
 )
 
-const testTopic = "test_topic"
+const (
+	testRequestIdTopic = "test_topic"
+	testRetryTopic     = "test_retry_topic"
+)
 
 func TestRequestIdChain(t *testing.T) {
 	t.Parallel()
 	test, require := test.New(t)
 	await := make(chan struct{})
 
-	host := test.Config().Optional().String("KAFKA_ADDRESS", "10.2.4.244:9092")
+	host := test.Config().Optional().String("KAFKA_ADDRESS", "localhost:9093")
 	expectedRequestId := requestid.Next()
 
 	_ = MakeMockConn(test, ConnectionConfig{
-		Topic:    testTopic,
-		Brokers:  []string{host},
-		Username: "kkd",
-		Password: "iwrniL1FQbRRQuU3bWJVNluY",
+		Topic:   testRequestIdTopic,
+		Brokers: []string{host},
 	})
 
 	time.Sleep(1 * time.Second)
 
 	pubCfg1 := kafkax.PublisherConfig{
 		Hosts:           []string{host},
-		Topic:           testTopic,
+		Topic:           testRequestIdTopic,
 		MaxMsgSizeMb:    1,
 		WriteTimeoutSec: 0,
-		Auth: &kafkax.Auth{
-			Username: "kkd",
-			Password: "iwrniL1FQbRRQuU3bWJVNluY",
-		},
 	}
 	pub1 := pubCfg1.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger()))
 
 	consumerCfg1 := kafkax.ConsumerConfig{
 		Brokers: []string{host},
-		Topic:   testTopic,
+		Topic:   testRequestIdTopic,
 		GroupId: "kkd",
-		Auth: &kafkax.Auth{
-			Username: "kkd",
-			Password: "iwrniL1FQbRRQuU3bWJVNluY",
-		},
 	}
 
 	handler1 := kafkax.NewResultHandler(
@@ -97,38 +90,28 @@ func TestRetry(t *testing.T) {
 	test, require := test.New(t)
 	await := make(chan struct{})
 
-	host := test.Config().Optional().String("KAFKA_ADDRESS", "10.2.4.244:9092")
+	host := test.Config().Optional().String("KAFKA_ADDRESS", "localhost:9093")
 	counter := 0
 
 	_ = MakeMockConn(test, ConnectionConfig{
-		Topic:    testTopic,
-		Brokers:  []string{host},
-		Username: "kkd",
-		Password: "iwrniL1FQbRRQuU3bWJVNluY",
+		Topic:   testRetryTopic,
+		Brokers: []string{host},
 	})
 
 	time.Sleep(1 * time.Second)
 
 	pubCfg1 := kafkax.PublisherConfig{
 		Hosts:           []string{host},
-		Topic:           testTopic,
+		Topic:           testRetryTopic,
 		MaxMsgSizeMb:    1,
 		WriteTimeoutSec: 0,
-		Auth: &kafkax.Auth{
-			Username: "kkd",
-			Password: "iwrniL1FQbRRQuU3bWJVNluY",
-		},
 	}
 	pub1 := pubCfg1.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger()))
 
 	consumerCfg1 := kafkax.ConsumerConfig{
 		Brokers: []string{host},
-		Topic:   testTopic,
+		Topic:   testRetryTopic,
 		GroupId: "kkd",
-		Auth: &kafkax.Auth{
-			Username: "kkd",
-			Password: "iwrniL1FQbRRQuU3bWJVNluY",
-		},
 	}
 
 	handler1 := kafkax.NewResultHandler(
