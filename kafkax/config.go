@@ -17,15 +17,15 @@ const (
 )
 
 type Auth struct {
-	Username string
-	Password string
+	Username string `schema:"Логин"`
+	Password string `schema:"Пароль"`
 }
 
 type ConsumerConfig struct {
-	Brokers []string
-	Topic   string
-	GroupId string
-	Auth    *Auth
+	Brokers []string `validate:"required" schema:"Список адресов брокеров для подключения к Kafka"`
+	Topic   string   `validate:"required" schema:"Топик"`
+	GroupId string   `validate:"required" schema:"Идентификатор консьюмера"`
+	Auth    *Auth    `schema:"Параметры аутентификации"`
 }
 
 func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler consumer.Handler,
@@ -66,12 +66,12 @@ func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler consumer.Hand
 }
 
 type PublisherConfig struct {
-	Hosts            []string
-	Topic            string
-	MaxMsgSizeMb     int64
-	WriteTimeoutSec  int
-	RequiredAckLevel int
-	Auth             *Auth
+	Hosts            []string `validate:"required" schema:"Список адресов брокеров для отправки сообщений"`
+	Topic            string   `validate:"required" schema:"Топик для отправки сообщений описывается здесь либо в каждом сообщении"`
+	MaxMsgSizeMb     int64    `schema:"Максимальный размер сообщений в Мб"`
+	WriteTimeoutSec  int      `schema:"Таймаут отправки сообщений по умолчанию 10 секунд"`
+	RequiredAckLevel int      `schema:"Количество подтверждений реплик разделов для получения ответа на запрос отправки сообщения"`
+	Auth             *Auth    `schema:"Параметры аутентификации"`
 }
 
 func (p PublisherConfig) DefaultPublisher(logger log.Logger, restMiddlewares ...publisher.Middleware) *publisher.Publisher {
