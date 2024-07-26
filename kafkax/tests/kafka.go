@@ -21,32 +21,39 @@ type Kafka struct {
 	test    *test.Test
 }
 
-func MakeMockConsumerConn(t *test.Test, cfg kafkax.ConsumerConfig, topicName string) *kafka.Conn {
+type ConnectionConfig struct {
+	Brokers  []string
+	Topic    string
+	Username string
+	Password string
+}
+
+func MakeMockConn(t *test.Test, cfg ConnectionConfig) *kafka.Conn {
 	dialer := &kafka.Dialer{
 		Timeout:   10 * time.Second, //nolint:mnd
 		DualStack: true,
 		SASLMechanism: plain.Mechanism{
-			Username: cfg.Auth.Username,
-			Password: cfg.Auth.Password,
+			Username: cfg.Username,
+			Password: cfg.Password,
 		},
 	}
 
 	conn, err := dialer.Dial("tcp", cfg.Brokers[0])
+	t.Assert().NoError(err)
+
+	err = conn.CreateTopics(kafka.TopicConfig{
+		Topic:             cfg.Topic,
+		NumPartitions:     1,
+		ReplicationFactor: -1,
+	})
 
 	//conn, err := dialer.DialLeader(context.Background(), "tcp", cfg.Brokers[0], topicName, 0)
 	t.Assert().NoError(err)
 
-	return conn
-}
-
-func MakeMockPublisherConn(t *test.Test, cfg kafkax.PublisherConfig, topicName string) *kafka.Conn {
-	dialer := &kafka.Dialer{
-		Timeout:   10 * time.Second, //nolint:mnd
-		DualStack: true,
-	}
-
-	conn, err := dialer.DialLeader(context.Background(), "tcp", cfg.Hosts[0], topicName, 0)
-	t.Assert().NoError(err)
+	t.T().Cleanup(func() {
+		err := conn.DeleteTopics(cfg.Topic)
+		t.Assert().NoError(err)
+	})
 
 	return conn
 }

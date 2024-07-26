@@ -3,10 +3,33 @@ package kafkax
 import (
 	"context"
 
-	"github.com/txix-open/isp-kit/kafkax/consumer"
-	"github.com/txix-open/isp-kit/kafkax/publisher"
 	"github.com/txix-open/isp-kit/log"
 )
+
+type Observer interface {
+	ClientReady()
+	ClientError(err error)
+	ShutdownStarted()
+	ShutdownDone()
+}
+
+type NoopObserver struct{}
+
+func (n NoopObserver) ClientReady() {
+
+}
+
+func (n NoopObserver) ClientError(err error) {
+
+}
+
+func (n NoopObserver) ShutdownStarted() {
+
+}
+
+func (n NoopObserver) ShutdownDone() {
+
+}
 
 type LogObserver struct {
 	NoopObserver
@@ -29,28 +52,10 @@ func (l LogObserver) ClientError(err error) {
 	l.logger.Error(l.ctx, "kafka client: unexpected client error", log.Any("error", err))
 }
 
-func (l LogObserver) ConsumerError(consumer consumer.Consumer, err error) {
-	l.logger.Error(
-		l.ctx,
-		"kafka client: unexpected consumer error",
-		log.String("topic", consumer.TopicName),
-		log.Any("error", err),
-	)
-}
-
 func (l LogObserver) ShutdownStarted() {
 	l.logger.Info(l.ctx, "kafka client: shutdown was started")
 }
 
 func (l LogObserver) ShutdownDone() {
 	l.logger.Info(l.ctx, "kafka client: shutdown was done")
-}
-
-func (l LogObserver) PublisherError(publisher *publisher.Publisher, err error) {
-	l.logger.Error(
-		l.ctx,
-		"kafka client: unexpected publisher error",
-		log.String("topic", publisher.Topic),
-		log.Any("error", err),
-	)
 }
