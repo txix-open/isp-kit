@@ -1,11 +1,13 @@
 package kafkax
 
+import "github.com/txix-open/isp-kit/kafkax/publisher"
+
 type Observer interface {
 	ClientReady()
 	ClientError(err error)
 	ConsumerError(consumer Consumer, err error)
-	PublisherError(publisher *Publisher, err error)
-	PublishingFlow(publisher *Publisher, flow bool)
+	PublisherError(publisher *publisher.Publisher, err error)
+	PublishingFlow(publisher *publisher.Publisher, flow bool)
 	ShutdownStarted()
 	ShutdownDone()
 }
@@ -32,10 +34,10 @@ func (n NoopObserver) ShutdownDone() {
 
 }
 
-func (n NoopObserver) PublisherError(publisher *Publisher, err error) {
+func (n NoopObserver) PublisherError(publisher *publisher.Publisher, err error) {
 
 }
 
-func (n NoopObserver) PublishingFlow(publisher *Publisher, flow bool) {
+func (n NoopObserver) PublishingFlow(publisher *publisher.Publisher, flow bool) {
 
 }
