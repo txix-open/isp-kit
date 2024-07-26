@@ -46,8 +46,6 @@ func MakeMockConn(t *test.Test, cfg ConnectionConfig) *kafka.Conn {
 		NumPartitions:     1,
 		ReplicationFactor: -1,
 	})
-
-	//conn, err := dialer.DialLeader(context.Background(), "tcp", cfg.Brokers[0], topicName, 0)
 	t.Assert().NoError(err)
 
 	t.T().Cleanup(func() {
@@ -73,7 +71,7 @@ func CreateTestTopic(t *test.Test, conn *kafka.Conn, topic string) {
 }
 
 func NewKafka(t *test.Test, auth *kafkax.Auth) *Kafka {
-	addr := t.Config().Optional().String("KAFKA_ADDRESS", "10.2.4.244:9093")
+	addr := t.Config().Optional().String("KAFKA_ADDRESS", "localhost:9093")
 	c, err := kafka.Dial("tcp", addr)
 	t.Assert().NoError(err)
 	t.T().Cleanup(func() {

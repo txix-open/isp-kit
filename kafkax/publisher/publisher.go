@@ -62,6 +62,7 @@ func New(writer *kafka.Writer, logger log.Logger, opts ...Option) *Publisher {
 }
 
 func (p *Publisher) Publish(ctx context.Context, msg *kafka.Message) error {
+	ctx = log.ToContext(ctx, log.String("topic", p.Topic))
 	return p.PublishTo(ctx, msg)
 }
 
@@ -73,9 +74,7 @@ func (p *Publisher) publish(ctx context.Context, msg *kafka.Message) error {
 	err := p.w.WriteMessages(ctx, *msg)
 	if err != nil {
 		p.alive.Store(false)
-
-		p.observer.PublisherError(p, err)
-
+		p.observer.PublisherError(err)
 		return errors.WithMessage(err, "write messages")
 	}
 	p.alive.Store(true)

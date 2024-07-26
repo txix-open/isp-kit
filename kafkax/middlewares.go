@@ -44,7 +44,6 @@ func PublisherLog(logger log.Logger) publisher.Middleware {
 			logger.Debug(
 				ctx,
 				"kafka client: publish message",
-				log.String("topic", msg.Topic),
 				log.Int("partition", msg.Partition),
 				log.ByteString("messageKey", msg.Key),
 				log.ByteString("messageValue", msg.Value),
@@ -112,7 +111,6 @@ func ConsumerLog(logger log.Logger) consumer.Middleware {
 			logger.Debug(
 				ctx,
 				"kafka consumer: consume message",
-				log.String("topic", msg.Topic),
 				log.Int("partition", msg.Partition),
 				log.Int64("offset", msg.Offset),
 				log.ByteString("messageKey", msg.Key),
