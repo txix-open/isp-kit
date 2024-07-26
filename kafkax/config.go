@@ -3,14 +3,12 @@ package kafkax
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/segmentio/kafka-go"
-	"github.com/txix-open/isp-kit/kafkax/handler"
+	"github.com/txix-open/isp-kit/kafkax/consumer"
 	"github.com/txix-open/isp-kit/kafkax/publisher"
 	"github.com/txix-open/isp-kit/log"
-	"go.uber.org/atomic"
 )
 
 const (
@@ -30,8 +28,8 @@ type ConsumerConfig struct {
 	Auth    *Auth
 }
 
-// todo добавить middleware
-func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler handler.SyncHandlerAdapter) Consumer {
+func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler consumer.Handler,
+	restMiddlewares ...consumer.Middleware) consumer.Consumer {
 	ctx := log.ToContext(context.Background(), log.String("topic", c.Topic))
 
 	reader := kafka.NewReader(kafka.ReaderConfig{
@@ -51,16 +49,20 @@ func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler handler.SyncH
 		}),
 	})
 
-	return Consumer{
-		reader:    reader,
-		handler:   handler,
-		wg:        &sync.WaitGroup{},
-		logger:    logger,
-		close:     make(chan struct{}),
-		alive:     atomic.NewBool(true),
-		TopicName: c.Topic,
-		observer:  NewLogObserver(ctx, logger),
+	middlewares := []consumer.Middleware{
+		ConsumerRequestId(),
 	}
+	middlewares = append(middlewares, restMiddlewares...)
+
+	cons := consumer.New(
+		logger,
+		reader,
+		handler,
+		consumer.WithObserver(NewLogObserver(ctx, logger)),
+		consumer.WithMiddlewares(middlewares...),
+	)
+
+	return *cons
 }
 
 type PublisherConfig struct {
@@ -95,23 +97,23 @@ func (p PublisherConfig) DefaultPublisher(logger log.Logger, restMiddlewares ...
 	}
 
 	middlewares := []publisher.Middleware{
-		publisher.PublisherRequestId(),
+		PublisherRequestId(),
 	}
 	middlewares = append(middlewares, restMiddlewares...)
 
-	pub := publisher.New(&writer, logger,
-		NewLogObserver(ctx, logger),
-		publisher.WithMiddlewares(middlewares...))
-
-	pub.Topic = p.Topic
-	pub.Address = writer.Addr.String()
+	pub := publisher.New(
+		&writer,
+		logger,
+		publisher.WithObserver(NewLogObserver(ctx, logger)),
+		publisher.WithMiddlewares(middlewares...),
+	)
 
 	return pub
 }
 
 type Config struct {
 	Publishers []*publisher.Publisher
-	Consumers  []Consumer
+	Consumers  []consumer.Consumer
 }
 
 func NewConfig(opts ...ConfigOption) Config {

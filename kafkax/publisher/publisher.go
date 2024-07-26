@@ -39,13 +39,14 @@ type Publisher struct {
 	alive        *atomic.Bool
 }
 
-func New(writer *kafka.Writer, logger log.Logger, observer kafkax.Observer, opts ...Option) *Publisher {
+func New(writer *kafka.Writer, logger log.Logger, opts ...Option) *Publisher {
 	p := &Publisher{
-		w:        writer,
-		logger:   logger,
-		alive:    atomic.NewBool(true),
-		observer: observer,
-		lock:     &sync.Mutex{},
+		Topic:   writer.Topic,
+		Address: writer.Addr.String(),
+		w:       writer,
+		logger:  logger,
+		alive:   atomic.NewBool(true),
+		lock:    &sync.Mutex{},
 	}
 
 	for _, opt := range opts {
