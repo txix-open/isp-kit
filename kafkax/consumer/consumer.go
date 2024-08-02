@@ -94,7 +94,6 @@ func (c *Consumer) handleMessages(ctx context.Context) {
 		if err != nil {
 			c.alive.Store(false)
 			c.observer.ConsumerError(*c, err)
-			c.logger.Error(ctx, "kafka consumer: unexpected error during fetching messages", log.Any("error", err))
 
 			select {
 			case <-ctx.Done():
