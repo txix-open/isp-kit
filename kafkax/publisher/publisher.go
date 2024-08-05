@@ -14,13 +14,13 @@ import (
 type Middleware func(next RoundTripper) RoundTripper
 
 type RoundTripper interface {
-	Publish(ctx context.Context, msg *kafka.Message) error
+	Publish(ctx context.Context, msgs ...kafka.Message) error
 }
 
-type RoundTripperFunc func(ctx context.Context, msg *kafka.Message) error
+type RoundTripperFunc func(ctx context.Context, msgs ...kafka.Message) error
 
-func (f RoundTripperFunc) Publish(ctx context.Context, msg *kafka.Message) error {
-	return f(ctx, msg)
+func (f RoundTripperFunc) Publish(ctx context.Context, msgs ...kafka.Message) error {
+	return f(ctx, msgs...)
 }
 
 type PublishOption = func(*frame.Frame) error
@@ -61,17 +61,21 @@ func New(writer *kafka.Writer, logger log.Logger, opts ...Option) *Publisher {
 	return p
 }
 
-func (p *Publisher) Publish(ctx context.Context, msg *kafka.Message) error {
-	ctx = log.ToContext(ctx, log.String("topic", p.Topic))
-	return p.PublishTo(ctx, msg)
+func (p *Publisher) Publish(ctx context.Context, msgs ...kafka.Message) error {
+	for _, msg := range msgs {
+		if len(msg.Topic) == 0 {
+			msg.Topic = p.Topic
+		}
+	}
+	return p.PublishTo(ctx, msgs...)
 }
 
-func (p *Publisher) PublishTo(ctx context.Context, msg *kafka.Message) error {
-	return p.roundTripper.Publish(ctx, msg)
+func (p *Publisher) PublishTo(ctx context.Context, msgs ...kafka.Message) error {
+	return p.roundTripper.Publish(ctx, msgs...)
 }
 
-func (p *Publisher) publish(ctx context.Context, msg *kafka.Message) error {
-	err := p.w.WriteMessages(ctx, *msg)
+func (p *Publisher) publish(ctx context.Context, msgs ...kafka.Message) error {
+	err := p.w.WriteMessages(ctx, msgs...)
 	if err != nil {
 		p.alive.Store(false)
 		p.observer.PublisherError(err)
