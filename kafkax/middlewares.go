@@ -16,23 +16,26 @@ import (
 const RequestIdHeader = "x-request-id"
 
 type PublisherMetricStorage interface {
-	ObservePublishDuration(topic string, partition int, offset int64, t time.Duration)
+	ObservePublishDuration(t time.Duration, msgs ...kafka.Message)
 	ObservePublishMsgSize(topic string, partition int, offset int64, size int)
-	IncPublishError(topic string, partition int, offset int64)
+	IncPublishError(err error, msgs ...kafka.Message)
 }
 
 func PublisherMetrics(storage PublisherMetricStorage) publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
-		return publisher.RoundTripperFunc(func(ctx context.Context, msg *kafka.Message) error {
-			storage.ObservePublishMsgSize(msg.Topic, msg.Partition, msg.Offset, len(msg.Value))
+		return publisher.RoundTripperFunc(func(ctx context.Context, msgs ...kafka.Message) error {
+			for _, msg := range msgs {
+				storage.ObservePublishMsgSize(msg.Topic, msg.Partition, msg.Offset, len(msg.Value))
+			}
 			start := time.Now()
 
-			err := next.Publish(ctx, msg)
+			err := next.Publish(ctx, msgs...)
 			if err != nil {
-				storage.IncPublishError(msg.Topic, msg.Partition, msg.Offset)
+				storage.IncPublishError(err, msgs...)
 			}
 
-			storage.ObservePublishDuration(msg.Topic, msg.Partition, msg.Offset, time.Since(start))
+			storage.ObservePublishDuration(time.Since(start), msgs...)
+
 			return err
 		})
 	}
@@ -40,35 +43,40 @@ func PublisherMetrics(storage PublisherMetricStorage) publisher.Middleware {
 
 func PublisherLog(logger log.Logger) publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
-		return publisher.RoundTripperFunc(func(ctx context.Context, msg *kafka.Message) error {
-			logger.Debug(
-				ctx,
-				"kafka client: publish message",
-				log.Int("partition", msg.Partition),
-				log.ByteString("messageKey", msg.Key),
-				log.ByteString("messageValue", msg.Value),
-			)
+		return publisher.RoundTripperFunc(func(ctx context.Context, msgs ...kafka.Message) error {
+			for _, msg := range msgs {
+				logger.Debug(
+					ctx,
+					"kafka client: publish message",
+					log.String("topic", msg.Topic),
+					log.Int("partition", msg.Partition),
+					log.ByteString("messageKey", msg.Key),
+					log.ByteString("messageValue", msg.Value),
+				)
+			}
 
-			return next.Publish(ctx, msg)
+			return next.Publish(ctx, msgs...)
 		})
 	}
 }
 
 func PublisherRequestId() publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
-		return publisher.RoundTripperFunc(func(ctx context.Context, msg *kafka.Message) error {
-			requestId := requestid.FromContext(ctx)
+		return publisher.RoundTripperFunc(func(ctx context.Context, msgs ...kafka.Message) error {
+			for _, msg := range msgs {
+				requestId := requestid.FromContext(ctx)
 
-			if requestId == "" {
-				requestId = requestid.Next()
+				if requestId == "" {
+					requestId = requestid.Next()
+				}
+
+				msg.Headers = append(msg.Headers, protocol.Header{
+					Key:   RequestIdHeader,
+					Value: []byte(requestId),
+				})
 			}
 
-			msg.Headers = append(msg.Headers, protocol.Header{
-				Key:   RequestIdHeader,
-				Value: []byte(requestId),
-			})
-
-			return next.Publish(ctx, msg)
+			return next.Publish(ctx, msgs...)
 		})
 	}
 }
@@ -111,6 +119,7 @@ func ConsumerLog(logger log.Logger) consumer.Middleware {
 			logger.Debug(
 				ctx,
 				"kafka consumer: consume message",
+				log.String("topic", msg.Topic),
 				log.Int("partition", msg.Partition),
 				log.Int64("offset", msg.Offset),
 				log.ByteString("messageKey", msg.Key),
@@ -127,7 +136,7 @@ func ConsumerRequestId() consumer.Middleware {
 			requestId := ""
 
 			if msg.Headers != nil {
-				requestId = Get(msg.Headers, RequestIdHeader)
+				requestId = GetHeaderValue(msg.Headers, RequestIdHeader)
 			}
 
 			if requestId == "" {
@@ -141,7 +150,7 @@ func ConsumerRequestId() consumer.Middleware {
 	}
 }
 
-func Get(headers []kafka.Header, key string) string {
+func GetHeaderValue(headers []kafka.Header, key string) string {
 	for _, header := range headers {
 		if header.Key == key {
 			return string(header.Value)
