@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"strconv"
 	"testing"
 	"time"
 
@@ -24,12 +25,14 @@ func TestRequestIdChain(t *testing.T) {
 	test, require := test.New(t)
 	await := make(chan struct{})
 
-	host := test.Config().Optional().String("KAFKA_ADDRESS", "localhost:9093")
+	host := test.Config().Optional().String("KAFKA_ADDRESS", "10.2.4.244:9092")
 	expectedRequestId := requestid.Next()
 
 	_ = MakeMockConn(test, ConnectionConfig{
-		Topic:   testRequestIdTopic,
-		Brokers: []string{host},
+		Topic:    testRequestIdTopic,
+		Brokers:  []string{host},
+		Username: "kkd",
+		Password: "iwrniL1FQbRRQuU3bWJVNluY",
 	})
 
 	time.Sleep(1 * time.Second)
@@ -39,6 +42,10 @@ func TestRequestIdChain(t *testing.T) {
 		Topic:           testRequestIdTopic,
 		MaxMsgSizeMb:    1,
 		WriteTimeoutSec: 0,
+		Auth: &kafkax.Auth{
+			Username: "kkd",
+			Password: "iwrniL1FQbRRQuU3bWJVNluY",
+		},
 	}
 	pub1 := pubCfg1.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger()))
 
@@ -46,6 +53,11 @@ func TestRequestIdChain(t *testing.T) {
 		Brokers: []string{host},
 		Topic:   testRequestIdTopic,
 		GroupId: "kkd",
+		Auth: &kafkax.Auth{
+			Username: "kkd",
+			Password: "iwrniL1FQbRRQuU3bWJVNluY",
+		},
+		Concurrency: 3,
 	}
 
 	handler1 := kafkax.NewResultHandler(
@@ -55,7 +67,7 @@ func TestRequestIdChain(t *testing.T) {
 			require.EqualValues(expectedRequestId, requestId)
 			require.EqualValues("test message", string(msg.Value))
 
-			close(await)
+			await <- struct{}{}
 			return kafkaHandler.Commit()
 		}),
 	)
@@ -68,20 +80,35 @@ func TestRequestIdChain(t *testing.T) {
 	)
 
 	client := kafkax.New(test.Logger())
-	client.UpgradeAndServe(context.Background(), kafkaBrokerConfig)
+	err := client.UpgradeAndServe(context.Background(), kafkaBrokerConfig)
+	require.NoError(err)
+
+	time.Sleep(500 * time.Millisecond)
 
 	ctx := requestid.ToContext(context.Background(), expectedRequestId)
 	ctx = log.ToContext(ctx, log.String("requestId", expectedRequestId))
 
-	err := pub1.Publish(ctx, &kafka.Message{
-		Value: []byte("test message"),
-	})
-	require.NoError(err)
+	for i := 1; i <= 5; i++ {
+		err = pub1.Publish(ctx, kafka.Message{
+			Key:   []byte(strconv.Itoa(i)),
+			Value: []byte("test message"),
+		})
+		require.NoError(err)
+	}
 
-	select {
-	case <-await:
-	case <-time.After(20 * time.Second):
-		require.Fail("handler wasn't called")
+	counter := 0
+
+	for {
+		select {
+		case <-await:
+			counter++
+			if counter == 5 {
+				client.Close()
+				return
+			}
+		case <-time.After(20 * time.Second):
+			require.Fail("handler wasn't called")
+		}
 	}
 }
 
@@ -90,12 +117,14 @@ func TestRetry(t *testing.T) {
 	test, require := test.New(t)
 	await := make(chan struct{})
 
-	host := test.Config().Optional().String("KAFKA_ADDRESS", "localhost:9093")
+	host := test.Config().Optional().String("KAFKA_ADDRESS", "10.2.4.244:9092")
 	counter := 0
 
 	_ = MakeMockConn(test, ConnectionConfig{
-		Topic:   testRetryTopic,
-		Brokers: []string{host},
+		Topic:    testRetryTopic,
+		Brokers:  []string{host},
+		Username: "kkd",
+		Password: "iwrniL1FQbRRQuU3bWJVNluY",
 	})
 
 	time.Sleep(1 * time.Second)
@@ -105,6 +134,10 @@ func TestRetry(t *testing.T) {
 		Topic:           testRetryTopic,
 		MaxMsgSizeMb:    1,
 		WriteTimeoutSec: 0,
+		Auth: &kafkax.Auth{
+			Username: "kkd",
+			Password: "iwrniL1FQbRRQuU3bWJVNluY",
+		},
 	}
 	pub1 := pubCfg1.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger()))
 
@@ -112,6 +145,10 @@ func TestRetry(t *testing.T) {
 		Brokers: []string{host},
 		Topic:   testRetryTopic,
 		GroupId: "kkd",
+		Auth: &kafkax.Auth{
+			Username: "kkd",
+			Password: "iwrniL1FQbRRQuU3bWJVNluY",
+		},
 	}
 
 	handler1 := kafkax.NewResultHandler(
@@ -134,9 +171,10 @@ func TestRetry(t *testing.T) {
 	)
 
 	client := kafkax.New(test.Logger())
-	client.UpgradeAndServe(context.Background(), kafkaBrokerConfig)
+	err := client.UpgradeAndServe(context.Background(), kafkaBrokerConfig)
+	require.NoError(err)
 
-	err := pub1.Publish(context.Background(), &kafka.Message{
+	err = pub1.Publish(context.Background(), kafka.Message{
 		Value: []byte("test message"),
 	})
 	require.NoError(err)

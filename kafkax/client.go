@@ -35,8 +35,8 @@ type KafkaClient struct {
 	observer   Observer
 }
 
-func (c *Client) UpgradeAndServe(ctx context.Context, config Config) {
-	_ = c.upgradeAndServe(ctx, config)
+func (c *Client) UpgradeAndServe(ctx context.Context, config Config) error {
+	return c.upgradeAndServe(ctx, config)
 }
 
 func (c *Client) Healthcheck(ctx context.Context) error {
@@ -63,27 +63,28 @@ func (c *Client) Close() {
 
 	c.cli.observer.ShutdownStarted()
 
-	consumerGroup, _ := errgroup.WithContext(context.Background())
+	closeGroup, _ := errgroup.WithContext(context.Background())
 	for _, consumer := range c.cli.consumers {
-		consumerGroup.Go(func() error {
+		closeGroup.Go(func() error {
 			err := consumer.Close()
-			c.cli.observer.ClientError(err)
+			if err != nil {
+				c.cli.observer.ClientError(err)
+			}
 			return nil
 		})
 	}
 
-	publisherGroup, _ := errgroup.WithContext(context.Background())
 	for _, publisher := range c.cli.publishers {
-		consumerGroup.Go(func() error {
+		closeGroup.Go(func() error {
 			err := publisher.Close()
-			c.cli.observer.ClientError(err)
+			if err != nil {
+				c.cli.observer.ClientError(err)
+			}
 			return nil
 		})
 	}
 
-	_ = consumerGroup.Wait()
-	_ = publisherGroup.Wait()
-
+	_ = closeGroup.Wait()
 	c.cli.observer.ShutdownDone()
 }
 
@@ -106,7 +107,6 @@ func (c *Client) upgradeAndServe(ctx context.Context, config Config) error {
 	}
 
 	cli := c.upgrade(ctx, config)
-
 	cli.run(ctx)
 
 	cli.observer.ClientReady()
@@ -127,7 +127,6 @@ func (c *Client) upgrade(ctx context.Context, config Config) *KafkaClient {
 
 func (c *KafkaClient) run(ctx context.Context) {
 	for _, consumer := range c.consumers {
-		consumerCtx := log.ToContext(ctx, log.String("topic", consumer.TopicName))
-		consumer.Run(consumerCtx)
+		consumer.Run(ctx)
 	}
 }

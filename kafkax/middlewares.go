@@ -63,14 +63,14 @@ func PublisherLog(logger log.Logger) publisher.Middleware {
 func PublisherRequestId() publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
 		return publisher.RoundTripperFunc(func(ctx context.Context, msgs ...kafka.Message) error {
-			for _, msg := range msgs {
+			for i, msg := range msgs {
 				requestId := requestid.FromContext(ctx)
 
 				if requestId == "" {
 					requestId = requestid.Next()
 				}
 
-				msg.Headers = append(msg.Headers, protocol.Header{
+				msgs[i].Headers = append(msg.Headers, protocol.Header{
 					Key:   RequestIdHeader,
 					Value: []byte(requestId),
 				})

@@ -7,12 +7,22 @@ import (
 )
 
 type Observer interface {
-	ConsumerError(consumer Consumer, err error)
+	ConsumerError(err error)
+	BeginConsuming()
+	CloseStart()
+	CloseDone()
 }
 
 type NoopObserver struct{}
 
-func (n NoopObserver) ConsumerError(consumer Consumer, err error) {
+func (n NoopObserver) ConsumerError(err error) {
+
+}
+func (n NoopObserver) BeginConsuming() {}
+func (n NoopObserver) CloseStart() {
+
+}
+func (n NoopObserver) CloseDone() {
 
 }
 
@@ -29,11 +39,31 @@ func NewLogObserver(ctx context.Context, logger log.Logger) LogObserver {
 	}
 }
 
-func (l LogObserver) ConsumerError(consumer Consumer, err error) {
+func (l LogObserver) ConsumerError(err error) {
 	l.logger.Error(
 		l.ctx,
 		"kafka client: unexpected consumer error",
-		log.String("topic", consumer.TopicName),
 		log.Any("error", err),
+	)
+}
+
+func (l LogObserver) BeginConsuming() {
+	l.logger.Info(
+		l.ctx,
+		"kafka client: begin consuming",
+	)
+}
+
+func (l LogObserver) CloseStart() {
+	l.logger.Info(
+		l.ctx,
+		"kafka client: closing consumer start",
+	)
+}
+
+func (l LogObserver) CloseDone() {
+	l.logger.Info(
+		l.ctx,
+		"kafka client: closing consumer done",
 	)
 }
