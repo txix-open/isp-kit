@@ -29,10 +29,8 @@ func TestRequestIdChain(t *testing.T) {
 	expectedRequestId := requestid.Next()
 
 	_ = MakeMockConn(test, ConnectionConfig{
-		Topic:    testRequestIdTopic,
-		Brokers:  []string{host},
-		Username: "kkd",
-		Password: "iwrniL1FQbRRQuU3bWJVNluY",
+		Topic:   testRequestIdTopic,
+		Brokers: []string{host},
 	})
 
 	time.Sleep(1 * time.Second)
@@ -42,21 +40,13 @@ func TestRequestIdChain(t *testing.T) {
 		Topic:           testRequestIdTopic,
 		MaxMsgSizeMb:    1,
 		WriteTimeoutSec: 0,
-		Auth: &kafkax.Auth{
-			Username: "kkd",
-			Password: "iwrniL1FQbRRQuU3bWJVNluY",
-		},
 	}
 	pub1 := pubCfg1.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger()))
 
 	consumerCfg1 := kafkax.ConsumerConfig{
-		Addresses: []string{host},
-		Topic:     testRequestIdTopic,
-		GroupId:   "kkd",
-		Auth: &kafkax.Auth{
-			Username: "kkd",
-			Password: "iwrniL1FQbRRQuU3bWJVNluY",
-		},
+		Addresses:   []string{host},
+		Topic:       testRequestIdTopic,
+		GroupId:     "kkd",
 		Concurrency: 3,
 	}
 
@@ -121,10 +111,8 @@ func TestRetry(t *testing.T) {
 	counter := 0
 
 	_ = MakeMockConn(test, ConnectionConfig{
-		Topic:    testRetryTopic,
-		Brokers:  []string{host},
-		Username: "kkd",
-		Password: "iwrniL1FQbRRQuU3bWJVNluY",
+		Topic:   testRetryTopic,
+		Brokers: []string{host},
 	})
 
 	time.Sleep(1 * time.Second)
@@ -134,10 +122,6 @@ func TestRetry(t *testing.T) {
 		Topic:           testRetryTopic,
 		MaxMsgSizeMb:    1,
 		WriteTimeoutSec: 0,
-		Auth: &kafkax.Auth{
-			Username: "kkd",
-			Password: "iwrniL1FQbRRQuU3bWJVNluY",
-		},
 	}
 	pub1 := pubCfg1.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger()))
 
@@ -145,10 +129,6 @@ func TestRetry(t *testing.T) {
 		Addresses: []string{host},
 		Topic:     testRetryTopic,
 		GroupId:   "kkd",
-		Auth: &kafkax.Auth{
-			Username: "kkd",
-			Password: "iwrniL1FQbRRQuU3bWJVNluY",
-		},
 	}
 
 	handler1 := kafkax.NewResultHandler(
