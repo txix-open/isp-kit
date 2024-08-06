@@ -23,6 +23,22 @@ func PlainAuth(auth *Auth) sasl.Mechanism {
 	}
 }
 
+func WithConsumerMaxBatchSize(batchSize int) int {
+	if batchSize <= 0 {
+		return 64
+	}
+
+	return batchSize
+}
+
+func WithCommitIntervalSec(interval int) time.Duration {
+	if interval <= 0 {
+		return 1 * time.Second
+	}
+
+	return time.Duration(interval) * time.Second
+}
+
 func WithWriteTimeoutSecs(timeout int) time.Duration {
 	return time.Duration(timeout) * time.Second
 }
@@ -33,4 +49,20 @@ func WithRequiredAckLevel(requireLevel int) kafka.RequiredAcks {
 	}
 
 	return kafka.RequireNone
+}
+
+func WithBatchSize(batchSize int) int {
+	if batchSize <= 0 {
+		return 10
+	}
+
+	return batchSize
+}
+
+func WithBatchTimeoutMs(timeout int) time.Duration {
+	if timeout <= 0 {
+		return 500 * time.Millisecond
+	}
+
+	return time.Duration(timeout) * time.Millisecond
 }

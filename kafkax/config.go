@@ -22,11 +22,13 @@ type Auth struct {
 }
 
 type ConsumerConfig struct {
-	Brokers     []string `validate:"required" schema:"Список адресов брокеров для подключения к Kafka"`
-	Topic       string   `validate:"required" schema:"Топик"`
-	GroupId     string   `validate:"required" schema:"Идентификатор консьюмера"`
-	Concurrency int      `schema:"Кол-во обработчиков по умолчанию 1"`
-	Auth        *Auth    `schema:"Параметры аутентификации"`
+	Addresses         []string `validate:"required" schema:"Список адресов брокеров для чтения сообщений"`
+	Topic             string   `validate:"required" schema:"Топик"`
+	GroupId           string   `validate:"required" schema:"Идентификатор консьюмера"`
+	Concurrency       int      `schema:"Кол-во обработчиков, по умолчанию 1"`
+	MaxBatchSizeMb    int      `schema:"Максимальный размер батча для приема консьюмером, по умолчанию 64 Мб"`
+	CommitIntervalSec int      `schema:"Интервал в секундах с которым происходит коммит офсетов, по умолчанию 1 c"`
+	Auth              *Auth    `schema:"Параметры аутентификации"`
 }
 
 func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler consumer.Handler,
@@ -34,7 +36,7 @@ func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler consumer.Hand
 	ctx := log.ToContext(context.Background(), log.String("topic", c.Topic))
 
 	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers: c.Brokers,
+		Brokers: c.Addresses,
 		GroupID: c.GroupId,
 		Topic:   c.Topic,
 		Dialer: &kafka.Dialer{
@@ -43,8 +45,8 @@ func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler consumer.Hand
 			SASLMechanism: PlainAuth(c.Auth),
 		},
 		MinBytes:       1,
-		MaxBytes:       64 * 1024 * 1024, //nolint:mnd
-		CommitInterval: 1 * time.Second,
+		MaxBytes:       WithConsumerMaxBatchSize(c.MaxBatchSizeMb) * bytesInMb,
+		CommitInterval: WithCommitIntervalSec(c.CommitIntervalSec),
 		ErrorLogger: kafka.LoggerFunc(func(s string, i ...interface{}) {
 			logger.Error(ctx, "kafka consumer: "+fmt.Sprintf(s, i...))
 		}),
@@ -68,10 +70,12 @@ func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler consumer.Hand
 }
 
 type PublisherConfig struct {
-	Hosts            []string `validate:"required" schema:"Список адресов брокеров для отправки сообщений"`
+	Addresses        []string `validate:"required" schema:"Список адресов брокеров для отправки сообщений"`
 	Topic            string   `validate:"required" schema:"Топик для отправки сообщений описывается здесь либо в каждом сообщении"`
 	MaxMsgSizeMb     int64    `schema:"Максимальный размер сообщений в Мб"`
-	WriteTimeoutSec  int      `schema:"Таймаут отправки сообщений по умолчанию 10 секунд"`
+	BatchSize        int      `schema:"Количество буферизованных сообщений в пакетной отправке, по умолчанию 10"`
+	BatchTimeoutMs   int      `schema:"Периодичность записи батчей в кафку в мс, по умолчанию 500 мс"`
+	WriteTimeoutSec  int      `schema:"Таймаут отправки сообщений, по умолчанию 10 секунд"`
 	RequiredAckLevel int      `schema:"Количество подтверждений реплик разделов для получения ответа на запрос отправки сообщения"`
 	Auth             *Auth    `schema:"Параметры аутентификации"`
 }
@@ -85,10 +89,12 @@ func (p PublisherConfig) DefaultPublisher(logger log.Logger, restMiddlewares ...
 	}
 
 	writer := kafka.Writer{
-		Addr:         kafka.TCP(p.Hosts...),
+		Addr:         kafka.TCP(p.Addresses...),
 		WriteTimeout: WithWriteTimeoutSecs(p.WriteTimeoutSec),
 		RequiredAcks: WithRequiredAckLevel(p.RequiredAckLevel),
 		BatchBytes:   p.MaxMsgSizeMb * bytesInMb,
+		BatchSize:    WithBatchSize(p.BatchSize),
+		BatchTimeout: WithBatchTimeoutMs(p.BatchTimeoutMs),
 		Transport: &kafka.Transport{
 			SASL: PlainAuth(p.Auth),
 		},

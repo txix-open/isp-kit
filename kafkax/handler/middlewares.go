@@ -32,7 +32,7 @@ func Log(logger log.Logger) Middleware {
 					log.String("topic", topic),
 					log.Int("partition", partition),
 					log.Int64("offset", offset),
-					log.Any("error", result.RetryError),
+					log.String("error", result.RetryError.Error()),
 					log.String("retryAfter", result.RetryAfter.String()),
 				)
 			}
