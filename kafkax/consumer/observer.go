@@ -15,10 +15,8 @@ type Observer interface {
 
 type NoopObserver struct{}
 
-func (n NoopObserver) ConsumerError(err error) {
-
-}
-func (n NoopObserver) BeginConsuming() {}
+func (n NoopObserver) ConsumerError(err error) {}
+func (n NoopObserver) BeginConsuming()         {}
 func (n NoopObserver) CloseStart() {
 
 }

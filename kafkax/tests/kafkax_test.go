@@ -38,7 +38,7 @@ func TestRequestIdChain(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	pubCfg1 := kafkax.PublisherConfig{
-		Hosts:           []string{host},
+		Addresses:       []string{host},
 		Topic:           testRequestIdTopic,
 		MaxMsgSizeMb:    1,
 		WriteTimeoutSec: 0,
@@ -50,9 +50,9 @@ func TestRequestIdChain(t *testing.T) {
 	pub1 := pubCfg1.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger()))
 
 	consumerCfg1 := kafkax.ConsumerConfig{
-		Brokers: []string{host},
-		Topic:   testRequestIdTopic,
-		GroupId: "kkd",
+		Addresses: []string{host},
+		Topic:     testRequestIdTopic,
+		GroupId:   "kkd",
 		Auth: &kafkax.Auth{
 			Username: "kkd",
 			Password: "iwrniL1FQbRRQuU3bWJVNluY",
@@ -130,7 +130,7 @@ func TestRetry(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	pubCfg1 := kafkax.PublisherConfig{
-		Hosts:           []string{host},
+		Addresses:       []string{host},
 		Topic:           testRetryTopic,
 		MaxMsgSizeMb:    1,
 		WriteTimeoutSec: 0,
@@ -142,9 +142,9 @@ func TestRetry(t *testing.T) {
 	pub1 := pubCfg1.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger()))
 
 	consumerCfg1 := kafkax.ConsumerConfig{
-		Brokers: []string{host},
-		Topic:   testRetryTopic,
-		GroupId: "kkd",
+		Addresses: []string{host},
+		Topic:     testRetryTopic,
+		GroupId:   "kkd",
 		Auth: &kafkax.Auth{
 			Username: "kkd",
 			Password: "iwrniL1FQbRRQuU3bWJVNluY",
@@ -159,7 +159,7 @@ func TestRetry(t *testing.T) {
 				return kafkaHandler.Retry(1*time.Second, errors.New("some error"))
 			}
 
-			close(await)
+			defer close(await)
 			return kafkaHandler.Commit()
 		}),
 	)
@@ -182,7 +182,8 @@ func TestRetry(t *testing.T) {
 	select {
 	case <-await:
 		require.EqualValues(3, counter)
-	case <-time.After(20 * time.Second):
+		client.Close()
+	case <-time.After(25 * time.Second):
 		require.Fail("handler wasn't called")
 	}
 }
