@@ -9,6 +9,8 @@ import (
 	"github.com/txix-open/isp-kit/kafkax/consumer"
 	"github.com/txix-open/isp-kit/kafkax/publisher"
 	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/metrics"
+	"github.com/txix-open/isp-kit/metrics/kafka_metrics"
 )
 
 const (
@@ -53,6 +55,7 @@ func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler consumer.Hand
 	})
 
 	middlewares := []consumer.Middleware{
+		ConsumerMetrics(kafka_metrics.NewConsumerStorage(metrics.DefaultRegistry)),
 		ConsumerRequestId(),
 	}
 	middlewares = append(middlewares, restMiddlewares...)
@@ -104,6 +107,7 @@ func (p PublisherConfig) DefaultPublisher(logger log.Logger, restMiddlewares ...
 	}
 
 	middlewares := []publisher.Middleware{
+		PublisherMetrics(kafka_metrics.NewPublisherStorage(metrics.DefaultRegistry)),
 		PublisherRequestId(),
 	}
 	middlewares = append(middlewares, restMiddlewares...)

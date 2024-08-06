@@ -16,14 +16,20 @@ import (
 const RequestIdHeader = "x-request-id"
 
 type PublisherMetricStorage interface {
-	ObservePublishDuration(t time.Duration, msgs ...kafka.Message)
+	ObservePublishDuration(requestId string, t time.Duration)
 	ObservePublishMsgSize(topic string, partition int, offset int64, size int)
-	IncPublishError(err error, msgs ...kafka.Message)
+	IncPublishError(requestId string)
 }
 
 func PublisherMetrics(storage PublisherMetricStorage) publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
 		return publisher.RoundTripperFunc(func(ctx context.Context, msgs ...kafka.Message) error {
+			requestId := requestid.FromContext(ctx)
+			if requestId == "" {
+				// requestId устанавливается в PublisherRequestId(), здесь на случай отсутствия той middleware
+				requestId = requestid.Next()
+			}
+
 			for _, msg := range msgs {
 				storage.ObservePublishMsgSize(msg.Topic, msg.Partition, msg.Offset, len(msg.Value))
 			}
@@ -31,10 +37,10 @@ func PublisherMetrics(storage PublisherMetricStorage) publisher.Middleware {
 
 			err := next.Publish(ctx, msgs...)
 			if err != nil {
-				storage.IncPublishError(err, msgs...)
+				storage.IncPublishError(requestId)
 			}
 
-			storage.ObservePublishDuration(time.Since(start), msgs...)
+			storage.ObservePublishDuration(requestId, time.Since(start))
 
 			return err
 		})
