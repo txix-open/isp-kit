@@ -28,25 +28,33 @@ func (f HandlerFunc) Handle(ctx context.Context, msg *kafka.Message) handler.Res
 type Consumer struct {
 	TopicName   string
 	Middlewares []Middleware
+	Concurrency int
 
-	logger   log.Logger
-	reader   *kafka.Reader
-	handler  Handler
-	wg       *sync.WaitGroup
-	close    chan struct{}
-	alive    *atomic.Bool
-	observer Observer
+	logger     log.Logger
+	reader     *kafka.Reader
+	handler    Handler
+	observer   Observer
+	deliveryWg *sync.WaitGroup // ждет обработки всех delivery
+	workersWg  *sync.WaitGroup // ждет завершения работы воркеров (<-c.workersStop / close(c.deliveries))
+	deliveries chan Delivery   // канал доставок
+	alive      *atomic.Bool
 }
 
-func New(logger log.Logger, reader *kafka.Reader, handler Handler, opts ...Option) *Consumer {
+func New(logger log.Logger, reader *kafka.Reader, handler Handler, concurrency int, opts ...Option) *Consumer {
+	if concurrency <= 0 {
+		concurrency = 1
+	}
+
 	c := &Consumer{
-		TopicName: reader.Config().Topic,
-		reader:    reader,
-		handler:   handler,
-		wg:        &sync.WaitGroup{},
-		logger:    logger,
-		close:     make(chan struct{}),
-		alive:     atomic.NewBool(true),
+		TopicName:   reader.Config().Topic,
+		Concurrency: concurrency,
+		reader:      reader,
+		handler:     handler,
+		logger:      logger,
+		deliveryWg:  &sync.WaitGroup{},
+		workersWg:   &sync.WaitGroup{},
+		deliveries:  make(chan Delivery),
+		alive:       atomic.NewBool(true),
 	}
 
 	for _, opt := range opts {
@@ -62,30 +70,16 @@ func New(logger log.Logger, reader *kafka.Reader, handler Handler, opts ...Optio
 }
 
 func (c *Consumer) Run(ctx context.Context) {
-	c.wg.Add(1)
-	go c.handleMessages(ctx)
+	c.observer.BeginConsuming()
+	go c.run(ctx)
 }
 
-func (c *Consumer) Close() error {
-	close(c.close)
-	err := c.reader.Close()
-	if err != nil {
-		return errors.WithMessage(err, "close kafka/Reader")
+func (c *Consumer) run(ctx context.Context) {
+	for i := 0; i < c.Concurrency; i++ {
+		c.workersWg.Add(1)
+		go c.runWorker(ctx, i)
 	}
-	c.wg.Wait()
-	c.alive.Store(false)
-	return nil
-}
 
-func (c *Consumer) Healthcheck(ctx context.Context) error {
-	if c.alive.Load() {
-		return nil
-	}
-	return errors.New("could not fetch messages")
-}
-
-func (c *Consumer) handleMessages(ctx context.Context) {
-	defer c.wg.Done()
 	for {
 		msg, err := c.reader.FetchMessage(ctx)
 		if errors.Is(err, io.EOF) {
@@ -93,7 +87,7 @@ func (c *Consumer) handleMessages(ctx context.Context) {
 		}
 		if err != nil {
 			c.alive.Store(false)
-			c.observer.ConsumerError(*c, err)
+			c.observer.ConsumerError(err)
 
 			select {
 			case <-ctx.Done():
@@ -104,30 +98,72 @@ func (c *Consumer) handleMessages(ctx context.Context) {
 		}
 
 		c.alive.Store(true)
-
-		c.handleMessage(ctx, &msg)
+		delivery := NewDelivery(c.deliveryWg, c.reader, &msg)
+		c.deliveries <- *delivery
 	}
 }
 
-func (c *Consumer) handleMessage(ctx context.Context, msg *kafka.Message) {
+//nolint:gosimple
+func (c *Consumer) runWorker(ctx context.Context, num int) {
+	defer c.workersWg.Done()
+
 	for {
-		result := c.handler.Handle(ctx, msg)
+		select {
+		case delivery, isOpen := <-c.deliveries:
+			if !isOpen { //normal close
+				return
+			}
+			c.deliveryWg.Add(1)
+			c.handleMessage(ctx, &delivery)
+		}
+	}
+}
+
+func (c *Consumer) handleMessage(ctx context.Context, delivery *Delivery) {
+	for {
+		result := c.handler.Handle(ctx, delivery.Source())
 		switch {
 		case result.Commit:
-			err := c.reader.CommitMessages(ctx, *msg)
+			err := delivery.Commit(ctx)
 			if err != nil {
-				c.logger.Error(ctx, "kafka consumer: unexpected error during committing messages", log.Any("error", err))
+				c.logger.Error(ctx, "kafka consumer: unexpected error during committing messages",
+					log.Any("error", err))
 			}
 			return
 		case result.Retry:
 			select {
 			case <-ctx.Done():
-				return
-			case <-c.close:
+				delivery.donner.Done()
 				return
 			case <-time.After(result.RetryAfter):
 				continue
 			}
 		}
 	}
+}
+
+func (c *Consumer) Close() error {
+	defer func() {
+		c.deliveryWg.Wait()
+		close(c.deliveries)
+		c.workersWg.Wait()
+		c.alive.Store(false)
+
+		c.observer.CloseDone()
+	}()
+	c.observer.CloseStart()
+
+	err := c.reader.Close()
+	if err != nil {
+		return errors.WithMessage(err, "close kafka.Reader")
+	}
+
+	return nil
+}
+
+func (c *Consumer) Healthcheck(ctx context.Context) error {
+	if c.alive.Load() {
+		return nil
+	}
+	return errors.New("could not fetch messages")
 }

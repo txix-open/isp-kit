@@ -38,9 +38,9 @@ type Publisher struct {
 	alive        *atomic.Bool
 }
 
-func New(writer *kafka.Writer, logger log.Logger, opts ...Option) *Publisher {
+func New(writer *kafka.Writer, topic string, logger log.Logger, opts ...Option) *Publisher {
 	p := &Publisher{
-		Topic:   writer.Topic,
+		Topic:   topic,
 		Address: writer.Addr.String(),
 		w:       writer,
 		logger:  logger,
@@ -62,9 +62,9 @@ func New(writer *kafka.Writer, logger log.Logger, opts ...Option) *Publisher {
 }
 
 func (p *Publisher) Publish(ctx context.Context, msgs ...kafka.Message) error {
-	for _, msg := range msgs {
+	for i, msg := range msgs {
 		if len(msg.Topic) == 0 {
-			msg.Topic = p.Topic
+			msgs[i].Topic = p.Topic
 		}
 	}
 	return p.PublishTo(ctx, msgs...)

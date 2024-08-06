@@ -22,10 +22,11 @@ type Auth struct {
 }
 
 type ConsumerConfig struct {
-	Brokers []string `validate:"required" schema:"Список адресов брокеров для подключения к Kafka"`
-	Topic   string   `validate:"required" schema:"Топик"`
-	GroupId string   `validate:"required" schema:"Идентификатор консьюмера"`
-	Auth    *Auth    `schema:"Параметры аутентификации"`
+	Brokers     []string `validate:"required" schema:"Список адресов брокеров для подключения к Kafka"`
+	Topic       string   `validate:"required" schema:"Топик"`
+	GroupId     string   `validate:"required" schema:"Идентификатор консьюмера"`
+	Concurrency int      `schema:"Кол-во обработчиков по умолчанию 1"`
+	Auth        *Auth    `schema:"Параметры аутентификации"`
 }
 
 func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler consumer.Handler,
@@ -58,6 +59,7 @@ func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler consumer.Hand
 		logger,
 		reader,
 		handler,
+		c.Concurrency,
 		consumer.WithObserver(consumer.NewLogObserver(ctx, logger)),
 		consumer.WithMiddlewares(middlewares...),
 	)
@@ -84,7 +86,6 @@ func (p PublisherConfig) DefaultPublisher(logger log.Logger, restMiddlewares ...
 
 	writer := kafka.Writer{
 		Addr:         kafka.TCP(p.Hosts...),
-		Topic:        p.Topic,
 		WriteTimeout: WithWriteTimeoutSecs(p.WriteTimeoutSec),
 		RequiredAcks: WithRequiredAckLevel(p.RequiredAckLevel),
 		BatchBytes:   p.MaxMsgSizeMb * bytesInMb,
@@ -103,8 +104,9 @@ func (p PublisherConfig) DefaultPublisher(logger log.Logger, restMiddlewares ...
 
 	pub := publisher.New(
 		&writer,
+		p.Topic,
 		logger,
-		publisher.WithObserver(publisher.NewLogObserver(ctx, logger)),
+		publisher.WithObserver(publisher.NewLogObserver(ctx, logger, p.Topic)),
 		publisher.WithMiddlewares(middlewares...),
 	)
 
