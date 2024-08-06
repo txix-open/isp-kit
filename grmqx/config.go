@@ -11,7 +11,7 @@ import (
 	"github.com/txix-open/grmq/retry"
 	"github.com/txix-open/grmq/topology"
 	"github.com/txix-open/isp-kit/metrics"
-	rabbitmq_metircs "github.com/txix-open/isp-kit/metrics/rabbitmq_metrics"
+	"github.com/txix-open/isp-kit/metrics/rabbitmq_metrics"
 	"github.com/txix-open/isp-kit/observability/tracing/rabbitmq/publisher_tracing"
 )
 
@@ -46,7 +46,7 @@ func (p Publisher) DefaultPublisher(restMiddlewares ...publisher.Middleware) *pu
 		[]publisher.Middleware{
 			publisher.PersistentMode(),
 			PublisherRequestId(),
-			PublisherMetrics(rabbitmq_metircs.NewPublisherStorage(metrics.DefaultRegistry)),
+			PublisherMetrics(rabbitmq_metrics.NewPublisherStorage(metrics.DefaultRegistry)),
 			publisher_tracing.NewConfig().Middleware(),
 		},
 		restMiddlewares...,
