@@ -4,7 +4,7 @@ import (
 	"github.com/txix-open/isp-kit/grmqx/handler"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/metrics"
-	rabbitmq_metircs "github.com/txix-open/isp-kit/metrics/rabbitmq_metrics"
+	"github.com/txix-open/isp-kit/metrics/rabbitmq_metrics"
 	"github.com/txix-open/isp-kit/observability/tracing/rabbitmq/consumer_tracing"
 )
 
@@ -13,7 +13,7 @@ func NewResultHandler(logger log.Logger, adapter handler.SyncHandlerAdapter) han
 		logger,
 		adapter,
 		handler.Log(logger),
-		handler.Metrics(rabbitmq_metircs.NewConsumerStorage(metrics.DefaultRegistry)),
+		handler.Metrics(rabbitmq_metrics.NewConsumerStorage(metrics.DefaultRegistry)),
 		consumer_tracing.NewConfig().Middleware(),
 	)
 }
