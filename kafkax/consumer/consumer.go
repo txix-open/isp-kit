@@ -8,7 +8,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/segmentio/kafka-go"
-	"github.com/txix-open/isp-kit/kafkax/handler"
 	"github.com/txix-open/isp-kit/log"
 	"go.uber.org/atomic"
 )
@@ -16,17 +15,16 @@ import (
 type Middleware func(next Handler) Handler
 
 type Handler interface {
-	Handle(ctx context.Context, msg *kafka.Message) handler.Result
+	Handle(ctx context.Context, delivery *Delivery)
 }
 
-type HandlerFunc func(ctx context.Context, msg *kafka.Message) handler.Result
+type HandlerFunc func(ctx context.Context, delivery *Delivery)
 
-func (f HandlerFunc) Handle(ctx context.Context, msg *kafka.Message) handler.Result {
-	return f(ctx, msg)
+func (f HandlerFunc) Handle(ctx context.Context, delivery *Delivery) {
+	f(ctx, delivery)
 }
 
 type Consumer struct {
-	topicName   string
 	middlewares []Middleware
 	concurrency int
 
@@ -34,9 +32,9 @@ type Consumer struct {
 	reader     *kafka.Reader
 	handler    Handler
 	observer   Observer
-	deliveryWg *sync.WaitGroup // ждет обработки всех delivery
-	workersWg  *sync.WaitGroup // ждет завершения работы воркеров (<-c.workersStop / close(c.deliveries))
-	deliveries chan Delivery   // канал доставок
+	deliveryWg *sync.WaitGroup
+	workersWg  *sync.WaitGroup
+	deliveries chan Delivery
 	alive      *atomic.Bool
 }
 
@@ -46,7 +44,6 @@ func New(logger log.Logger, reader *kafka.Reader, handler Handler, concurrency i
 	}
 
 	c := &Consumer{
-		topicName:   reader.Config().Topic,
 		concurrency: concurrency,
 		reader:      reader,
 		handler:     handler,
@@ -77,7 +74,7 @@ func (c *Consumer) Run(ctx context.Context) {
 func (c *Consumer) run(ctx context.Context) {
 	for i := 0; i < c.concurrency; i++ {
 		c.workersWg.Add(1)
-		go c.runWorker(ctx, i)
+		go c.runWorker(ctx)
 	}
 
 	for {
@@ -98,13 +95,13 @@ func (c *Consumer) run(ctx context.Context) {
 		}
 
 		c.alive.Store(true)
-		delivery := NewDelivery(c.deliveryWg, c.reader, &msg)
+		delivery := NewDelivery(c.deliveryWg, c.reader, &msg, c.reader.Config().GroupID)
 		c.deliveries <- *delivery
 	}
 }
 
 //nolint:gosimple
-func (c *Consumer) runWorker(ctx context.Context, num int) {
+func (c *Consumer) runWorker(ctx context.Context) {
 	defer c.workersWg.Done()
 
 	for {
@@ -120,25 +117,7 @@ func (c *Consumer) runWorker(ctx context.Context, num int) {
 }
 
 func (c *Consumer) handleMessage(ctx context.Context, delivery *Delivery) {
-	for {
-		result := c.handler.Handle(ctx, delivery.Source())
-		switch {
-		case result.Commit:
-			err := delivery.Commit(ctx)
-			if err != nil {
-				c.observer.ConsumerError(err)
-			}
-			return
-		case result.Retry:
-			select {
-			case <-ctx.Done():
-				delivery.donner.Done()
-				return
-			case <-time.After(result.RetryAfter):
-				continue
-			}
-		}
-	}
+	c.handler.Handle(ctx, delivery)
 }
 
 func (c *Consumer) Close() error {

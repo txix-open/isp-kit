@@ -8,7 +8,6 @@ import (
 
 type Observer interface {
 	ConsumerError(err error)
-	CommitError(err error)
 	BeginConsuming()
 	CloseStart()
 	CloseDone()
@@ -17,7 +16,6 @@ type Observer interface {
 type NoopObserver struct{}
 
 func (n NoopObserver) ConsumerError(err error) {}
-func (n NoopObserver) CommitError(err error)   {}
 func (n NoopObserver) BeginConsuming()         {}
 func (n NoopObserver) CloseStart() {
 
@@ -43,14 +41,6 @@ func (l LogObserver) ConsumerError(err error) {
 	l.logger.Error(
 		l.ctx,
 		"kafka client: unexpected consumer error",
-		log.Any("error", err),
-	)
-}
-
-func (l LogObserver) CommitError(err error) {
-	l.logger.Error(
-		l.ctx,
-		"kafka consumer: unexpected error during committing message",
 		log.Any("error", err),
 	)
 }
