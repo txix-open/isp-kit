@@ -13,10 +13,6 @@ func PlainAuth(auth *Auth) sasl.Mechanism {
 		return plain.Mechanism{}
 	}
 
-	if len(auth.Username) == 0 || len(auth.Password) == 0 {
-		return plain.Mechanism{}
-	}
-
 	return plain.Mechanism{
 		Username: auth.Username,
 		Password: auth.Password,
@@ -53,6 +49,14 @@ func (p PublisherConfig) WithRequiredAckLevel() kafka.RequiredAcks {
 	}
 
 	return kafka.RequireNone
+}
+
+func (p PublisherConfig) WithMaxMessageSize() int64 {
+	if p.MaxMsgSizeMb <= 0 {
+		return 1
+	}
+
+	return p.MaxMsgSizeMb
 }
 
 func (p PublisherConfig) WithBatchSize() int {
