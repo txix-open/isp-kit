@@ -23,46 +23,50 @@ func PlainAuth(auth *Auth) sasl.Mechanism {
 	}
 }
 
-func WithConsumerMaxBatchSize(batchSize int) int {
-	if batchSize <= 0 {
+func (c ConsumerConfig) WithMaxBatchSize() int {
+	if c.MaxBatchSizeMb <= 0 {
 		return 64
 	}
 
-	return batchSize
+	return c.MaxBatchSizeMb
 }
 
-func WithCommitIntervalSec(interval int) time.Duration {
-	if interval <= 0 {
+func (c ConsumerConfig) WithCommitIntervalSec() time.Duration {
+	if c.CommitIntervalSec == nil {
 		return 1 * time.Second
 	}
 
-	return time.Duration(interval) * time.Second
+	return time.Duration(*c.CommitIntervalSec) * time.Second
 }
 
-func WithWriteTimeoutSecs(timeout int) time.Duration {
-	return time.Duration(timeout) * time.Second
+func (p PublisherConfig) WithWriteTimeoutSecs() time.Duration {
+	if p.WriteTimeoutSec == nil {
+		return 10 * time.Second
+	}
+
+	return time.Duration(*p.WriteTimeoutSec) * time.Second
 }
 
-func WithRequiredAckLevel(requireLevel int) kafka.RequiredAcks {
-	if requireLevel <= 1 && requireLevel >= -1 {
-		return kafka.RequiredAcks(requireLevel)
+func (p PublisherConfig) WithRequiredAckLevel() kafka.RequiredAcks {
+	if p.RequiredAckLevel <= 1 && p.RequiredAckLevel >= -1 {
+		return kafka.RequiredAcks(p.RequiredAckLevel)
 	}
 
 	return kafka.RequireNone
 }
 
-func WithBatchSize(batchSize int) int {
-	if batchSize <= 0 {
+func (p PublisherConfig) WithBatchSize() int {
+	if p.BatchSize <= 0 {
 		return 10
 	}
 
-	return batchSize
+	return p.BatchSize
 }
 
-func WithBatchTimeoutMs(timeout int) time.Duration {
-	if timeout <= 0 {
+func (p PublisherConfig) WithBatchTimeoutMs() time.Duration {
+	if p.BatchTimeoutMs == nil {
 		return 500 * time.Millisecond
 	}
 
-	return time.Duration(timeout) * time.Millisecond
+	return time.Duration(*p.BatchTimeoutMs) * time.Millisecond
 }
