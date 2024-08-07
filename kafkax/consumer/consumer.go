@@ -126,8 +126,7 @@ func (c *Consumer) handleMessage(ctx context.Context, delivery *Delivery) {
 		case result.Commit:
 			err := delivery.Commit(ctx)
 			if err != nil {
-				c.logger.Error(ctx, "kafka consumer: unexpected error during committing messages",
-					log.Any("error", err))
+				c.observer.ConsumerError(err)
 			}
 			return
 		case result.Retry:
