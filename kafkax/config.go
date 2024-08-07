@@ -14,13 +14,12 @@ import (
 )
 
 const (
-	bytesInMb        = 1024 * 1024
-	defaultMsgSizeMb = 1
+	bytesInMb = 1024 * 1024
 )
 
 type Auth struct {
-	Username string `schema:"Логин"`
-	Password string `schema:"Пароль"`
+	Username string `validate:"required" schema:"Логин"`
+	Password string `validate:"required" schema:"Пароль"`
 }
 
 type ConsumerConfig struct {
@@ -75,7 +74,7 @@ func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler consumer.Hand
 type PublisherConfig struct {
 	Addresses        []string `validate:"required" schema:"Список адресов брокеров для отправки сообщений"`
 	Topic            string   `validate:"required" schema:"Топик для отправки сообщений описывается здесь либо в каждом сообщении"`
-	MaxMsgSizeMb     int64    `schema:"Максимальный размер сообщений в Мб"`
+	MaxMsgSizeMb     int64    `schema:"Максимальный размер сообщений в Мб, по умолчанию 1 Мб"`
 	BatchSize        int      `schema:"Количество буферизованных сообщений в пакетной отправке, по умолчанию 10"`
 	BatchTimeoutMs   *int     `schema:"Периодичность записи батчей в кафку в мс, по умолчанию 500 мс"`
 	WriteTimeoutSec  *int     `schema:"Таймаут отправки сообщений, по умолчанию 10 секунд"`
@@ -86,16 +85,11 @@ type PublisherConfig struct {
 func (p PublisherConfig) DefaultPublisher(logger log.Logger, restMiddlewares ...publisher.Middleware) *publisher.Publisher {
 	ctx := log.ToContext(context.Background(), log.String("topic", p.Topic))
 
-	if p.MaxMsgSizeMb == 0 {
-		logger.Debug(ctx, fmt.Sprintf("maxMsgSize is 0; set default maxMsgSize to %d Mb", defaultMsgSizeMb))
-		p.MaxMsgSizeMb = defaultMsgSizeMb
-	}
-
 	writer := kafka.Writer{
 		Addr:         kafka.TCP(p.Addresses...),
 		WriteTimeout: p.WithWriteTimeoutSecs(),
 		RequiredAcks: p.WithRequiredAckLevel(),
-		BatchBytes:   p.MaxMsgSizeMb * bytesInMb,
+		BatchBytes:   p.WithMaxMessageSize() * bytesInMb,
 		BatchSize:    p.WithBatchSize(),
 		BatchTimeout: p.WithBatchTimeoutMs(),
 		Transport: &kafka.Transport{
