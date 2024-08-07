@@ -26,9 +26,9 @@ func (f HandlerFunc) Handle(ctx context.Context, msg *kafka.Message) handler.Res
 }
 
 type Consumer struct {
-	TopicName   string
-	Middlewares []Middleware
-	Concurrency int
+	topicName   string
+	middlewares []Middleware
+	concurrency int
 
 	logger     log.Logger
 	reader     *kafka.Reader
@@ -46,8 +46,8 @@ func New(logger log.Logger, reader *kafka.Reader, handler Handler, concurrency i
 	}
 
 	c := &Consumer{
-		TopicName:   reader.Config().Topic,
-		Concurrency: concurrency,
+		topicName:   reader.Config().Topic,
+		concurrency: concurrency,
 		reader:      reader,
 		handler:     handler,
 		logger:      logger,
@@ -61,8 +61,8 @@ func New(logger log.Logger, reader *kafka.Reader, handler Handler, concurrency i
 		opt(c)
 	}
 
-	for i := len(c.Middlewares) - 1; i >= 0; i-- {
-		handler = c.Middlewares[i](handler)
+	for i := len(c.middlewares) - 1; i >= 0; i-- {
+		handler = c.middlewares[i](handler)
 	}
 	c.handler = handler
 
@@ -75,7 +75,7 @@ func (c *Consumer) Run(ctx context.Context) {
 }
 
 func (c *Consumer) run(ctx context.Context) {
-	for i := 0; i < c.Concurrency; i++ {
+	for i := 0; i < c.concurrency; i++ {
 		c.workersWg.Add(1)
 		go c.runWorker(ctx, i)
 	}

@@ -4,7 +4,7 @@ type Option func(p *Consumer)
 
 func WithMiddlewares(mws ...Middleware) Option {
 	return func(p *Consumer) {
-		p.Middlewares = append(p.Middlewares, mws...)
+		p.middlewares = append(p.middlewares, mws...)
 	}
 }
 

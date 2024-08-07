@@ -26,9 +26,9 @@ func (f RoundTripperFunc) Publish(ctx context.Context, msgs ...kafka.Message) er
 type PublishOption = func(*frame.Frame) error
 
 type Publisher struct {
-	Topic       string
-	Address     string
-	Middlewares []Middleware
+	topic       string
+	address     string
+	middlewares []Middleware
 
 	logger       log.Logger
 	observer     Observer
@@ -40,8 +40,8 @@ type Publisher struct {
 
 func New(writer *kafka.Writer, topic string, logger log.Logger, opts ...Option) *Publisher {
 	p := &Publisher{
-		Topic:   topic,
-		Address: writer.Addr.String(),
+		topic:   topic,
+		address: writer.Addr.String(),
 		w:       writer,
 		logger:  logger,
 		alive:   atomic.NewBool(true),
@@ -53,8 +53,8 @@ func New(writer *kafka.Writer, topic string, logger log.Logger, opts ...Option) 
 	}
 
 	roundTripper := RoundTripper(RoundTripperFunc(p.publish))
-	for i := len(p.Middlewares) - 1; i >= 0; i-- {
-		roundTripper = p.Middlewares[i](roundTripper)
+	for i := len(p.middlewares) - 1; i >= 0; i-- {
+		roundTripper = p.middlewares[i](roundTripper)
 	}
 	p.roundTripper = roundTripper
 
@@ -64,13 +64,9 @@ func New(writer *kafka.Writer, topic string, logger log.Logger, opts ...Option) 
 func (p *Publisher) Publish(ctx context.Context, msgs ...kafka.Message) error {
 	for i, msg := range msgs {
 		if len(msg.Topic) == 0 {
-			msgs[i].Topic = p.Topic
+			msgs[i].Topic = p.topic
 		}
 	}
-	return p.PublishTo(ctx, msgs...)
-}
-
-func (p *Publisher) PublishTo(ctx context.Context, msgs ...kafka.Message) error {
 	return p.roundTripper.Publish(ctx, msgs...)
 }
 
