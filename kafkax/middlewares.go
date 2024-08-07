@@ -17,7 +17,7 @@ const RequestIdHeader = "x-request-id"
 
 type PublisherMetricStorage interface {
 	ObservePublishDuration(requestId string, t time.Duration)
-	ObservePublishMsgSize(topic string, partition int, offset int64, size int)
+	ObservePublishMsgSize(topic string, size int)
 	IncPublishError(requestId string)
 }
 
@@ -31,7 +31,7 @@ func PublisherMetrics(storage PublisherMetricStorage) publisher.Middleware {
 			}
 
 			for _, msg := range msgs {
-				storage.ObservePublishMsgSize(msg.Topic, msg.Partition, msg.Offset, len(msg.Value))
+				storage.ObservePublishMsgSize(msg.Topic, len(msg.Value))
 			}
 			start := time.Now()
 
@@ -88,30 +88,28 @@ func PublisherRequestId() publisher.Middleware {
 }
 
 type ConsumerMetricStorage interface {
-	ObserveConsumeDuration(topic string, partition int, offset int64, t time.Duration)
-	ObserveConsumeMsgSize(topic string, partition int, offset int64, size int)
-	IncCommitCount(topic string, partition int, offset int64)
-	IncRetryCount(topic string, partition int, offset int64)
+	ObserveConsumeDuration(topic string, t time.Duration)
+	ObserveConsumeMsgSize(topic string, size int)
+	IncCommitCount(topic string)
+	IncRetryCount(topic string)
 }
 
 func ConsumerMetrics(metricStorage ConsumerMetricStorage) consumer.Middleware {
 	return func(next consumer.Handler) consumer.Handler {
 		return consumer.HandlerFunc(func(ctx context.Context, msg *kafka.Message) handler.Result {
 			topic := msg.Topic
-			partition := msg.Partition
-			offset := msg.Offset
 			start := time.Now()
 
 			result := next.Handle(ctx, msg)
 
-			metricStorage.ObserveConsumeDuration(topic, partition, offset, time.Since(start))
-			metricStorage.ObserveConsumeMsgSize(topic, partition, offset, len(msg.Value))
+			metricStorage.ObserveConsumeDuration(topic, time.Since(start))
+			metricStorage.ObserveConsumeMsgSize(topic, len(msg.Value))
 
 			switch {
 			case result.Commit:
-				metricStorage.IncCommitCount(topic, partition, offset)
+				metricStorage.IncCommitCount(topic)
 			case result.Retry:
-				metricStorage.IncRetryCount(topic, partition, offset)
+				metricStorage.IncRetryCount(topic)
 			}
 
 			return result

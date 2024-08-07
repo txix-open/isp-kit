@@ -1,7 +1,6 @@
 package kafka_metrics
 
 import (
-	"strconv"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -27,7 +26,7 @@ func NewPublisherStorage(reg *metrics.Registry) *PublisherStorage {
 			Name:       "publish_body_size",
 			Help:       "The size of published message body to topic",
 			Objectives: metrics.DefaultObjectives,
-		}, []string{"topic", "partition", "offset"})),
+		}, []string{"topic"})),
 		publishErrorCount: metrics.GetOrRegister(reg, prometheus.NewCounterVec(prometheus.CounterOpts{
 			Subsystem: "kafka",
 			Name:      "publish_error_count",
@@ -41,8 +40,8 @@ func (c *PublisherStorage) ObservePublishDuration(requestId string, t time.Durat
 	c.publishMsgDuration.WithLabelValues(requestId).Observe(metrics.Milliseconds(t))
 }
 
-func (c *PublisherStorage) ObservePublishMsgSize(topic string, partition int, offset int64, size int) {
-	c.publishMsgBodySize.WithLabelValues(topic, strconv.Itoa(partition), strconv.Itoa(int(offset))).Observe(float64(size))
+func (c *PublisherStorage) ObservePublishMsgSize(topic string, size int) {
+	c.publishMsgBodySize.WithLabelValues(topic).Observe(float64(size))
 }
 
 func (c *PublisherStorage) IncPublishError(requestId string) {

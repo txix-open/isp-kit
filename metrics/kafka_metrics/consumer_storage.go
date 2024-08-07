@@ -1,7 +1,6 @@
 package kafka_metrics
 
 import (
-	"strconv"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -22,41 +21,39 @@ func NewConsumerStorage(reg *metrics.Registry) *ConsumerStorage {
 			Name:       "consume_duration_ms",
 			Help:       "The latency of handling single message from topic",
 			Objectives: metrics.DefaultObjectives,
-		}, []string{"topic", "partition", "offset"})),
+		}, []string{"topic"})),
 		consumeMsgBodySize: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Subsystem:  "kafka",
 			Name:       "consume_body_size",
 			Help:       "The size of message body from queue",
 			Objectives: metrics.DefaultObjectives,
-		}, []string{"topic", "partition", "offset"})),
+		}, []string{"topic"})),
 		commitCount: metrics.GetOrRegister(reg, prometheus.NewCounterVec(prometheus.CounterOpts{
 			Subsystem: "kafka",
 			Name:      "consume_commit_count",
 			Help:      "Count of commited messages",
-		}, []string{"topic", "partition", "offset"})),
+		}, []string{"topic"})),
 		retryCount: metrics.GetOrRegister(reg, prometheus.NewCounterVec(prometheus.CounterOpts{
 			Subsystem: "kafka",
 			Name:      "consume_retry_count",
 			Help:      "Count of retried messages",
-		}, []string{"topic", "partition", "offset"})),
+		}, []string{"topic"})),
 	}
 	return s
 }
 
-func (c *ConsumerStorage) ObserveConsumeDuration(topic string, partition int, offset int64, t time.Duration) {
-	c.consumeMsgDuration.WithLabelValues(topic, strconv.Itoa(partition), strconv.Itoa(int(offset))).
-		Observe(metrics.Milliseconds(t))
+func (c *ConsumerStorage) ObserveConsumeDuration(topic string, t time.Duration) {
+	c.consumeMsgDuration.WithLabelValues(topic).Observe(metrics.Milliseconds(t))
 }
 
-func (c *ConsumerStorage) ObserveConsumeMsgSize(topic string, partition int, offset int64, size int) {
-	c.consumeMsgBodySize.WithLabelValues(topic, strconv.Itoa(partition), strconv.Itoa(int(offset))).
-		Observe(float64(size))
+func (c *ConsumerStorage) ObserveConsumeMsgSize(topic string, size int) {
+	c.consumeMsgBodySize.WithLabelValues(topic).Observe(float64(size))
 }
 
-func (c *ConsumerStorage) IncCommitCount(topic string, partition int, offset int64) {
-	c.commitCount.WithLabelValues(topic, strconv.Itoa(partition), strconv.Itoa(int(offset))).Inc()
+func (c *ConsumerStorage) IncCommitCount(topic string) {
+	c.commitCount.WithLabelValues(topic).Inc()
 }
 
-func (c *ConsumerStorage) IncRetryCount(topic string, partition int, offset int64) {
-	c.retryCount.WithLabelValues(topic, strconv.Itoa(partition), strconv.Itoa(int(offset))).Inc()
+func (c *ConsumerStorage) IncRetryCount(topic string) {
+	c.retryCount.WithLabelValues(topic).Inc()
 }
