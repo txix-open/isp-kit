@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/segmentio/kafka-go"
 	"github.com/txix-open/isp-kit/kafkax"
+	"github.com/txix-open/isp-kit/kafkax/consumer"
 	kafkaHandler "github.com/txix-open/isp-kit/kafkax/handler"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/requestid"
@@ -19,6 +20,8 @@ const (
 	testRequestIdTopic = "test_topic"
 	testRetryTopic     = "test_retry_topic"
 )
+
+var writeTimeoutSec = 0
 
 func TestRequestIdChain(t *testing.T) {
 	t.Parallel()
@@ -39,7 +42,7 @@ func TestRequestIdChain(t *testing.T) {
 		Addresses:       []string{host},
 		Topic:           testRequestIdTopic,
 		MaxMsgSizeMb:    1,
-		WriteTimeoutSec: 0,
+		WriteTimeoutSec: &writeTimeoutSec,
 	}
 	pub1 := pubCfg1.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger()))
 
@@ -52,10 +55,10 @@ func TestRequestIdChain(t *testing.T) {
 
 	handler1 := kafkax.NewResultHandler(
 		test.Logger(),
-		kafkaHandler.SyncHandlerAdapterFunc(func(ctx context.Context, msg *kafka.Message) kafkaHandler.Result {
+		kafkaHandler.SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) kafkaHandler.Result {
 			requestId := requestid.FromContext(ctx)
 			require.EqualValues(expectedRequestId, requestId)
-			require.EqualValues("test message", string(msg.Value))
+			require.EqualValues("test message", string(delivery.Source().Value))
 
 			await <- struct{}{}
 			return kafkaHandler.Commit()
@@ -121,7 +124,7 @@ func TestRetry(t *testing.T) {
 		Addresses:       []string{host},
 		Topic:           testRetryTopic,
 		MaxMsgSizeMb:    1,
-		WriteTimeoutSec: 0,
+		WriteTimeoutSec: &writeTimeoutSec,
 	}
 	pub1 := pubCfg1.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger()))
 
@@ -133,7 +136,7 @@ func TestRetry(t *testing.T) {
 
 	handler1 := kafkax.NewResultHandler(
 		test.Logger(),
-		kafkaHandler.SyncHandlerAdapterFunc(func(ctx context.Context, msg *kafka.Message) kafkaHandler.Result {
+		kafkaHandler.SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) kafkaHandler.Result {
 			if counter != 3 {
 				counter++
 				return kafkaHandler.Retry(1*time.Second, errors.New("some error"))

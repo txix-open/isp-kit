@@ -54,7 +54,6 @@ func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler consumer.Hand
 	})
 
 	middlewares := []consumer.Middleware{
-		ConsumerMetrics(kafka_metrics.NewConsumerStorage(metrics.DefaultRegistry)),
 		ConsumerRequestId(),
 	}
 	middlewares = append(middlewares, restMiddlewares...)

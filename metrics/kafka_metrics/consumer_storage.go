@@ -21,39 +21,39 @@ func NewConsumerStorage(reg *metrics.Registry) *ConsumerStorage {
 			Name:       "consume_duration_ms",
 			Help:       "The latency of handling single message from topic",
 			Objectives: metrics.DefaultObjectives,
-		}, []string{"topic"})),
+		}, []string{"consumerGroup", "topic"})),
 		consumeMsgBodySize: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Subsystem:  "kafka",
 			Name:       "consume_body_size",
 			Help:       "The size of message body from queue",
 			Objectives: metrics.DefaultObjectives,
-		}, []string{"topic"})),
+		}, []string{"consumerGroup", "topic"})),
 		commitCount: metrics.GetOrRegister(reg, prometheus.NewCounterVec(prometheus.CounterOpts{
 			Subsystem: "kafka",
 			Name:      "consume_commit_count",
 			Help:      "Count of commited messages",
-		}, []string{"topic"})),
+		}, []string{"consumerGroup", "topic"})),
 		retryCount: metrics.GetOrRegister(reg, prometheus.NewCounterVec(prometheus.CounterOpts{
 			Subsystem: "kafka",
 			Name:      "consume_retry_count",
 			Help:      "Count of retried messages",
-		}, []string{"topic"})),
+		}, []string{"consumerGroup", "topic"})),
 	}
 	return s
 }
 
-func (c *ConsumerStorage) ObserveConsumeDuration(topic string, t time.Duration) {
-	c.consumeMsgDuration.WithLabelValues(topic).Observe(metrics.Milliseconds(t))
+func (c *ConsumerStorage) ObserveConsumeDuration(consumerGroup, topic string, t time.Duration) {
+	c.consumeMsgDuration.WithLabelValues(consumerGroup, topic).Observe(metrics.Milliseconds(t))
 }
 
-func (c *ConsumerStorage) ObserveConsumeMsgSize(topic string, size int) {
-	c.consumeMsgBodySize.WithLabelValues(topic).Observe(float64(size))
+func (c *ConsumerStorage) ObserveConsumeMsgSize(consumerGroup, topic string, size int) {
+	c.consumeMsgBodySize.WithLabelValues(consumerGroup, topic).Observe(float64(size))
 }
 
-func (c *ConsumerStorage) IncCommitCount(topic string) {
-	c.commitCount.WithLabelValues(topic).Inc()
+func (c *ConsumerStorage) IncCommitCount(consumerGroup, topic string) {
+	c.commitCount.WithLabelValues(consumerGroup, topic).Inc()
 }
 
-func (c *ConsumerStorage) IncRetryCount(topic string) {
-	c.retryCount.WithLabelValues(topic).Inc()
+func (c *ConsumerStorage) IncRetryCount(consumerGroup, topic string) {
+	c.retryCount.WithLabelValues(consumerGroup, topic).Inc()
 }

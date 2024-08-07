@@ -7,7 +7,6 @@ import (
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/protocol"
 	"github.com/txix-open/isp-kit/kafkax/consumer"
-	"github.com/txix-open/isp-kit/kafkax/handler"
 	"github.com/txix-open/isp-kit/kafkax/publisher"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/requestid"
@@ -87,60 +86,30 @@ func PublisherRequestId() publisher.Middleware {
 	}
 }
 
-type ConsumerMetricStorage interface {
-	ObserveConsumeDuration(topic string, t time.Duration)
-	ObserveConsumeMsgSize(topic string, size int)
-	IncCommitCount(topic string)
-	IncRetryCount(topic string)
-}
-
-func ConsumerMetrics(metricStorage ConsumerMetricStorage) consumer.Middleware {
-	return func(next consumer.Handler) consumer.Handler {
-		return consumer.HandlerFunc(func(ctx context.Context, msg *kafka.Message) handler.Result {
-			topic := msg.Topic
-			start := time.Now()
-
-			result := next.Handle(ctx, msg)
-
-			metricStorage.ObserveConsumeDuration(topic, time.Since(start))
-			metricStorage.ObserveConsumeMsgSize(topic, len(msg.Value))
-
-			switch {
-			case result.Commit:
-				metricStorage.IncCommitCount(topic)
-			case result.Retry:
-				metricStorage.IncRetryCount(topic)
-			}
-
-			return result
-		})
-	}
-}
-
 func ConsumerLog(logger log.Logger) consumer.Middleware {
 	return func(next consumer.Handler) consumer.Handler {
-		return consumer.HandlerFunc(func(ctx context.Context, msg *kafka.Message) handler.Result {
+		return consumer.HandlerFunc(func(ctx context.Context, delivery *consumer.Delivery) {
 			logger.Debug(
 				ctx,
 				"kafka consumer: consume message",
-				log.String("topic", msg.Topic),
-				log.Int("partition", msg.Partition),
-				log.Int64("offset", msg.Offset),
-				log.ByteString("messageKey", msg.Key),
-				log.ByteString("messageValue", msg.Value),
+				log.String("topic", delivery.Source().Topic),
+				log.Int("partition", delivery.Source().Partition),
+				log.Int64("offset", delivery.Source().Offset),
+				log.ByteString("messageKey", delivery.Source().Key),
+				log.ByteString("messageValue", delivery.Source().Value),
 			)
-			return next.Handle(ctx, msg)
+			next.Handle(ctx, delivery)
 		})
 	}
 }
 
 func ConsumerRequestId() consumer.Middleware {
 	return func(next consumer.Handler) consumer.Handler {
-		return consumer.HandlerFunc(func(ctx context.Context, msg *kafka.Message) handler.Result {
+		return consumer.HandlerFunc(func(ctx context.Context, delivery *consumer.Delivery) {
 			requestId := ""
 
-			if msg.Headers != nil {
-				requestId = GetHeaderValue(msg.Headers, RequestIdHeader)
+			if delivery.Source().Headers != nil {
+				requestId = GetHeaderValue(delivery.Source().Headers, RequestIdHeader)
 			}
 
 			if requestId == "" {
@@ -149,7 +118,7 @@ func ConsumerRequestId() consumer.Middleware {
 			ctx = requestid.ToContext(ctx, requestId)
 			ctx = log.ToContext(ctx, log.String("requestId", requestId))
 
-			return next.Handle(ctx, msg)
+			next.Handle(ctx, delivery)
 		})
 	}
 }

@@ -16,22 +16,28 @@ type Donner interface {
 }
 
 type Delivery struct {
-	donner  Donner
-	reader  *kafka.Reader
-	source  *kafka.Message
-	handled bool
+	donner          Donner
+	reader          *kafka.Reader
+	source          *kafka.Message
+	handled         bool
+	consumerGroupId string
 }
 
-func NewDelivery(donner Donner, reader *kafka.Reader, source *kafka.Message) *Delivery {
+func NewDelivery(donner Donner, reader *kafka.Reader, source *kafka.Message, consumerGroupId string) *Delivery {
 	return &Delivery{
-		donner: donner,
-		reader: reader,
-		source: source,
+		donner:          donner,
+		reader:          reader,
+		source:          source,
+		consumerGroupId: consumerGroupId,
 	}
 }
 
 func (d *Delivery) Source() *kafka.Message {
 	return d.source
+}
+
+func (d *Delivery) ConsumerGroupId() string {
+	return d.consumerGroupId
 }
 
 func (d *Delivery) Commit(ctx context.Context) error {
@@ -48,4 +54,8 @@ func (d *Delivery) Commit(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (d *Delivery) Done() {
+	d.donner.Done()
 }
