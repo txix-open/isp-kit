@@ -29,7 +29,7 @@ type ConsumerConfig struct {
 	GroupId           string   `validate:"required" schema:"Идентификатор консьюмера"`
 	Concurrency       int      `schema:"Кол-во обработчиков, по умолчанию 1"`
 	MaxBatchSizeMb    int      `schema:"Максимальный размер батча для приема консьюмером, по умолчанию 64 Мб"`
-	CommitIntervalSec int      `schema:"Интервал в секундах с которым происходит коммит офсетов, по умолчанию 1 c"`
+	CommitIntervalSec *int     `schema:"Интервал в секундах с которым происходит коммит офсетов, по умолчанию 1 c"`
 	Auth              *Auth    `schema:"Параметры аутентификации"`
 }
 
@@ -47,8 +47,8 @@ func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler consumer.Hand
 			SASLMechanism: PlainAuth(c.Auth),
 		},
 		MinBytes:       1,
-		MaxBytes:       WithConsumerMaxBatchSize(c.MaxBatchSizeMb) * bytesInMb,
-		CommitInterval: WithCommitIntervalSec(c.CommitIntervalSec),
+		MaxBytes:       c.WithMaxBatchSize() * bytesInMb,
+		CommitInterval: c.WithCommitIntervalSec(),
 		ErrorLogger: kafka.LoggerFunc(func(s string, i ...interface{}) {
 			logger.Error(ctx, "kafka consumer: "+fmt.Sprintf(s, i...))
 		}),
@@ -77,8 +77,8 @@ type PublisherConfig struct {
 	Topic            string   `validate:"required" schema:"Топик для отправки сообщений описывается здесь либо в каждом сообщении"`
 	MaxMsgSizeMb     int64    `schema:"Максимальный размер сообщений в Мб"`
 	BatchSize        int      `schema:"Количество буферизованных сообщений в пакетной отправке, по умолчанию 10"`
-	BatchTimeoutMs   int      `schema:"Периодичность записи батчей в кафку в мс, по умолчанию 500 мс"`
-	WriteTimeoutSec  int      `schema:"Таймаут отправки сообщений, по умолчанию 10 секунд"`
+	BatchTimeoutMs   *int     `schema:"Периодичность записи батчей в кафку в мс, по умолчанию 500 мс"`
+	WriteTimeoutSec  *int     `schema:"Таймаут отправки сообщений, по умолчанию 10 секунд"`
 	RequiredAckLevel int      `schema:"Количество подтверждений реплик разделов для получения ответа на запрос отправки сообщения"`
 	Auth             *Auth    `schema:"Параметры аутентификации"`
 }
@@ -93,11 +93,11 @@ func (p PublisherConfig) DefaultPublisher(logger log.Logger, restMiddlewares ...
 
 	writer := kafka.Writer{
 		Addr:         kafka.TCP(p.Addresses...),
-		WriteTimeout: WithWriteTimeoutSecs(p.WriteTimeoutSec),
-		RequiredAcks: WithRequiredAckLevel(p.RequiredAckLevel),
+		WriteTimeout: p.WithWriteTimeoutSecs(),
+		RequiredAcks: p.WithRequiredAckLevel(),
 		BatchBytes:   p.MaxMsgSizeMb * bytesInMb,
-		BatchSize:    WithBatchSize(p.BatchSize),
-		BatchTimeout: WithBatchTimeoutMs(p.BatchTimeoutMs),
+		BatchSize:    p.WithBatchSize(),
+		BatchTimeout: p.WithBatchTimeoutMs(),
 		Transport: &kafka.Transport{
 			SASL: PlainAuth(p.Auth),
 		},
