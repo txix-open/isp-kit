@@ -2,17 +2,45 @@ package httpclix
 
 import (
 	"context"
-	"time"
-
 	"github.com/txix-open/isp-kit/http/httpcli"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/metrics/http_metrics"
 	"github.com/txix-open/isp-kit/requestid"
+	"net/http/httputil"
+	"time"
 )
 
 const (
 	RequestIdHeader = "x-request-id"
 )
+
+func LogHeadersToContext(ctx context.Context) context.Context {
+	cfg, ok := ctx.Value(logConfigContextKeyValue).(logConfig)
+	if !ok {
+		return context.WithValue(ctx, logConfigContextKeyValue, logConfig{
+			LogHeadersRequest:  true,
+			LogHeadersResponse: true,
+		})
+	} else {
+		cfg.LogHeadersRequest = true
+		cfg.LogHeadersResponse = true
+		return context.WithValue(ctx, logConfigContextKeyValue, cfg)
+	}
+}
+
+func EnableReqRespDump(ctx context.Context) context.Context {
+	cfg, ok := ctx.Value(logConfigContextKeyValue).(logConfig)
+	if !ok {
+		return context.WithValue(ctx, logConfigContextKeyValue, logConfig{
+			LogRawRequestBody:  true,
+			LogRawResponseBody: true,
+		})
+	} else {
+		cfg.LogRawRequestBody = true
+		cfg.LogRawResponseBody = true
+		return context.WithValue(ctx, logConfigContextKeyValue, cfg)
+	}
+}
 
 func RequestId() httpcli.Middleware {
 	return func(next httpcli.RoundTripper) httpcli.RoundTripper {
@@ -31,22 +59,32 @@ func RequestId() httpcli.Middleware {
 type logConfig struct {
 	LogRequestBody  bool
 	LogResponseBody bool
+
+	LogRawRequestBody  bool
+	LogRawResponseBody bool
+
+	LogHeadersRequest  bool
+	LogHeadersResponse bool
 }
 
 type logConfigContextKey struct{}
 
 var (
 	defaultLogConfig = logConfig{
-		LogRequestBody:  true,
-		LogResponseBody: true,
+		LogRequestBody:     true,
+		LogResponseBody:    true,
+		LogRawRequestBody:  false,
+		LogRawResponseBody: false,
 	}
 	logConfigContextKeyValue = logConfigContextKey{}
 )
 
-func LogConfigToContext(ctx context.Context, logRequestBody bool, logResponseBody bool) context.Context {
+func LogConfigToContext(ctx context.Context, logRequestBody, logResponseBody, logRawRequestBody, logRawResponseBody bool) context.Context {
 	return context.WithValue(ctx, logConfigContextKeyValue, logConfig{
-		LogRequestBody:  logRequestBody,
-		LogResponseBody: logResponseBody,
+		LogRequestBody:     logRequestBody,
+		LogResponseBody:    logResponseBody,
+		LogRawRequestBody:  logRawRequestBody,
+		LogRawResponseBody: logRawResponseBody,
 	})
 }
 
@@ -63,6 +101,14 @@ func Log(logger log.Logger) httpcli.Middleware {
 				log.String("method", request.Raw.Method),
 				log.String("url", request.Raw.URL.String()),
 			}
+
+			if config.LogHeadersRequest {
+				requestFields = append(requestFields, log.Any("header", request.Raw.Header))
+			}
+
+			dumpReq, _ := httputil.DumpRequestOut(request.Raw, true)
+			requestFields = append(requestFields, log.ByteString("dump request: ", dumpReq))
+
 			if config.LogRequestBody {
 				requestFields = append(requestFields, log.ByteString("requestBody", request.Body()))
 			}
@@ -83,6 +129,14 @@ func Log(logger log.Logger) httpcli.Middleware {
 			responseFields := []log.Field{
 				log.Int("statusCode", resp.StatusCode()),
 			}
+
+			dumpResp, _ := httputil.DumpResponse(resp.Raw, true)
+			responseFields = append(responseFields, log.ByteString("dump response: ", dumpResp))
+
+			if config.LogHeadersResponse {
+				responseFields = append(responseFields, log.Any("header", resp.Raw.Header))
+			}
+
 			if config.LogResponseBody {
 				responseBody, _ := resp.Body()
 				responseFields = append(responseFields, log.ByteString("responseBody", responseBody))
