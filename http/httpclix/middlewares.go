@@ -3,6 +3,7 @@ package httpclix
 import (
 	"context"
 	"github.com/txix-open/isp-kit/http/httpcli"
+	"github.com/txix-open/isp-kit/json"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/metrics/http_metrics"
 	"github.com/txix-open/isp-kit/requestid"
@@ -10,35 +11,19 @@ import (
 	"time"
 )
 
-const (
-	RequestIdHeader = "x-request-id"
-)
+type LogOption func(*logConfig)
 
-func LogHeadersToContext(ctx context.Context) context.Context {
-	cfg, ok := ctx.Value(logConfigContextKeyValue).(logConfig)
-	if !ok {
-		return context.WithValue(ctx, logConfigContextKeyValue, logConfig{
-			LogHeadersRequest:  true,
-			LogHeadersResponse: true,
-		})
-	} else {
-		cfg.LogHeadersRequest = true
-		cfg.LogHeadersResponse = true
-		return context.WithValue(ctx, logConfigContextKeyValue, cfg)
+func LogDump(dumpRequest bool, dumpResponse bool) LogOption {
+	return func(cfg *logConfig) {
+		cfg.LogDumpRequest = dumpRequest
+		cfg.LogDumpResponse = dumpResponse
 	}
 }
 
-func EnableReqRespDump(ctx context.Context) context.Context {
-	cfg, ok := ctx.Value(logConfigContextKeyValue).(logConfig)
-	if !ok {
-		return context.WithValue(ctx, logConfigContextKeyValue, logConfig{
-			LogRawRequestBody:  true,
-			LogRawResponseBody: true,
-		})
-	} else {
-		cfg.LogRawRequestBody = true
-		cfg.LogRawResponseBody = true
-		return context.WithValue(ctx, logConfigContextKeyValue, cfg)
+func LogHeaders(requestHeaders bool, responseHeaders bool) LogOption {
+	return func(cfg *logConfig) {
+		cfg.LogHeadersRequest = requestHeaders
+		cfg.LogHeadersResponse = responseHeaders
 	}
 }
 
@@ -50,7 +35,7 @@ func RequestId() httpcli.Middleware {
 				requestId = requestid.Next()
 			}
 
-			request.Raw.Header.Set(RequestIdHeader, requestId)
+			request.Raw.Header.Set(requestid.RequestIdHeader, requestId)
 			return next.RoundTrip(ctx, request)
 		})
 	}
@@ -60,8 +45,8 @@ type logConfig struct {
 	LogRequestBody  bool
 	LogResponseBody bool
 
-	LogRawRequestBody  bool
-	LogRawResponseBody bool
+	LogDumpRequest  bool
+	LogDumpResponse bool
 
 	LogHeadersRequest  bool
 	LogHeadersResponse bool
@@ -71,21 +56,22 @@ type logConfigContextKey struct{}
 
 var (
 	defaultLogConfig = logConfig{
-		LogRequestBody:     true,
-		LogResponseBody:    true,
-		LogRawRequestBody:  false,
-		LogRawResponseBody: false,
+		LogRequestBody:  true,
+		LogResponseBody: true,
 	}
 	logConfigContextKeyValue = logConfigContextKey{}
 )
 
-func LogConfigToContext(ctx context.Context, logRequestBody, logResponseBody, logRawRequestBody, logRawResponseBody bool) context.Context {
-	return context.WithValue(ctx, logConfigContextKeyValue, logConfig{
-		LogRequestBody:     logRequestBody,
-		LogResponseBody:    logResponseBody,
-		LogRawRequestBody:  logRawRequestBody,
-		LogRawResponseBody: logRawResponseBody,
-	})
+func LogConfigToContext(ctx context.Context, logRequestBody, logResponseBody bool, opts ...LogOption) context.Context {
+	cfg := logConfig{
+		LogRequestBody:  logRequestBody,
+		LogResponseBody: logResponseBody,
+	}
+
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+	return context.WithValue(ctx, logConfigContextKeyValue, cfg)
 }
 
 func Log(logger log.Logger) httpcli.Middleware {
@@ -102,45 +88,58 @@ func Log(logger log.Logger) httpcli.Middleware {
 				log.String("url", request.Raw.URL.String()),
 			}
 
-			if config.LogHeadersRequest {
-				requestFields = append(requestFields, log.Any("header", request.Raw.Header))
-			}
-
-			dumpReq, _ := httputil.DumpRequestOut(request.Raw, true)
-			requestFields = append(requestFields, log.ByteString("dump request: ", dumpReq))
-
 			if config.LogRequestBody {
 				requestFields = append(requestFields, log.ByteString("requestBody", request.Body()))
 			}
+
 			logger.Debug(ctx, "http client: request", requestFields...)
 
 			now := time.Now()
 			resp, err := next.RoundTrip(ctx, request)
+
+			var responseFields []log.Field
+
+			if config.LogHeadersRequest {
+				headers, _ := json.Marshal(request.Raw.Header)
+				responseFields = append(responseFields, log.ByteString("requestHeaders", headers))
+			}
+
+			if config.LogDumpRequest {
+				dumpReq, _ := httputil.DumpRequestOut(request.Raw, true)
+				responseFields = append(responseFields, log.ByteString("requestDump", dumpReq))
+			}
+
 			if err != nil {
+				errorFields := append(responseFields,
+					log.Any("error", err),
+					log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()),
+				)
+
 				logger.Debug(
 					ctx,
 					"http client: response with error",
-					log.Any("error", err),
-					log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()),
+					errorFields...,
 				)
 				return resp, err
 			}
 
-			responseFields := []log.Field{
-				log.Int("statusCode", resp.StatusCode()),
+			responseFields = append(responseFields, log.Int("statusCode", resp.StatusCode()))
+
+			if config.LogDumpResponse {
+				dumpResp, _ := httputil.DumpResponse(resp.Raw, true)
+				responseFields = append(responseFields, log.ByteString("responseDump", dumpResp))
 			}
 
-			dumpResp, _ := httputil.DumpResponse(resp.Raw, true)
-			responseFields = append(responseFields, log.ByteString("dump response: ", dumpResp))
-
 			if config.LogHeadersResponse {
-				responseFields = append(responseFields, log.Any("header", resp.Raw.Header))
+				headers, _ := json.Marshal(resp.Raw.Header)
+				responseFields = append(responseFields, log.ByteString("responseHeaders", headers))
 			}
 
 			if config.LogResponseBody {
 				responseBody, _ := resp.Body()
 				responseFields = append(responseFields, log.ByteString("responseBody", responseBody))
 			}
+
 			responseFields = append(responseFields, log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()))
 			logger.Debug(ctx, "http client: response", responseFields...)
 

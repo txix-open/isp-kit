@@ -9,10 +9,6 @@ import (
 	"github.com/txix-open/isp-kit/json"
 )
 
-const (
-	RequestIdHeader = "x-request-id"
-)
-
 type JsonResponseMapper struct {
 }
 
@@ -21,9 +17,9 @@ func (j JsonResponseMapper) Map(ctx context.Context, result any, w http.Response
 		return nil
 	}
 
-	requestId := requestid.FromContext(ctx)
-	if requestId != "" {
-		w.Header().Set(RequestIdHeader, requestId)
+	reqId := requestid.FromContext(ctx)
+	if reqId != "" {
+		w.Header().Set(requestid.RequestIdHeader, reqId)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
