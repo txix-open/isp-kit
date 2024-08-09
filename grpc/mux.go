@@ -13,7 +13,6 @@ import (
 
 const (
 	ProxyMethodNameHeader = "proxy_method_name"
-	RequestIdHeader       = "x-request-id"
 )
 
 type Mux struct {

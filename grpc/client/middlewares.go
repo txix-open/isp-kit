@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/txix-open/isp-kit/grpc"
 	"github.com/txix-open/isp-kit/grpc/client/request"
 	"github.com/txix-open/isp-kit/grpc/isp"
 	"github.com/txix-open/isp-kit/log"
@@ -20,7 +19,7 @@ func RequestId() request.Middleware {
 				requestId = requestid.Next()
 			}
 
-			ctx = metadata.AppendToOutgoingContext(ctx, grpc.RequestIdHeader, requestId)
+			ctx = metadata.AppendToOutgoingContext(ctx, requestid.RequestIdHeader, requestId)
 			return next(ctx, builder, message)
 		}
 	}

@@ -10,35 +10,19 @@ import (
 	"time"
 )
 
-const (
-	RequestIdHeader = "x-request-id"
-)
+type LogOption func(*logConfig)
 
-func LogHeadersToContext(ctx context.Context) context.Context {
-	cfg, ok := ctx.Value(logConfigContextKeyValue).(logConfig)
-	if !ok {
-		return context.WithValue(ctx, logConfigContextKeyValue, logConfig{
-			LogHeadersRequest:  true,
-			LogHeadersResponse: true,
-		})
-	} else {
-		cfg.LogHeadersRequest = true
-		cfg.LogHeadersResponse = true
-		return context.WithValue(ctx, logConfigContextKeyValue, cfg)
+func LogDump(dumpRequest bool, dumpResponse bool) LogOption {
+	return func(cfg *logConfig) {
+		cfg.LogRawRequestBody = dumpRequest
+		cfg.LogRawResponseBody = dumpResponse
 	}
 }
 
-func EnableReqRespDump(ctx context.Context) context.Context {
-	cfg, ok := ctx.Value(logConfigContextKeyValue).(logConfig)
-	if !ok {
-		return context.WithValue(ctx, logConfigContextKeyValue, logConfig{
-			LogRawRequestBody:  true,
-			LogRawResponseBody: true,
-		})
-	} else {
-		cfg.LogRawRequestBody = true
-		cfg.LogRawResponseBody = true
-		return context.WithValue(ctx, logConfigContextKeyValue, cfg)
+func LogHeaders(requestHeaders bool, responseHeaders bool) LogOption {
+	return func(cfg *logConfig) {
+		cfg.LogHeadersRequest = requestHeaders
+		cfg.LogHeadersResponse = responseHeaders
 	}
 }
 
@@ -50,7 +34,7 @@ func RequestId() httpcli.Middleware {
 				requestId = requestid.Next()
 			}
 
-			request.Raw.Header.Set(RequestIdHeader, requestId)
+			request.Raw.Header.Set(requestid.RequestIdHeader, requestId)
 			return next.RoundTrip(ctx, request)
 		})
 	}
@@ -71,21 +55,22 @@ type logConfigContextKey struct{}
 
 var (
 	defaultLogConfig = logConfig{
-		LogRequestBody:     true,
-		LogResponseBody:    true,
-		LogRawRequestBody:  false,
-		LogRawResponseBody: false,
+		LogRequestBody:  true,
+		LogResponseBody: true,
 	}
 	logConfigContextKeyValue = logConfigContextKey{}
 )
 
-func LogConfigToContext(ctx context.Context, logRequestBody, logResponseBody, logRawRequestBody, logRawResponseBody bool) context.Context {
-	return context.WithValue(ctx, logConfigContextKeyValue, logConfig{
-		LogRequestBody:     logRequestBody,
-		LogResponseBody:    logResponseBody,
-		LogRawRequestBody:  logRawRequestBody,
-		LogRawResponseBody: logRawResponseBody,
-	})
+func LogConfigToContext(ctx context.Context, logRequestBody, logResponseBody bool, opts ...LogOption) context.Context {
+	cfg := logConfig{
+		LogRequestBody:  logRequestBody,
+		LogResponseBody: logResponseBody,
+	}
+
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+	return context.WithValue(ctx, logConfigContextKeyValue, cfg)
 }
 
 func Log(logger log.Logger) httpcli.Middleware {
@@ -103,11 +88,11 @@ func Log(logger log.Logger) httpcli.Middleware {
 			}
 
 			if config.LogHeadersRequest {
-				requestFields = append(requestFields, log.Any("header", request.Raw.Header))
+				requestFields = append(requestFields, log.Any("reqHeader", request.Raw.Header))
 			}
 
-			dumpReq, _ := httputil.DumpRequestOut(request.Raw, true)
-			requestFields = append(requestFields, log.ByteString("dump request: ", dumpReq))
+			dumpReq, _ := httputil.DumpRequestOut(request.Raw, config.LogRawRequestBody)
+			requestFields = append(requestFields, log.ByteString("requestDump: ", dumpReq))
 
 			if config.LogRequestBody {
 				requestFields = append(requestFields, log.ByteString("requestBody", request.Body()))
@@ -130,11 +115,11 @@ func Log(logger log.Logger) httpcli.Middleware {
 				log.Int("statusCode", resp.StatusCode()),
 			}
 
-			dumpResp, _ := httputil.DumpResponse(resp.Raw, true)
-			responseFields = append(responseFields, log.ByteString("dump response: ", dumpResp))
+			dumpResp, _ := httputil.DumpResponse(resp.Raw, config.LogRawResponseBody)
+			responseFields = append(responseFields, log.ByteString("responseDump: ", dumpResp))
 
 			if config.LogHeadersResponse {
-				responseFields = append(responseFields, log.Any("header", resp.Raw.Header))
+				responseFields = append(responseFields, log.Any("respHeader", resp.Raw.Header))
 			}
 
 			if config.LogResponseBody {

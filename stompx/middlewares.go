@@ -8,10 +8,6 @@ import (
 	"github.com/txix-open/isp-kit/stompx/publisher"
 )
 
-const (
-	RequestIdHeader = "x-request-id"
-)
-
 func PublisherPersistent() publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
 		return publisher.RoundTripperFunc(func(ctx context.Context, queue string, msg *publisher.Message) error {
@@ -42,7 +38,7 @@ func PublisherRequestId() publisher.Middleware {
 			if requestId == "" {
 				requestId = requestid.Next()
 			}
-			msg = msg.WithHeader(RequestIdHeader, requestId)
+			msg = msg.WithHeader(requestid.RequestIdHeader, requestId)
 			return next.Publish(ctx, queue, msg)
 		})
 	}
@@ -68,7 +64,7 @@ func ConsumerRequestId() consumer.Middleware {
 			requestId := ""
 			headers := delivery.Source().Header
 			if headers != nil {
-				requestId = headers.Get(RequestIdHeader)
+				requestId = headers.Get(requestid.RequestIdHeader)
 			}
 			if requestId == "" {
 				requestId = requestid.Next()

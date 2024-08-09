@@ -21,7 +21,6 @@ import (
 )
 
 const (
-	requestIdHeader           = "x-request-id"
 	defaultMaxRequestBodySize = 64 * 1024 * 1024
 )
 
@@ -90,7 +89,7 @@ func ErrorHandler(logger log.Logger) http2.Middleware {
 func RequestId() http2.Middleware {
 	return func(next http2.HandlerFunc) http2.HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-			requestId := r.Header.Get(requestIdHeader)
+			requestId := r.Header.Get(requestid.RequestIdHeader)
 			if requestId == "" {
 				requestId = requestid.Next()
 			}

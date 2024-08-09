@@ -11,10 +11,6 @@ import (
 	"github.com/txix-open/isp-kit/requestid"
 )
 
-const (
-	RequestIdHeader = "x-request-id"
-)
-
 func PublisherLog(logger log.Logger) publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
 		return publisher.RoundTripperFunc(func(ctx context.Context, exchange string, routingKey string, msg *amqp091.Publishing) error {
@@ -40,7 +36,7 @@ func PublisherRequestId() publisher.Middleware {
 			if msg.Headers == nil {
 				msg.Headers = amqp091.Table{}
 			}
-			msg.Headers[RequestIdHeader] = requestId
+			msg.Headers[requestid.RequestIdHeader] = requestId
 			return next.Publish(ctx, exchange, routingKey, msg)
 		})
 	}
@@ -88,7 +84,7 @@ func ConsumerRequestId() consumer.Middleware {
 			requestId := ""
 			headers := delivery.Source().Headers
 			if headers != nil {
-				value, ok := headers[RequestIdHeader].(string)
+				value, ok := headers[requestid.RequestIdHeader].(string)
 				if ok {
 					requestId = value
 				}
