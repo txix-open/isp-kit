@@ -20,7 +20,7 @@ func NewPublisherStorage(reg *metrics.Registry) *PublisherStorage {
 			Name:       "publish_duration_ms",
 			Help:       "The latency of publishing messages to topic",
 			Objectives: metrics.DefaultObjectives,
-		}, []string{"requestId"})),
+		}, []string{"topic"})),
 		publishMsgBodySize: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Subsystem:  "kafka",
 			Name:       "publish_body_size",
@@ -31,19 +31,19 @@ func NewPublisherStorage(reg *metrics.Registry) *PublisherStorage {
 			Subsystem: "kafka",
 			Name:      "publish_error_count",
 			Help:      "Count error on publishing",
-		}, []string{"requestId"})),
+		}, []string{"topic"})),
 	}
 	return s
 }
 
-func (c *PublisherStorage) ObservePublishDuration(requestId string, t time.Duration) {
-	c.publishMsgDuration.WithLabelValues(requestId).Observe(metrics.Milliseconds(t))
+func (c *PublisherStorage) ObservePublishDuration(topic string, t time.Duration) {
+	c.publishMsgDuration.WithLabelValues(topic).Observe(metrics.Milliseconds(t))
 }
 
 func (c *PublisherStorage) ObservePublishMsgSize(topic string, size int) {
 	c.publishMsgBodySize.WithLabelValues(topic).Observe(float64(size))
 }
 
-func (c *PublisherStorage) IncPublishError(requestId string) {
-	c.publishErrorCount.WithLabelValues(requestId).Inc()
+func (c *PublisherStorage) IncPublishError(topic string) {
+	c.publishErrorCount.WithLabelValues(topic).Inc()
 }
