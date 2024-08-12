@@ -21,38 +21,20 @@ const (
 	testRetryTopic     = "test_retry_topic"
 )
 
-var writeTimeoutSec = 0
-
 func TestRequestIdChain(t *testing.T) {
 	t.Parallel()
 	test, require := test.New(t)
 	await := make(chan struct{})
 
-	host := test.Config().Optional().String("KAFKA_ADDRESS", "10.2.4.244:9092")
+	testKafka := NewKafka(test)
+
+	pubCfg := testKafka.PublisherConfig(testRequestIdTopic)
+	pub1 := pubCfg.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger()))
+
+	consumerCfg := testKafka.ConsumerConfig(testRequestIdTopic)
+	consumerCfg.Concurrency = 3
+
 	expectedRequestId := requestid.Next()
-
-	_ = MakeMockConn(test, ConnectionConfig{
-		Topic:   testRequestIdTopic,
-		Brokers: []string{host},
-	})
-
-	time.Sleep(1 * time.Second)
-
-	pubCfg1 := kafkax.PublisherConfig{
-		Addresses:       []string{host},
-		Topic:           testRequestIdTopic,
-		MaxMsgSizeMb:    1,
-		WriteTimeoutSec: &writeTimeoutSec,
-	}
-	pub1 := pubCfg1.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger()))
-
-	consumerCfg1 := kafkax.ConsumerConfig{
-		Addresses:   []string{host},
-		Topic:       testRequestIdTopic,
-		GroupId:     "kkd",
-		Concurrency: 3,
-	}
-
 	handler1 := kafkax.NewResultHandler(
 		test.Logger(),
 		kafkaHandler.SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) kafkaHandler.Result {
@@ -65,7 +47,7 @@ func TestRequestIdChain(t *testing.T) {
 		}),
 	)
 
-	cons1 := consumerCfg1.DefaultConsumer(test.Logger(), handler1, kafkax.ConsumerLog(test.Logger()))
+	cons1 := consumerCfg.DefaultConsumer(test.Logger(), handler1, kafkax.ConsumerLog(test.Logger()))
 
 	kafkaBrokerConfig := kafkax.NewConfig(
 		kafkax.WithPublishers(pub1),
@@ -110,30 +92,14 @@ func TestRetry(t *testing.T) {
 	test, require := test.New(t)
 	await := make(chan struct{})
 
-	host := test.Config().Optional().String("KAFKA_ADDRESS", "10.2.4.244:9092")
+	testKafka := NewKafka(test)
+
+	pubCfg := testKafka.PublisherConfig(testRetryTopic)
+	pub1 := pubCfg.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger()))
+
+	consumerCfg := testKafka.ConsumerConfig(testRetryTopic)
+
 	counter := 0
-
-	_ = MakeMockConn(test, ConnectionConfig{
-		Topic:   testRetryTopic,
-		Brokers: []string{host},
-	})
-
-	time.Sleep(1 * time.Second)
-
-	pubCfg1 := kafkax.PublisherConfig{
-		Addresses:       []string{host},
-		Topic:           testRetryTopic,
-		MaxMsgSizeMb:    1,
-		WriteTimeoutSec: &writeTimeoutSec,
-	}
-	pub1 := pubCfg1.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger()))
-
-	consumerCfg1 := kafkax.ConsumerConfig{
-		Addresses: []string{host},
-		Topic:     testRetryTopic,
-		GroupId:   "kkd",
-	}
-
 	handler1 := kafkax.NewResultHandler(
 		test.Logger(),
 		kafkaHandler.SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) kafkaHandler.Result {
@@ -146,7 +112,7 @@ func TestRetry(t *testing.T) {
 			return kafkaHandler.Commit()
 		}),
 	)
-	cons1 := consumerCfg1.DefaultConsumer(test.Logger(), handler1, kafkax.ConsumerLog(test.Logger()))
+	cons1 := consumerCfg.DefaultConsumer(test.Logger(), handler1, kafkax.ConsumerLog(test.Logger()))
 
 	kafkaBrokerConfig := kafkax.NewConfig(
 		kafkax.WithPublishers(pub1),
