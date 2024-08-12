@@ -149,33 +149,51 @@ func TestReadWrite(t *testing.T) {
 	t.Parallel()
 	test, require := test.New(t)
 
-	testKafka := NewKafka(test, "test_read_write")
+	testKafka := NewKafka(test, "test")
+
+	topic := "test_read_write"
+	testKafka.CreateDefaultTopic(topic)
+	topic2 := "test_read_write_2"
+	testKafka.CreateDefaultTopic(topic2)
+
+	defer testKafka.DeleteTopics()
 
 	time.Sleep(500 * time.Millisecond)
 
+	// test first topic
 	testKafka.WriteMessages(kafka.Message{
-		Topic: testKafka.Topic(),
+		Topic: topic,
 		Value: []byte("test message"),
 	})
 
 	time.Sleep(200 * time.Millisecond)
 
-	msg := testKafka.ReadMessage()
-
+	msg := testKafka.ReadMessage(topic, 0)
 	require.EqualValues([]byte("test message"), msg.Value)
-	require.EqualValues(testKafka.Topic(), msg.Topic)
-
-	testKafka.CommitMessages(msg)
+	require.EqualValues(topic, msg.Topic)
 
 	testKafka.WriteMessages(kafka.Message{
-		Topic: testKafka.Topic(),
+		Topic: topic,
 		Value: []byte("test message 2"),
 	})
 
 	time.Sleep(200 * time.Millisecond)
 
-	msg = testKafka.ReadMessage()
+	msg = testKafka.ReadMessage(topic, 1)
 
 	require.EqualValues([]byte("test message 2"), msg.Value)
-	require.EqualValues(testKafka.Topic(), msg.Topic)
+	require.EqualValues(topic, msg.Topic)
+
+	// test second topic
+	testKafka.WriteMessages(kafka.Message{
+		Topic: topic2,
+		Value: []byte("test 2 message 1"),
+	})
+
+	time.Sleep(200 * time.Millisecond)
+
+	msg = testKafka.ReadMessage(topic2, 0)
+
+	require.EqualValues([]byte("test 2 message 1"), msg.Value)
+	require.EqualValues(topic2, msg.Topic)
 }

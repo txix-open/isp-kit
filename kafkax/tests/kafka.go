@@ -4,6 +4,7 @@ package tests
 import (
 	"context"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/segmentio/kafka-go"
@@ -16,7 +17,6 @@ type Kafka struct {
 	test     *test.Test
 	manager  *kafka.Conn
 	writer   *kafka.Writer
-	reader   *kafka.Reader
 	address  string
 	username string
 	password string
@@ -50,7 +50,7 @@ func NewKafka(t *test.Test, topic string) *Kafka {
 	w := &kafka.Writer{
 		Addr:         kafka.TCP(addr),
 		BatchTimeout: 500 * time.Millisecond, //nolint:mnd
-		BatchSize:    2,
+		BatchSize:    1,
 		Transport: &kafka.Transport{
 			SASL: kafkax.PlainAuth(&kafkax.Auth{
 				Username: username,
@@ -62,35 +62,11 @@ func NewKafka(t *test.Test, topic string) *Kafka {
 		}),
 	}
 
-	r := kafka.NewReader(kafka.ReaderConfig{
-		Brokers: []string{addr},
-		GroupID: "test",
-		Topic:   topic,
-		Dialer: &kafka.Dialer{
-			DualStack: true,
-			Timeout:   10 * time.Second,
-			SASLMechanism: kafkax.PlainAuth(&kafkax.Auth{
-				Username: username,
-				Password: password,
-			}),
-		},
-		MinBytes: 1,
-		MaxBytes: 64 * 1024 * 1024,
-		ErrorLogger: kafka.LoggerFunc(func(s string, i ...interface{}) {
-			t.Logger().Error(context.Background(), "kafka consumer: "+fmt.Sprintf(s, i...))
-		}),
-	})
-
-	topics := []string{topic}
-
 	t.T().Cleanup(func() {
-		err = r.Close()
-		t.Assert().NoError(err)
-
 		err = w.Close()
 		t.Assert().NoError(err)
 
-		err = conn.DeleteTopics(topics...)
+		err = conn.DeleteTopics(topic)
 		t.Assert().NoError(err)
 
 		err = conn.Close()
@@ -101,11 +77,10 @@ func NewKafka(t *test.Test, topic string) *Kafka {
 		test:     t,
 		manager:  conn,
 		writer:   w,
-		reader:   r,
 		address:  addr,
 		username: username,
 		password: password,
-		topics:   topics,
+		topics:   []string{topic},
 	}
 }
 
@@ -115,17 +90,29 @@ func (k *Kafka) WriteMessages(msgs ...kafka.Message) {
 	k.test.Assert().NoError(err)
 }
 
-// ReadMessage читает сообщения из топика, переданного в NewKafka()
-func (k *Kafka) ReadMessage() kafka.Message {
-	msg, err := k.reader.ReadMessage(context.Background())
+func (k *Kafka) ReadMessage(topic string, offset int64) kafka.Message {
+	dialer := &kafka.Dialer{
+		Timeout:   10 * time.Second, //nolint:mnd
+		DualStack: true,
+		SASLMechanism: kafkax.PlainAuth(&kafkax.Auth{
+			Username: k.username,
+			Password: k.password,
+		}),
+	}
+
+	l, err := dialer.DialLeader(context.Background(), "tcp", k.address, topic, 0)
+	k.test.Assert().NoError(err)
+
+	_, err = l.Seek(offset, io.SeekStart)
+	k.test.Assert().NoError(err)
+
+	msg, err := l.ReadMessage(64 * 1024 * 1024)
+	k.test.Assert().NoError(err)
+
+	err = l.Close()
 	k.test.Assert().NoError(err)
 
 	return msg
-}
-
-func (k *Kafka) CommitMessages(msgs ...kafka.Message) {
-	err := k.reader.CommitMessages(context.Background(), msgs...)
-	k.test.Assert().NoError(err)
 }
 
 func (k *Kafka) Address() string {
@@ -145,6 +132,14 @@ func (k *Kafka) CreateDefaultTopic(topic string) {
 	})
 	k.test.Assert().NoError(err)
 	k.topics = append(k.topics, topic)
+}
+
+// DeleteTopics для удаления вручную созданных топиков
+func (k *Kafka) DeleteTopics() {
+	if len(k.topics[1:]) != 0 {
+		err := k.manager.DeleteTopics(k.topics[1:]...)
+		k.test.Assert().NoError(err)
+	}
 }
 
 func (k *Kafka) PublisherConfig(topic string) kafkax.PublisherConfig {
