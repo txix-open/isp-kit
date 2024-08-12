@@ -59,7 +59,6 @@ func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler consumer.Hand
 	middlewares = append(middlewares, restMiddlewares...)
 
 	cons := consumer.New(
-		logger,
 		reader,
 		handler,
 		c.Concurrency,
@@ -108,7 +107,6 @@ func (p PublisherConfig) DefaultPublisher(logger log.Logger, restMiddlewares ...
 	pub := publisher.New(
 		&writer,
 		p.Topic,
-		logger,
 		publisher.WithObserver(publisher.NewLogObserver(ctx, logger, p.Topic)),
 		publisher.WithMiddlewares(middlewares...),
 	)

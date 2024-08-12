@@ -8,7 +8,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/segmentio/kafka-go"
-	"github.com/txix-open/isp-kit/log"
 	"go.uber.org/atomic"
 )
 
@@ -28,7 +27,6 @@ type Consumer struct {
 	middlewares []Middleware
 	concurrency int
 
-	logger     log.Logger
 	reader     *kafka.Reader
 	handler    Handler
 	observer   Observer
@@ -38,7 +36,7 @@ type Consumer struct {
 	alive      *atomic.Bool
 }
 
-func New(logger log.Logger, reader *kafka.Reader, handler Handler, concurrency int, opts ...Option) *Consumer {
+func New(reader *kafka.Reader, handler Handler, concurrency int, opts ...Option) *Consumer {
 	if concurrency <= 0 {
 		concurrency = 1
 	}
@@ -47,7 +45,6 @@ func New(logger log.Logger, reader *kafka.Reader, handler Handler, concurrency i
 		concurrency: concurrency,
 		reader:      reader,
 		handler:     handler,
-		logger:      logger,
 		deliveryWg:  &sync.WaitGroup{},
 		workersWg:   &sync.WaitGroup{},
 		deliveries:  make(chan Delivery),

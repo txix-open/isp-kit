@@ -7,7 +7,6 @@ import (
 	"github.com/go-stomp/stomp/v3/frame"
 	"github.com/pkg/errors"
 	"github.com/segmentio/kafka-go"
-	"github.com/txix-open/isp-kit/log"
 	"go.uber.org/atomic"
 )
 
@@ -30,7 +29,6 @@ type Publisher struct {
 	address     string
 	middlewares []Middleware
 
-	logger       log.Logger
 	observer     Observer
 	roundTripper RoundTripper
 	lock         sync.Locker
@@ -38,12 +36,11 @@ type Publisher struct {
 	alive        *atomic.Bool
 }
 
-func New(writer *kafka.Writer, topic string, logger log.Logger, opts ...Option) *Publisher {
+func New(writer *kafka.Writer, topic string, opts ...Option) *Publisher {
 	p := &Publisher{
 		topic:   topic,
 		address: writer.Addr.String(),
 		w:       writer,
-		logger:  logger,
 		alive:   atomic.NewBool(true),
 		lock:    &sync.Mutex{},
 	}
