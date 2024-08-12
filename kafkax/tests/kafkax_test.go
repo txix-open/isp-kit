@@ -30,6 +30,8 @@ func TestRequestIdChain(t *testing.T) {
 
 	testKafka := NewKafka(test, testRequestIdTopic)
 
+	time.Sleep(500 * time.Millisecond)
+
 	pubCfg := testKafka.PublisherConfig(testRequestIdTopic)
 	pub1 := pubCfg.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger()))
 
@@ -96,6 +98,8 @@ func TestRetry(t *testing.T) {
 
 	testKafka := NewKafka(test, testRetryTopic)
 
+	time.Sleep(500 * time.Millisecond)
+
 	pubCfg := testKafka.PublisherConfig(testRetryTopic)
 	pub1 := pubCfg.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger()))
 
@@ -125,6 +129,8 @@ func TestRetry(t *testing.T) {
 	err := client.UpgradeAndServe(context.Background(), kafkaBrokerConfig)
 	require.NoError(err)
 
+	time.Sleep(500 * time.Millisecond)
+
 	err = pub1.Publish(context.Background(), kafka.Message{
 		Value: []byte("test message"),
 	})
@@ -144,6 +150,8 @@ func TestReadWrite(t *testing.T) {
 	test, require := test.New(t)
 
 	testKafka := NewKafka(test, "test_read_write")
+
+	time.Sleep(500 * time.Millisecond)
 
 	testKafka.WriteMessages(kafka.Message{
 		Topic: testKafka.Topic(),
