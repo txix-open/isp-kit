@@ -20,9 +20,10 @@ type Kafka struct {
 	address  string
 	username string
 	password string
+	topics   []string
 }
 
-func NewKafka(t *test.Test) *Kafka {
+func NewKafka(t *test.Test, topic string) *Kafka {
 	addr := t.Config().Optional().String("KAFKA_ADDRESS", "127.0.0.1:9092")
 	username := t.Config().Optional().String("KAFKA_USERNAME", "user")
 	password := t.Config().Optional().String("KAFKA_PASSWORD", "password")
@@ -40,7 +41,7 @@ func NewKafka(t *test.Test) *Kafka {
 	t.Assert().NoError(err)
 
 	err = conn.CreateTopics(kafka.TopicConfig{
-		Topic:             "test",
+		Topic:             topic,
 		NumPartitions:     1,
 		ReplicationFactor: -1,
 	})
@@ -48,14 +49,23 @@ func NewKafka(t *test.Test) *Kafka {
 
 	w := &kafka.Writer{
 		Addr:         kafka.TCP(addr),
-		BatchTimeout: 100 * time.Millisecond, //nolint:mnd
-		BatchSize:    1,
+		BatchTimeout: 500 * time.Millisecond, //nolint:mnd
+		BatchSize:    2,
+		Transport: &kafka.Transport{
+			SASL: kafkax.PlainAuth(&kafkax.Auth{
+				Username: username,
+				Password: password,
+			}),
+		},
+		ErrorLogger: kafka.LoggerFunc(func(s string, i ...interface{}) {
+			t.Logger().Error(context.Background(), "kafka publisher: "+fmt.Sprintf(s, i...))
+		}),
 	}
 
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: []string{addr},
 		GroupID: "test",
-		Topic:   "test",
+		Topic:   topic,
 		Dialer: &kafka.Dialer{
 			DualStack: true,
 			Timeout:   10 * time.Second,
@@ -71,13 +81,18 @@ func NewKafka(t *test.Test) *Kafka {
 		}),
 	})
 
+	topics := []string{topic}
+
 	t.T().Cleanup(func() {
-		err = conn.DeleteTopics("test")
-		t.Assert().NoError(err)
 		err = r.Close()
 		t.Assert().NoError(err)
+
 		err = w.Close()
 		t.Assert().NoError(err)
+
+		err = conn.DeleteTopics(topics...)
+		t.Assert().NoError(err)
+
 		err = conn.Close()
 		t.Assert().NoError(err)
 	})
@@ -90,14 +105,17 @@ func NewKafka(t *test.Test) *Kafka {
 		address:  addr,
 		username: username,
 		password: password,
+		topics:   topics,
 	}
 }
 
+// WriteMessages публикует сообщения в топик, указанный в сообщении
 func (k *Kafka) WriteMessages(msgs ...kafka.Message) {
 	err := k.writer.WriteMessages(context.Background(), msgs...)
 	k.test.Assert().NoError(err)
 }
 
+// ReadMessage читает сообщения из топика, переданного в NewKafka()
 func (k *Kafka) ReadMessage() kafka.Message {
 	msg, err := k.reader.ReadMessage(context.Background())
 	k.test.Assert().NoError(err)
@@ -114,6 +132,21 @@ func (k *Kafka) Address() string {
 	return k.address
 }
 
+// Topic возвращает название топика, указанное при вызове NewKafka()
+func (k *Kafka) Topic() string {
+	return k.topics[0]
+}
+
+func (k *Kafka) CreateDefaultTopic(topic string) {
+	err := k.manager.CreateTopics(kafka.TopicConfig{
+		Topic:             topic,
+		NumPartitions:     1,
+		ReplicationFactor: -1,
+	})
+	k.test.Assert().NoError(err)
+	k.topics = append(k.topics, topic)
+}
+
 func (k *Kafka) PublisherConfig(topic string) kafkax.PublisherConfig {
 	return kafkax.PublisherConfig{
 		Addresses: []string{k.address},
@@ -126,11 +159,11 @@ func (k *Kafka) PublisherConfig(topic string) kafkax.PublisherConfig {
 	}
 }
 
-func (k *Kafka) ConsumerConfig(topic string) kafkax.ConsumerConfig {
+func (k *Kafka) ConsumerConfig(topic, groupId string) kafkax.ConsumerConfig {
 	return kafkax.ConsumerConfig{
 		Addresses:   []string{k.address},
 		Topic:       topic,
-		GroupId:     "test",
+		GroupId:     groupId,
 		Concurrency: 1,
 		Auth: &kafkax.Auth{
 			Username: k.username,

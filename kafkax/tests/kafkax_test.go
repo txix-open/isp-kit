@@ -18,7 +18,9 @@ import (
 
 const (
 	testRequestIdTopic = "test_topic"
+	groupIdRequestId   = "testRequestId"
 	testRetryTopic     = "test_retry_topic"
+	groupIdRetry       = "testRetry"
 )
 
 func TestRequestIdChain(t *testing.T) {
@@ -26,12 +28,12 @@ func TestRequestIdChain(t *testing.T) {
 	test, require := test.New(t)
 	await := make(chan struct{})
 
-	testKafka := NewKafka(test)
+	testKafka := NewKafka(test, testRequestIdTopic)
 
 	pubCfg := testKafka.PublisherConfig(testRequestIdTopic)
 	pub1 := pubCfg.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger()))
 
-	consumerCfg := testKafka.ConsumerConfig(testRequestIdTopic)
+	consumerCfg := testKafka.ConsumerConfig(testRequestIdTopic, groupIdRequestId)
 	consumerCfg.Concurrency = 3
 
 	expectedRequestId := requestid.Next()
@@ -92,12 +94,12 @@ func TestRetry(t *testing.T) {
 	test, require := test.New(t)
 	await := make(chan struct{})
 
-	testKafka := NewKafka(test)
+	testKafka := NewKafka(test, testRetryTopic)
 
 	pubCfg := testKafka.PublisherConfig(testRetryTopic)
 	pub1 := pubCfg.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger()))
 
-	consumerCfg := testKafka.ConsumerConfig(testRetryTopic)
+	consumerCfg := testKafka.ConsumerConfig(testRetryTopic, groupIdRetry)
 
 	counter := 0
 	handler1 := kafkax.NewResultHandler(
@@ -135,4 +137,37 @@ func TestRetry(t *testing.T) {
 	case <-time.After(25 * time.Second):
 		require.Fail("handler wasn't called")
 	}
+}
+
+func TestReadWrite(t *testing.T) {
+	t.Parallel()
+	test, require := test.New(t)
+
+	testKafka := NewKafka(test, "test_read_write")
+
+	testKafka.WriteMessages(kafka.Message{
+		Topic: testKafka.Topic(),
+		Value: []byte("test message"),
+	})
+
+	time.Sleep(200 * time.Millisecond)
+
+	msg := testKafka.ReadMessage()
+
+	require.EqualValues([]byte("test message"), msg.Value)
+	require.EqualValues(testKafka.Topic(), msg.Topic)
+
+	testKafka.CommitMessages(msg)
+
+	testKafka.WriteMessages(kafka.Message{
+		Topic: testKafka.Topic(),
+		Value: []byte("test message 2"),
+	})
+
+	time.Sleep(200 * time.Millisecond)
+
+	msg = testKafka.ReadMessage()
+
+	require.EqualValues([]byte("test message 2"), msg.Value)
+	require.EqualValues(testKafka.Topic(), msg.Topic)
 }
