@@ -4,6 +4,10 @@ import (
 	"context"
 )
 
+const (
+	RequestIdHeader = "x-request-id"
+)
+
 type contextKey struct{}
 
 var (

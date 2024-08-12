@@ -56,3 +56,31 @@ func TestDefault(t *testing.T) {
 	require.NoError(err)
 	require.True(resp.IsSuccess())
 }
+
+func TestLogHeaders(t *testing.T) {
+	testEnv, require := test.New(t)
+
+	expectedId := requestid.Next()
+	ctx := requestid.ToContext(context.Background(), expectedId)
+	ctx = log.ToContext(ctx, log.String("requestId", expectedId))
+
+	url := httpt.NewMock(testEnv).POST("/api/save", func(ctx context.Context, req example) (*example, error) {
+		return &req, nil
+	}).BaseURL()
+
+	cli := httpclix.Default(httpcli.WithMiddlewares(httpclix.Log(testEnv.Logger())))
+
+	ctx = httpclix.LogConfigToContext(ctx, false, false,
+		httpclix.LogHeaders(true, true),
+		httpclix.LogDump(true, true),
+	)
+
+	exp := example{}
+
+	resp, err := cli.Post(url + "/api/save").
+		JsonRequestBody(example{"test"}).
+		JsonResponseBody(&exp).
+		Do(ctx)
+	require.NoError(err)
+	require.True(resp.IsSuccess())
+}
