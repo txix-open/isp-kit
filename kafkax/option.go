@@ -19,7 +19,7 @@ func PlainAuth(auth *Auth) sasl.Mechanism {
 	}
 }
 
-func (c ConsumerConfig) WithMaxBatchSize() int {
+func (c ConsumerConfig) GetMaxBatchSize() int {
 	if c.MaxBatchSizeMb <= 0 {
 		return 64
 	}
@@ -27,7 +27,7 @@ func (c ConsumerConfig) WithMaxBatchSize() int {
 	return c.MaxBatchSizeMb
 }
 
-func (c ConsumerConfig) WithCommitIntervalSec() time.Duration {
+func (c ConsumerConfig) GetCommitIntervalSec() time.Duration {
 	if c.CommitIntervalSec == nil {
 		return 1 * time.Second
 	}
@@ -35,7 +35,7 @@ func (c ConsumerConfig) WithCommitIntervalSec() time.Duration {
 	return time.Duration(*c.CommitIntervalSec) * time.Second
 }
 
-func (p PublisherConfig) WithWriteTimeoutSecs() time.Duration {
+func (p PublisherConfig) GetWriteTimeoutSecs() time.Duration {
 	if p.WriteTimeoutSec == nil {
 		return 10 * time.Second
 	}
@@ -43,7 +43,7 @@ func (p PublisherConfig) WithWriteTimeoutSecs() time.Duration {
 	return time.Duration(*p.WriteTimeoutSec) * time.Second
 }
 
-func (p PublisherConfig) WithRequiredAckLevel() kafka.RequiredAcks {
+func (p PublisherConfig) GetRequiredAckLevel() kafka.RequiredAcks {
 	if p.RequiredAckLevel <= 1 && p.RequiredAckLevel >= -1 {
 		return kafka.RequiredAcks(p.RequiredAckLevel)
 	}
@@ -51,15 +51,15 @@ func (p PublisherConfig) WithRequiredAckLevel() kafka.RequiredAcks {
 	return kafka.RequireNone
 }
 
-func (p PublisherConfig) WithMaxMessageSize() int64 {
+func (p PublisherConfig) GetMaxMessageSize() int64 {
 	if p.MaxMsgSizeMb <= 0 {
-		return 1
+		return 64
 	}
 
 	return p.MaxMsgSizeMb
 }
 
-func (p PublisherConfig) WithBatchSize() int {
+func (p PublisherConfig) GetBatchSize() int {
 	if p.BatchSize <= 0 {
 		return 10
 	}
@@ -67,7 +67,7 @@ func (p PublisherConfig) WithBatchSize() int {
 	return p.BatchSize
 }
 
-func (p PublisherConfig) WithBatchTimeoutMs() time.Duration {
+func (p PublisherConfig) GetBatchTimeoutMs() time.Duration {
 	if p.BatchTimeoutMs == nil {
 		return 500 * time.Millisecond
 	}

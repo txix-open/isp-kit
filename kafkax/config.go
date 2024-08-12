@@ -46,8 +46,8 @@ func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler consumer.Hand
 			SASLMechanism: PlainAuth(c.Auth),
 		},
 		MinBytes:       1,
-		MaxBytes:       c.WithMaxBatchSize() * bytesInMb,
-		CommitInterval: c.WithCommitIntervalSec(),
+		MaxBytes:       c.GetMaxBatchSize() * bytesInMb,
+		CommitInterval: c.GetCommitIntervalSec(),
 		ErrorLogger: kafka.LoggerFunc(func(s string, i ...interface{}) {
 			logger.Error(ctx, "kafka consumer: "+fmt.Sprintf(s, i...))
 		}),
@@ -72,7 +72,7 @@ func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler consumer.Hand
 type PublisherConfig struct {
 	Addresses        []string `validate:"required" schema:"Список адресов брокеров для отправки сообщений"`
 	Topic            string   `validate:"required" schema:"Топик для отправки сообщений описывается здесь либо в каждом сообщении"`
-	MaxMsgSizeMb     int64    `schema:"Максимальный размер сообщений в Мб, по умолчанию 1 Мб"`
+	MaxMsgSizeMb     int64    `schema:"Максимальный размер сообщений в Мб, по умолчанию 64 Мб"`
 	BatchSize        int      `schema:"Количество буферизованных сообщений в пакетной отправке, по умолчанию 10"`
 	BatchTimeoutMs   *int     `schema:"Периодичность записи батчей в кафку в мс, по умолчанию 500 мс"`
 	WriteTimeoutSec  *int     `schema:"Таймаут отправки сообщений, по умолчанию 10 секунд"`
@@ -85,11 +85,11 @@ func (p PublisherConfig) DefaultPublisher(logger log.Logger, restMiddlewares ...
 
 	writer := kafka.Writer{
 		Addr:         kafka.TCP(p.Addresses...),
-		WriteTimeout: p.WithWriteTimeoutSecs(),
-		RequiredAcks: p.WithRequiredAckLevel(),
-		BatchBytes:   p.WithMaxMessageSize() * bytesInMb,
-		BatchSize:    p.WithBatchSize(),
-		BatchTimeout: p.WithBatchTimeoutMs(),
+		WriteTimeout: p.GetWriteTimeoutSecs(),
+		RequiredAcks: p.GetRequiredAckLevel(),
+		BatchBytes:   p.GetMaxMessageSize() * bytesInMb,
+		BatchSize:    p.GetBatchSize(),
+		BatchTimeout: p.GetBatchTimeoutMs(),
 		Transport: &kafka.Transport{
 			SASL: PlainAuth(p.Auth),
 		},
