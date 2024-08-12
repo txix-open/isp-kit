@@ -10,10 +10,11 @@ import (
 	"github.com/segmentio/kafka-go"
 	"github.com/txix-open/isp-kit/kafkax"
 	"github.com/txix-open/isp-kit/kafkax/consumer"
-	kafkaHandler "github.com/txix-open/isp-kit/kafkax/handler"
+	"github.com/txix-open/isp-kit/kafkax/handler"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/requestid"
 	"github.com/txix-open/isp-kit/test"
+	"github.com/txix-open/isp-kit/test/kafkat"
 )
 
 const (
@@ -28,7 +29,8 @@ func TestRequestIdChain(t *testing.T) {
 	test, require := test.New(t)
 	await := make(chan struct{})
 
-	testKafka := NewKafka(test, testRequestIdTopic)
+	testKafka := kafkat.NewKafka(test)
+	testKafka.CreateDefaultTopic(testRequestIdTopic)
 
 	time.Sleep(500 * time.Millisecond)
 
@@ -41,13 +43,13 @@ func TestRequestIdChain(t *testing.T) {
 	expectedRequestId := requestid.Next()
 	handler1 := kafkax.NewResultHandler(
 		test.Logger(),
-		kafkaHandler.SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) kafkaHandler.Result {
+		handler.SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) handler.Result {
 			requestId := requestid.FromContext(ctx)
 			require.EqualValues(expectedRequestId, requestId)
 			require.EqualValues("test message", string(delivery.Source().Value))
 
 			await <- struct{}{}
-			return kafkaHandler.Commit()
+			return handler.Commit()
 		}),
 	)
 
@@ -96,7 +98,8 @@ func TestRetry(t *testing.T) {
 	test, require := test.New(t)
 	await := make(chan struct{})
 
-	testKafka := NewKafka(test, testRetryTopic)
+	testKafka := kafkat.NewKafka(test)
+	testKafka.CreateDefaultTopic(testRetryTopic)
 
 	time.Sleep(500 * time.Millisecond)
 
@@ -108,14 +111,14 @@ func TestRetry(t *testing.T) {
 	counter := 0
 	handler1 := kafkax.NewResultHandler(
 		test.Logger(),
-		kafkaHandler.SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) kafkaHandler.Result {
+		handler.SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) handler.Result {
 			if counter != 3 {
 				counter++
-				return kafkaHandler.Retry(1*time.Second, errors.New("some error"))
+				return handler.Retry(1*time.Second, errors.New("some error"))
 			}
 
 			defer close(await)
-			return kafkaHandler.Commit()
+			return handler.Commit()
 		}),
 	)
 	cons1 := consumerCfg.DefaultConsumer(test.Logger(), handler1, kafkax.ConsumerLog(test.Logger()))
@@ -149,14 +152,12 @@ func TestReadWrite(t *testing.T) {
 	t.Parallel()
 	test, require := test.New(t)
 
-	testKafka := NewKafka(test, "test")
+	testKafka := kafkat.NewKafka(test)
 
 	topic := "test_read_write"
 	testKafka.CreateDefaultTopic(topic)
 	topic2 := "test_read_write_2"
 	testKafka.CreateDefaultTopic(topic2)
-
-	defer testKafka.DeleteTopics()
 
 	time.Sleep(500 * time.Millisecond)
 

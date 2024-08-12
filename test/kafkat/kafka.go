@@ -1,5 +1,5 @@
 // nolint:gomnd
-package tests
+package kafkat
 
 import (
 	"context"
@@ -23,7 +23,7 @@ type Kafka struct {
 	topics   []string
 }
 
-func NewKafka(t *test.Test, topic string) *Kafka {
+func NewKafka(t *test.Test) *Kafka {
 	addr := t.Config().Optional().String("KAFKA_ADDRESS", "127.0.0.1:9092")
 	username := t.Config().Optional().String("KAFKA_USERNAME", "user")
 	password := t.Config().Optional().String("KAFKA_PASSWORD", "password")
@@ -38,13 +38,6 @@ func NewKafka(t *test.Test, topic string) *Kafka {
 	}
 
 	conn, err := dialer.Dial("tcp", addr)
-	t.Assert().NoError(err)
-
-	err = conn.CreateTopics(kafka.TopicConfig{
-		Topic:             topic,
-		NumPartitions:     1,
-		ReplicationFactor: -1,
-	})
 	t.Assert().NoError(err)
 
 	w := &kafka.Writer{
@@ -62,26 +55,27 @@ func NewKafka(t *test.Test, topic string) *Kafka {
 		}),
 	}
 
-	t.T().Cleanup(func() {
-		err = w.Close()
-		t.Assert().NoError(err)
-
-		err = conn.DeleteTopics(topic)
-		t.Assert().NoError(err)
-
-		err = conn.Close()
-		t.Assert().NoError(err)
-	})
-
-	return &Kafka{
+	cli := &Kafka{
 		test:     t,
 		manager:  conn,
 		writer:   w,
 		address:  addr,
 		username: username,
 		password: password,
-		topics:   []string{topic},
+		topics:   make([]string, 0),
 	}
+
+	t.T().Cleanup(func() {
+		err = cli.writer.Close()
+		t.Assert().NoError(err)
+
+		cli.deleteTopics()
+
+		err = cli.manager.Close()
+		t.Assert().NoError(err)
+	})
+
+	return cli
 }
 
 // WriteMessages публикует сообщения в топик, указанный в сообщении
@@ -134,12 +128,10 @@ func (k *Kafka) CreateDefaultTopic(topic string) {
 	k.topics = append(k.topics, topic)
 }
 
-// DeleteTopics для удаления вручную созданных топиков
-func (k *Kafka) DeleteTopics() {
-	if len(k.topics[1:]) != 0 {
-		err := k.manager.DeleteTopics(k.topics[1:]...)
-		k.test.Assert().NoError(err)
-	}
+func (k *Kafka) deleteTopics() {
+	err := k.manager.DeleteTopics(k.topics...)
+	k.test.Assert().NoError(err)
+
 }
 
 func (k *Kafka) PublisherConfig(topic string) kafkax.PublisherConfig {
