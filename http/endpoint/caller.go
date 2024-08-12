@@ -107,7 +107,7 @@ func (h *Caller) Handle(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		return err
 	}
 
-	err = h.bodyMapper.Map(result, w)
+	err = h.bodyMapper.Map(ctx, result, w)
 	if err != nil {
 		return err
 	}

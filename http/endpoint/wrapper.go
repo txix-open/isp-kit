@@ -19,7 +19,7 @@ type RequestBodyExtractor interface {
 }
 
 type ResponseBodyMapper interface {
-	Map(result any, w http.ResponseWriter) error
+	Map(ctx context.Context, result any, w http.ResponseWriter) error
 }
 
 type ParamBuilder func(ctx context.Context, w http.ResponseWriter, r *http.Request) (any, error)
