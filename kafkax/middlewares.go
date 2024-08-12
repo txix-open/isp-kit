@@ -102,11 +102,7 @@ func ConsumerLog(logger log.Logger) consumer.Middleware {
 func ConsumerRequestId() consumer.Middleware {
 	return func(next consumer.Handler) consumer.Handler {
 		return consumer.HandlerFunc(func(ctx context.Context, delivery *consumer.Delivery) {
-			requestId := ""
-
-			if delivery.Source().Headers != nil {
-				requestId = GetHeaderValue(delivery.Source().Headers, RequestIdHeader)
-			}
+			requestId := GetHeaderValue(delivery.Source().Headers, RequestIdHeader)
 
 			if requestId == "" {
 				requestId = requestid.Next()
