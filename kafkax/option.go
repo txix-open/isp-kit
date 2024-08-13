@@ -19,7 +19,7 @@ func PlainAuth(auth *Auth) sasl.Mechanism {
 	}
 }
 
-func (c ConsumerConfig) GetMaxBatchSize() int {
+func (c ConsumerConfig) GetMaxBatchSizeMb() int {
 	if c.MaxBatchSizeMb <= 0 {
 		return 64
 	}
@@ -27,7 +27,7 @@ func (c ConsumerConfig) GetMaxBatchSize() int {
 	return c.MaxBatchSizeMb
 }
 
-func (c ConsumerConfig) GetCommitIntervalSec() time.Duration {
+func (c ConsumerConfig) GetCommitInterval() time.Duration {
 	if c.CommitIntervalSec == nil {
 		return 1 * time.Second
 	}
@@ -35,7 +35,7 @@ func (c ConsumerConfig) GetCommitIntervalSec() time.Duration {
 	return time.Duration(*c.CommitIntervalSec) * time.Second
 }
 
-func (p PublisherConfig) GetWriteTimeoutSecs() time.Duration {
+func (p PublisherConfig) GetWriteTimeout() time.Duration {
 	if p.WriteTimeoutSec == nil {
 		return 10 * time.Second
 	}
@@ -67,7 +67,7 @@ func (p PublisherConfig) GetBatchSize() int {
 	return p.BatchSize
 }
 
-func (p PublisherConfig) GetBatchTimeoutMs() time.Duration {
+func (p PublisherConfig) GetBatchTimeout() time.Duration {
 	if p.BatchTimeoutMs == nil {
 		return 500 * time.Millisecond
 	}

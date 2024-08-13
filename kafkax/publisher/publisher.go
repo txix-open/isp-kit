@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/go-stomp/stomp/v3/frame"
 	"github.com/pkg/errors"
 	"github.com/segmentio/kafka-go"
 	"go.uber.org/atomic"
@@ -22,14 +21,11 @@ func (f RoundTripperFunc) Publish(ctx context.Context, msgs ...kafka.Message) er
 	return f(ctx, msgs...)
 }
 
-type PublishOption = func(*frame.Frame) error
-
 type Publisher struct {
 	topic       string
 	address     string
 	middlewares []Middleware
 
-	observer     Observer
 	roundTripper RoundTripper
 	lock         sync.Locker
 	w            *kafka.Writer
@@ -71,7 +67,6 @@ func (p *Publisher) publish(ctx context.Context, msgs ...kafka.Message) error {
 	err := p.w.WriteMessages(ctx, msgs...)
 	if err != nil {
 		p.alive.Store(false)
-		p.observer.PublisherError(err)
 		return errors.WithMessage(err, "write messages")
 	}
 	p.alive.Store(true)
