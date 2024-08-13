@@ -1,4 +1,4 @@
-package rabbitmq_metrics
+package kafka_metrics
 
 import (
 	"time"
@@ -16,34 +16,34 @@ type PublisherStorage struct {
 func NewPublisherStorage(reg *metrics.Registry) *PublisherStorage {
 	s := &PublisherStorage{
 		publishMsgDuration: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
-			Subsystem:  "rabbitmq",
+			Subsystem:  "kafka",
 			Name:       "publish_duration_ms",
-			Help:       "The latency of publishing single message to queue",
+			Help:       "The latency of publishing messages to topic",
 			Objectives: metrics.DefaultObjectives,
-		}, []string{"exchange", "routing_key"})),
+		}, []string{"topic"})),
 		publishMsgBodySize: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
-			Subsystem:  "rabbitmq",
+			Subsystem:  "kafka",
 			Name:       "publish_body_size",
-			Help:       "The size of published message body to queue",
+			Help:       "The size of published message body to topic",
 			Objectives: metrics.DefaultObjectives,
-		}, []string{"exchange", "routing_key"})),
+		}, []string{"topic"})),
 		publishErrorCount: metrics.GetOrRegister(reg, prometheus.NewCounterVec(prometheus.CounterOpts{
-			Subsystem: "rabbitmq",
+			Subsystem: "kafka",
 			Name:      "publish_error_count",
 			Help:      "Count error on publishing",
-		}, []string{"exchange", "routing_key"})),
+		}, []string{"topic"})),
 	}
 	return s
 }
 
-func (c *PublisherStorage) ObservePublishDuration(exchange string, routingKey string, duration time.Duration) {
-	c.publishMsgDuration.WithLabelValues(exchange, routingKey).Observe(metrics.Milliseconds(duration))
+func (c *PublisherStorage) ObservePublishDuration(topic string, t time.Duration) {
+	c.publishMsgDuration.WithLabelValues(topic).Observe(metrics.Milliseconds(t))
 }
 
-func (c *PublisherStorage) ObservePublishMsgSize(exchange string, routingKey string, size int) {
-	c.publishMsgBodySize.WithLabelValues(exchange, routingKey).Observe(float64(size))
+func (c *PublisherStorage) ObservePublishMsgSize(topic string, size int) {
+	c.publishMsgBodySize.WithLabelValues(topic).Observe(float64(size))
 }
 
-func (c *PublisherStorage) IncPublishError(exchange string, routingKey string) {
-	c.publishErrorCount.WithLabelValues(exchange, routingKey).Inc()
+func (c *PublisherStorage) IncPublishError(topic string) {
+	c.publishErrorCount.WithLabelValues(topic).Inc()
 }

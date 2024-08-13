@@ -1,4 +1,4 @@
-package rabbitmq_metircs
+package rabbitmq_metrics
 
 import (
 	"time"
