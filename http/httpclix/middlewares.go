@@ -7,6 +7,7 @@ import (
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/metrics/http_metrics"
 	"github.com/txix-open/isp-kit/requestid"
+	"net/http/httptrace"
 	"net/http/httputil"
 	"time"
 )
@@ -156,8 +157,13 @@ func Metrics(storage *http_metrics.ClientStorage) httpcli.Middleware {
 				return next.RoundTrip(ctx, request)
 			}
 
+			clientTracer := NewClientTracer(storage, endpoint)
+			ctx = httptrace.WithClientTrace(ctx, clientTracer.ClientTrace())
+
 			start := time.Now()
 			resp, err := next.RoundTrip(ctx, request)
+			clientTracer.ResponseReceived()
+
 			storage.ObserveDuration(endpoint, time.Since(start))
 			return resp, err
 		})
