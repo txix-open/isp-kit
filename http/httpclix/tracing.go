@@ -41,8 +41,8 @@ func (cli *ClientTracer) ClientTrace() *httptrace.ClientTrace {
 			cli.connEstablishmentStart = time.Now()
 		},
 		ConnectDone: func(network, addr string, err error) {
-			connEstablishmentDone := time.Since(cli.connEstablishmentStart)
-			cli.clientStorage.ObserveConnEstablishment(cli.endpoint, network, addr, connEstablishmentDone)
+			connEstablishmentDur := time.Since(cli.connEstablishmentStart)
+			cli.clientStorage.ObserveConnEstablishment(cli.endpoint, network, addr, connEstablishmentDur)
 		},
 
 		// client stars writing the body, hence server starts reading it
@@ -70,6 +70,7 @@ func (cli *ClientTracer) ResponseReceived() {
 	if cli.responseWritingStart.IsZero() {
 		return
 	}
-	respWritingStop := time.Since(cli.responseWritingStart)
-	cli.clientStorage.ObserveResponseWriting(cli.endpoint, respWritingStop)
+
+	respWritingDur := time.Since(cli.responseWritingStart)
+	cli.clientStorage.ObserveResponseWriting(cli.endpoint, respWritingDur)
 }
