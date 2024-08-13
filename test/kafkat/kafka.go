@@ -113,11 +113,6 @@ func (k *Kafka) Address() string {
 	return k.address
 }
 
-// Topic возвращает название топика, указанное при вызове NewKafka()
-func (k *Kafka) Topic() string {
-	return k.topics[0]
-}
-
 func (k *Kafka) CreateDefaultTopic(topic string) {
 	err := k.manager.CreateTopics(kafka.TopicConfig{
 		Topic:             topic,
