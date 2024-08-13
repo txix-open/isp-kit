@@ -46,8 +46,8 @@ func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler consumer.Hand
 			SASLMechanism: PlainAuth(c.Auth),
 		},
 		MinBytes:       1,
-		MaxBytes:       c.GetMaxBatchSize() * bytesInMb,
-		CommitInterval: c.GetCommitIntervalSec(),
+		MaxBytes:       c.GetMaxBatchSizeMb() * bytesInMb,
+		CommitInterval: c.GetCommitInterval(),
 		ErrorLogger: kafka.LoggerFunc(func(s string, i ...interface{}) {
 			logger.Error(ctx, "kafka consumer: "+fmt.Sprintf(s, i...))
 		}),
@@ -85,11 +85,11 @@ func (p PublisherConfig) DefaultPublisher(logger log.Logger, restMiddlewares ...
 
 	writer := kafka.Writer{
 		Addr:         kafka.TCP(p.Addresses...),
-		WriteTimeout: p.GetWriteTimeoutSecs(),
+		WriteTimeout: p.GetWriteTimeout(),
 		RequiredAcks: p.GetRequiredAckLevel(),
 		BatchBytes:   p.GetMaxMessageSize() * bytesInMb,
 		BatchSize:    p.GetBatchSize(),
-		BatchTimeout: p.GetBatchTimeoutMs(),
+		BatchTimeout: p.GetBatchTimeout(),
 		Transport: &kafka.Transport{
 			SASL: PlainAuth(p.Auth),
 		},
@@ -107,7 +107,6 @@ func (p PublisherConfig) DefaultPublisher(logger log.Logger, restMiddlewares ...
 	pub := publisher.New(
 		&writer,
 		p.Topic,
-		publisher.WithObserver(publisher.NewLogObserver(ctx, logger, p.Topic)),
 		publisher.WithMiddlewares(middlewares...),
 	)
 

@@ -7,9 +7,3 @@ func WithMiddlewares(mws ...Middleware) Option {
 		p.middlewares = append(p.middlewares, mws...)
 	}
 }
-
-func WithObserver(observer Observer) Option {
-	return func(c *Publisher) {
-		c.observer = observer
-	}
-}
