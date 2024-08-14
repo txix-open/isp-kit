@@ -35,7 +35,6 @@ func (cli *ClientTracer) ClientTrace() *httptrace.ClientTrace {
 			cli.clientStorage.ObserveDnsLookup(cli.endpoint, dnsLookupDur)
 		},
 
-		// taking into account conn pooling + dialing
 		ConnectStart: func(network string, addr string) {
 			cli.connEstablishmentStartTime = time.Now()
 		},
