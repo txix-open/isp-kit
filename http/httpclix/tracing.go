@@ -8,11 +8,10 @@ import (
 
 type ClientTracer struct {
 	clientStorage *metrics.ClientStorage
-	connEstablishmentStart,
-	dnsStart,
-	requestWritingStart,
-	responseReadingStart time.Time
-	dnsHost,
+	connEstablishmentStartTime,
+	dnsStartTime,
+	requestWritingStartTime,
+	responseReadingStartTime time.Time
 	endpoint string
 }
 
@@ -26,45 +25,53 @@ func NewClientTracer(clientStorage *metrics.ClientStorage, endpoint string) *Cli
 func (cli *ClientTracer) ClientTrace() *httptrace.ClientTrace {
 	tracingCli := httptrace.ClientTrace{
 		DNSStart: func(info httptrace.DNSStartInfo) {
-			cli.dnsStart = time.Now()
-			cli.dnsHost = info.Host
+			cli.dnsStartTime = time.Now()
 		},
 		DNSDone: func(info httptrace.DNSDoneInfo) {
-			dnsLookupDur := time.Since(cli.dnsStart)
+			if cli.dnsStartTime.IsZero() {
+				return
+			}
+			dnsLookupDur := time.Since(cli.dnsStartTime)
 			cli.clientStorage.ObserveDnsLookup(cli.endpoint, dnsLookupDur)
 		},
 
 		// taking into account conn pooling + dialing
-		GetConn: func(hostPort string) {
-			cli.connEstablishmentStart = time.Now()
+		ConnectStart: func(network string, addr string) {
+			cli.connEstablishmentStartTime = time.Now()
 		},
 		ConnectDone: func(network, addr string, err error) {
-			connEstablishmentDur := time.Since(cli.connEstablishmentStart)
+			if cli.connEstablishmentStartTime.IsZero() {
+				return
+			}
+			connEstablishmentDur := time.Since(cli.connEstablishmentStartTime)
 			cli.clientStorage.ObserveConnEstablishment(cli.endpoint, connEstablishmentDur)
 		},
 
 		// starting to write body
 		WroteHeaders: func() {
-			cli.requestWritingStart = time.Now()
+			cli.requestWritingStartTime = time.Now()
 		},
 		WroteRequest: func(info httptrace.WroteRequestInfo) {
-			requestWritingDur := time.Since(cli.requestWritingStart)
+			if cli.requestWritingStartTime.IsZero() {
+				return
+			}
+			requestWritingDur := time.Since(cli.requestWritingStartTime)
 			cli.clientStorage.ObserveRequestWriting(cli.endpoint, requestWritingDur)
 		},
 
 		// response writing started
 		GotFirstResponseByte: func() {
-			cli.responseReadingStart = time.Now()
+			cli.responseReadingStartTime = time.Now()
 		},
 	}
 	return &tracingCli
 }
 
 func (cli *ClientTracer) ResponseReceived() {
-	if cli.responseReadingStart.IsZero() {
+	if cli.responseReadingStartTime.IsZero() {
 		return
 	}
 
-	respReadingDur := time.Since(cli.responseReadingStart)
+	respReadingDur := time.Since(cli.responseReadingStartTime)
 	cli.clientStorage.ObserveResponseReading(cli.endpoint, respReadingDur)
 }

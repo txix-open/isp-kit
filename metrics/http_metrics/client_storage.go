@@ -35,7 +35,7 @@ func NewClientStorage(reg *metrics.Registry) *ClientStorage {
 	s := &ClientStorage{
 		duration: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Subsystem:  "http",
-			Name:       "client_request_duration",
+			Name:       "client_request_duration_ms",
 			Help:       "The latencies of calling external services via HTTP",
 			Objectives: metrics.DefaultObjectives,
 		}, []string{"endpoint"})),
@@ -72,21 +72,21 @@ func NewClientStorage(reg *metrics.Registry) *ClientStorage {
 }
 
 func (s *ClientStorage) ObserveDuration(endpoint string, duration time.Duration) {
-	s.duration.WithLabelValues(endpoint).Observe(float64(duration.Nanoseconds()))
+	s.duration.WithLabelValues(endpoint).Observe(metrics.Milliseconds(duration))
 }
 
 func (s *ClientStorage) ObserveConnEstablishment(endpoint string, duration time.Duration) {
-	s.connEstablishment.WithLabelValues(endpoint).Observe(float64(duration.Nanoseconds()))
+	s.connEstablishment.WithLabelValues(endpoint).Observe(float64(duration))
 }
 
 func (s *ClientStorage) ObserveRequestWriting(endpoint string, duration time.Duration) {
-	s.requestWriting.WithLabelValues(endpoint).Observe(float64(duration.Nanoseconds()))
+	s.requestWriting.WithLabelValues(endpoint).Observe(float64(duration))
 }
 
 func (s *ClientStorage) ObserveDnsLookup(endpoint string, duration time.Duration) {
-	s.dnsLookup.WithLabelValues(endpoint).Observe(float64(duration.Nanoseconds()))
+	s.dnsLookup.WithLabelValues(endpoint).Observe(float64(duration))
 }
 
 func (s *ClientStorage) ObserveResponseReading(endpoint string, duration time.Duration) {
-	s.responseReading.WithLabelValues(endpoint).Observe(float64(duration.Nanoseconds()))
+	s.responseReading.WithLabelValues(endpoint).Observe(float64(duration))
 }
