@@ -42,28 +42,28 @@ func NewClientStorage(reg *metrics.Registry) *ClientStorage {
 
 		connEstablishment: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Subsystem:  "http",
-			Name:       "http_client_connect_duration",
+			Name:       "client_connect_duration",
 			Help:       "The latencies of connection establishment",
 			Objectives: metrics.DefaultObjectives,
 		}, []string{"endpoint"})),
 
 		requestWriting: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Subsystem:  "http",
-			Name:       "http_client_request_write_duration",
+			Name:       "client_request_write_duration",
 			Help:       "The latencies of request writing",
 			Objectives: metrics.DefaultObjectives,
 		}, []string{"endpoint"})),
 
 		dnsLookup: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Subsystem:  "http",
-			Name:       "http_client_dns_duration",
+			Name:       "client_dns_duration",
 			Help:       "The latencies of DNS lookup",
 			Objectives: metrics.DefaultObjectives,
 		}, []string{"endpoint"})),
 
 		responseReading: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Subsystem:  "http",
-			Name:       "http_client_response_read_duration",
+			Name:       "client_response_read_duration",
 			Help:       "The latencies of response reading",
 			Objectives: metrics.DefaultObjectives,
 		}, []string{"endpoint"})),
