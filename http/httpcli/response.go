@@ -16,6 +16,12 @@ type Response struct {
 	buff   *bytes.Buffer
 }
 
+type ReadingResponseMetricHook struct{}
+
+var (
+	ReadingResponseMetricHookKey = ReadingResponseMetricHook{}
+)
+
 // Body
 // Read and return full response body
 // Be careful, after calling Close returned data is no longer available
@@ -27,6 +33,12 @@ func (r *Response) Body() ([]byte, error) {
 	if r.body != nil {
 		return r.body, nil
 	}
+
+	readingResponseMetricHook := r.Raw.Request.Context().Value(ReadingResponseMetricHookKey)
+	if readingResponseMetricHook != nil {
+		defer readingResponseMetricHook.(func())()
+	}
+
 	defer func() {
 		if r.cancel != nil {
 			r.cancel() //associated context is no longer needed
