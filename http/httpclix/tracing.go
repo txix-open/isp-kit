@@ -2,9 +2,7 @@ package httpclix
 
 import (
 	metrics "github.com/txix-open/isp-kit/metrics/http_metrics"
-	"net/http"
 	"net/http/httptrace"
-	"net/textproto"
 	"time"
 )
 
@@ -33,7 +31,7 @@ func (cli *ClientTracer) ClientTrace() *httptrace.ClientTrace {
 		},
 		DNSDone: func(info httptrace.DNSDoneInfo) {
 			dnsLookupDur := time.Since(cli.dnsStart)
-			cli.clientStorage.ObserveDnsLookup(cli.endpoint, cli.dnsHost, dnsLookupDur)
+			cli.clientStorage.ObserveDnsLookup(cli.endpoint, dnsLookupDur)
 		},
 
 		// taking into account conn pooling + dialing
@@ -42,20 +40,7 @@ func (cli *ClientTracer) ClientTrace() *httptrace.ClientTrace {
 		},
 		ConnectDone: func(network, addr string, err error) {
 			connEstablishmentDur := time.Since(cli.connEstablishmentStart)
-			cli.clientStorage.ObserveConnEstablishment(cli.endpoint, network, addr, connEstablishmentDur)
-		},
-
-		// client stars writing the body, hence server starts reading it
-		Got100Continue: func() {
-			cli.requestReadingStart = time.Now()
-		},
-		Got1xxResponse: func(code int, header textproto.MIMEHeader) error {
-			if code == http.StatusProcessing {
-				// done reading the request body
-				requestReadingDur := time.Since(cli.requestReadingStart)
-				cli.clientStorage.ObserveRequestReading(cli.endpoint, requestReadingDur)
-			}
-			return nil
+			cli.clientStorage.ObserveConnEstablishment(cli.endpoint, connEstablishmentDur)
 		},
 
 		// response writing started
