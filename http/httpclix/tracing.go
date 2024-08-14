@@ -10,7 +10,7 @@ type ClientTracer struct {
 	clientStorage *metrics.ClientStorage
 	connEstablishmentStart,
 	dnsStart,
-	requestReadingStart,
+	requestWritingStart,
 	responseWritingStart time.Time
 	dnsHost,
 	endpoint string
@@ -43,6 +43,15 @@ func (cli *ClientTracer) ClientTrace() *httptrace.ClientTrace {
 			cli.clientStorage.ObserveConnEstablishment(cli.endpoint, connEstablishmentDur)
 		},
 
+		// starting to write body
+		WroteHeaders: func() {
+			cli.requestWritingStart = time.Now()
+		},
+		WroteRequest: func(info httptrace.WroteRequestInfo) {
+			requestWritingDur := time.Since(cli.requestWritingStart)
+			cli.clientStorage.ObserveRequestWriting(cli.endpoint, requestWritingDur)
+		},
+
 		// response writing started
 		GotFirstResponseByte: func() {
 			cli.responseWritingStart = time.Now()
@@ -57,5 +66,5 @@ func (cli *ClientTracer) ResponseReceived() {
 	}
 
 	respWritingDur := time.Since(cli.responseWritingStart)
-	cli.clientStorage.ObserveResponseWriting(cli.endpoint, respWritingDur)
+	cli.clientStorage.ObserveResponseReading(cli.endpoint, respWritingDur)
 }

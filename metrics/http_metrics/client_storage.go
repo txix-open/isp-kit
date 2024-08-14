@@ -27,8 +27,8 @@ type ClientStorage struct {
 	duration          *prometheus.SummaryVec
 	dnsLookup         *prometheus.SummaryVec
 	connEstablishment *prometheus.SummaryVec
-	requestReading    *prometheus.SummaryVec
-	responseWriting   *prometheus.SummaryVec
+	requestWriting    *prometheus.SummaryVec
+	responseReading   *prometheus.SummaryVec
 }
 
 func NewClientStorage(reg *metrics.Registry) *ClientStorage {
@@ -47,6 +47,13 @@ func NewClientStorage(reg *metrics.Registry) *ClientStorage {
 			Objectives: metrics.DefaultObjectives,
 		}, []string{"endpoint"})),
 
+		requestWriting: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
+			Subsystem:  "http",
+			Name:       "http_client_request_write_duration",
+			Help:       "The latencies of request writing",
+			Objectives: metrics.DefaultObjectives,
+		}, []string{"endpoint"})),
+
 		dnsLookup: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Subsystem:  "http",
 			Name:       "http_client_dns_duration",
@@ -54,10 +61,10 @@ func NewClientStorage(reg *metrics.Registry) *ClientStorage {
 			Objectives: metrics.DefaultObjectives,
 		}, []string{"endpoint"})),
 
-		responseWriting: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
+		responseReading: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Subsystem:  "http",
-			Name:       "http_client_response_write_duration",
-			Help:       "The latencies of response writing",
+			Name:       "http_client_response_read_duration",
+			Help:       "The latencies of response reading",
 			Objectives: metrics.DefaultObjectives,
 		}, []string{"endpoint"})),
 	}
@@ -72,10 +79,14 @@ func (s *ClientStorage) ObserveConnEstablishment(endpoint string, duration time.
 	s.connEstablishment.WithLabelValues(endpoint).Observe(float64(duration.Nanoseconds()))
 }
 
+func (s *ClientStorage) ObserveRequestWriting(endpoint string, duration time.Duration) {
+	s.requestWriting.WithLabelValues(endpoint).Observe(float64(duration.Nanoseconds()))
+}
+
 func (s *ClientStorage) ObserveDnsLookup(endpoint string, duration time.Duration) {
 	s.dnsLookup.WithLabelValues(endpoint).Observe(float64(duration.Nanoseconds()))
 }
 
-func (s *ClientStorage) ObserveResponseWriting(endpoint string, duration time.Duration) {
-	s.responseWriting.WithLabelValues(endpoint).Observe(float64(duration.Nanoseconds()))
+func (s *ClientStorage) ObserveResponseReading(endpoint string, duration time.Duration) {
+	s.responseReading.WithLabelValues(endpoint).Observe(float64(duration.Nanoseconds()))
 }
