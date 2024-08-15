@@ -34,11 +34,6 @@ func (r *Response) Body() ([]byte, error) {
 		return r.body, nil
 	}
 
-	readingResponseMetricHook := r.Raw.Request.Context().Value(ReadingResponseMetricHookKey)
-	if readingResponseMetricHook != nil {
-		defer readingResponseMetricHook.(func())()
-	}
-
 	defer func() {
 		if r.cancel != nil {
 			r.cancel() //associated context is no longer needed
@@ -50,6 +45,11 @@ func (r *Response) Body() ([]byte, error) {
 		r.err = err
 		return nil, err
 	}
+
+	if hook, ok := r.Raw.Request.Context().Value(ReadingResponseMetricHookKey).(func()); ok {
+		hook()
+	}
+
 	r.body = r.buff.Bytes()
 	return r.body, nil
 }

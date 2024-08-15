@@ -160,9 +160,7 @@ func Metrics(storage *http_metrics.ClientStorage) httpcli.Middleware {
 			clientTracer := NewClientTracer(storage, endpoint)
 			ctx = httptrace.WithClientTrace(ctx, clientTracer.ClientTrace())
 
-			ctx = context.WithValue(ctx, httpcli.ReadingResponseMetricHookKey, func() {
-				clientTracer.ResponseReceived()
-			})
+			ctx = context.WithValue(ctx, httpcli.ReadingResponseMetricHookKey, clientTracer.ResponseReceived)
 			request.Raw = request.Raw.WithContext(ctx)
 
 			start := time.Now()

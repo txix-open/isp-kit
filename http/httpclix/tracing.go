@@ -7,12 +7,12 @@ import (
 )
 
 type ClientTracer struct {
-	clientStorage *metrics.ClientStorage
-	connEstablishmentStartTime,
-	dnsStartTime,
-	requestWritingStartTime,
-	responseReadingStartTime time.Time
-	endpoint string
+	clientStorage              *metrics.ClientStorage
+	connEstablishmentStartTime time.Time
+	dnsStartTime               time.Time
+	requestWritingStartTime    time.Time
+	responseReadingStartTime   time.Time
+	endpoint                   string
 }
 
 func NewClientTracer(clientStorage *metrics.ClientStorage, endpoint string) *ClientTracer {
