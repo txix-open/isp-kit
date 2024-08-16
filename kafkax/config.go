@@ -32,8 +32,11 @@ type ConsumerConfig struct {
 	Auth              *Auth    `schema:"Параметры аутентификации"`
 }
 
-func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler consumer.Handler,
-	restMiddlewares ...consumer.Middleware) consumer.Consumer {
+func (c ConsumerConfig) DefaultConsumer(
+	logger log.Logger,
+	handler consumer.Handler,
+	restMiddlewares ...consumer.Middleware,
+) consumer.Consumer {
 	ctx := log.ToContext(context.Background(), log.String("topic", c.Topic))
 
 	reader := kafka.NewReader(kafka.ReaderConfig{
@@ -70,14 +73,14 @@ func (c ConsumerConfig) DefaultConsumer(logger log.Logger, handler consumer.Hand
 }
 
 type PublisherConfig struct {
-	Addresses        []string `validate:"required" schema:"Список адресов брокеров для отправки сообщений"`
-	Topic            string   `validate:"required" schema:"Топик для отправки сообщений описывается здесь либо в каждом сообщении"`
-	MaxMsgSizeMb     int64    `schema:"Максимальный размер сообщений в Мб, по умолчанию 64 Мб"`
-	BatchSize        int      `schema:"Количество буферизованных сообщений в пакетной отправке, по умолчанию 10"`
-	BatchTimeoutMs   *int     `schema:"Периодичность записи батчей в кафку в мс, по умолчанию 500 мс"`
-	WriteTimeoutSec  *int     `schema:"Таймаут отправки сообщений, по умолчанию 10 секунд"`
-	RequiredAckLevel int      `schema:"Количество подтверждений реплик разделов для получения ответа на запрос отправки сообщения"`
-	Auth             *Auth    `schema:"Параметры аутентификации"`
+	Addresses                  []string `validate:"required" schema:"Список адресов брокеров для отправки сообщений"`
+	Topic                      string   `validate:"required" schema:"Топик для отправки сообщений описывается здесь либо в каждом сообщении"`
+	MaxMsgSizeMbPerPartition   int64    `schema:"Максимальный размер сообщений в Мб, по умолчанию 64 Мб"`
+	BatchSizePerPartition      int      `schema:"Количество буферизованных сообщений в пакетной отправке, по умолчанию 10"`
+	BatchTimeoutPerPartitionMs *int     `schema:"Периодичность записи батчей в кафку в мс, по умолчанию 500 мс"`
+	WriteTimeoutSec            *int     `schema:"Таймаут отправки сообщений, по умолчанию 10 секунд"`
+	RequiredAckLevel           int      `schema:"Количество подтверждений реплик разделов для получения ответа на запрос отправки сообщения"`
+	Auth                       *Auth    `schema:"Параметры аутентификации"`
 }
 
 func (p PublisherConfig) DefaultPublisher(logger log.Logger, restMiddlewares ...publisher.Middleware) *publisher.Publisher {
@@ -87,9 +90,9 @@ func (p PublisherConfig) DefaultPublisher(logger log.Logger, restMiddlewares ...
 		Addr:         kafka.TCP(p.Addresses...),
 		WriteTimeout: p.GetWriteTimeout(),
 		RequiredAcks: p.GetRequiredAckLevel(),
-		BatchBytes:   p.GetMaxMessageSize() * bytesInMb,
-		BatchSize:    p.GetBatchSize(),
-		BatchTimeout: p.GetBatchTimeout(),
+		BatchBytes:   p.GetMaxMessageSizePerPartition() * bytesInMb,
+		BatchSize:    p.GetBatchSizePerPartition(),
+		BatchTimeout: p.GetBatchTimeoutPerPartition(),
 		Transport: &kafka.Transport{
 			SASL: PlainAuth(p.Auth),
 		},

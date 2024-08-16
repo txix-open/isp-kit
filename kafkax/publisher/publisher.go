@@ -22,21 +22,22 @@ func (f RoundTripperFunc) Publish(ctx context.Context, msgs ...kafka.Message) er
 }
 
 type Publisher struct {
+	Writer *kafka.Writer
+
 	topic       string
 	address     string
 	middlewares []Middleware
 
 	roundTripper RoundTripper
 	lock         sync.Locker
-	w            *kafka.Writer
 	alive        *atomic.Bool
 }
 
 func New(writer *kafka.Writer, topic string, opts ...Option) *Publisher {
 	p := &Publisher{
+		Writer:  writer,
 		topic:   topic,
 		address: writer.Addr.String(),
-		w:       writer,
 		alive:   atomic.NewBool(true),
 		lock:    &sync.Mutex{},
 	}
@@ -64,7 +65,7 @@ func (p *Publisher) Publish(ctx context.Context, msgs ...kafka.Message) error {
 }
 
 func (p *Publisher) publish(ctx context.Context, msgs ...kafka.Message) error {
-	err := p.w.WriteMessages(ctx, msgs...)
+	err := p.Writer.WriteMessages(ctx, msgs...)
 	if err != nil {
 		p.alive.Store(false)
 		return errors.WithMessage(err, "write messages")
@@ -75,7 +76,7 @@ func (p *Publisher) publish(ctx context.Context, msgs ...kafka.Message) error {
 }
 
 func (p *Publisher) Close() error {
-	err := p.w.Close()
+	err := p.Writer.Close()
 	if err != nil {
 		return errors.WithMessage(err, "close writer")
 	}
@@ -87,5 +88,5 @@ func (p *Publisher) Healthcheck(_ context.Context) error {
 	if p.alive.Load() {
 		return nil
 	}
-	return errors.New("kafka publisher: not healthy " + p.w.Topic)
+	return errors.New("kafka publisher: not healthy " + p.Writer.Topic)
 }
