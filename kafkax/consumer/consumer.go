@@ -24,16 +24,16 @@ func (f HandlerFunc) Handle(ctx context.Context, delivery *Delivery) {
 }
 
 type Consumer struct {
+	reader *kafka.Reader
+
 	middlewares []Middleware
 	concurrency int
-
-	reader     *kafka.Reader
-	handler    Handler
-	observer   Observer
-	deliveryWg *sync.WaitGroup
-	workersWg  *sync.WaitGroup
-	deliveries chan Delivery
-	alive      *atomic.Bool
+	handler     Handler
+	observer    Observer
+	deliveryWg  *sync.WaitGroup
+	workersWg   *sync.WaitGroup
+	deliveries  chan Delivery
+	alive       *atomic.Bool
 }
 
 func New(reader *kafka.Reader, handler Handler, concurrency int, opts ...Option) *Consumer {
@@ -42,8 +42,8 @@ func New(reader *kafka.Reader, handler Handler, concurrency int, opts ...Option)
 	}
 
 	c := &Consumer{
-		concurrency: concurrency,
 		reader:      reader,
+		concurrency: concurrency,
 		handler:     handler,
 		deliveryWg:  &sync.WaitGroup{},
 		workersWg:   &sync.WaitGroup{},
@@ -130,7 +130,7 @@ func (c *Consumer) Close() error {
 
 	err := c.reader.Close()
 	if err != nil {
-		return errors.WithMessage(err, "close kafka.Reader")
+		return errors.WithMessage(err, "close kafka.reader")
 	}
 
 	return nil

@@ -51,26 +51,26 @@ func (p PublisherConfig) GetRequiredAckLevel() kafka.RequiredAcks {
 	return kafka.RequireNone
 }
 
-func (p PublisherConfig) GetMaxMessageSize() int64 {
-	if p.MaxMsgSizeMb <= 0 {
+func (p PublisherConfig) GetMaxMessageSizePerPartition() int64 {
+	if p.MaxMsgSizeMbPerPartition <= 0 {
 		return 64
 	}
 
-	return p.MaxMsgSizeMb
+	return p.MaxMsgSizeMbPerPartition
 }
 
-func (p PublisherConfig) GetBatchSize() int {
-	if p.BatchSize <= 0 {
+func (p PublisherConfig) GetBatchSizePerPartition() int {
+	if p.BatchSizePerPartition <= 0 {
 		return 10
 	}
 
-	return p.BatchSize
+	return p.BatchSizePerPartition
 }
 
-func (p PublisherConfig) GetBatchTimeout() time.Duration {
-	if p.BatchTimeoutMs == nil {
+func (p PublisherConfig) GetBatchTimeoutPerPartition() time.Duration {
+	if p.BatchTimeoutPerPartitionMs == nil {
 		return 500 * time.Millisecond
 	}
 
-	return time.Duration(*p.BatchTimeoutMs) * time.Millisecond
+	return time.Duration(*p.BatchTimeoutPerPartitionMs) * time.Millisecond
 }

@@ -131,9 +131,9 @@ func (k *Kafka) deleteTopics() {
 
 func (k *Kafka) PublisherConfig(topic string) kafkax.PublisherConfig {
 	return kafkax.PublisherConfig{
-		Addresses: []string{k.address},
-		Topic:     topic,
-		BatchSize: 1,
+		Addresses:             []string{k.address},
+		Topic:                 topic,
+		BatchSizePerPartition: 1,
 		Auth: &kafkax.Auth{
 			Username: k.username,
 			Password: k.password,

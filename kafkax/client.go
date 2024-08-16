@@ -31,7 +31,6 @@ func New(logger log.Logger) *Client {
 type KafkaClient struct {
 	publishers []*publisher.Publisher
 	consumers  []consumer.Consumer
-	lock       sync.Locker
 	observer   Observer
 }
 
@@ -58,8 +57,8 @@ func (c *Client) Healthcheck(ctx context.Context) error {
 }
 
 func (c *Client) Close() {
-	c.cli.lock.Lock()
-	defer c.cli.lock.Unlock()
+	c.lock.Lock()
+	defer c.lock.Unlock()
 
 	c.cli.observer.ShutdownStarted()
 
@@ -106,12 +105,11 @@ func (c *Client) upgradeAndServe(ctx context.Context, config Config) error {
 		c.cli = nil
 	}
 
-	cli := c.upgrade(ctx, config)
-	cli.run(ctx)
+	c.cli = c.upgrade(ctx, config)
+	c.cli.run(ctx)
 
-	cli.observer.ClientReady()
+	c.cli.observer.ClientReady()
 
-	c.cli = cli
 	c.prevCfg = config
 	return nil
 }
@@ -120,7 +118,6 @@ func (c *Client) upgrade(ctx context.Context, config Config) *KafkaClient {
 	return &KafkaClient{
 		publishers: config.Publishers,
 		consumers:  config.Consumers,
-		lock:       &sync.Mutex{},
 		observer:   NewLogObserver(ctx, c.logger),
 	}
 }
