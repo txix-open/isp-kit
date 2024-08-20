@@ -176,7 +176,7 @@ func (m *Metrics) register(name string, labelNames []string) *prometheus.Counter
 		}, labelNames)
 
 	defer func() {
-		recover()
+		_ = recover()
 	}()
 	reg := metrics.GetOrRegister(m.registry, counterMetric)
 
