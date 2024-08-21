@@ -35,7 +35,7 @@ type CounterMetrics struct {
 	// ctx global
 	ctx context.Context
 
-	buffMu        sync.RWMutex
+	buffMu        sync.Mutex
 	counterBuffer map[string]*counter
 	bufferCap     uint
 	// bufferLen overall amount of counterValue-s
@@ -191,8 +191,9 @@ func (m *CounterMetrics) flush(ctx context.Context) error {
 		counters      []*counter
 		counterValues []*counterValue
 	)
-	m.buffMu.RLock()
-	defer m.buffMu.RUnlock()
+	// can't use RLock since bufferLen is changed
+	m.buffMu.Lock()
+	defer m.buffMu.Unlock()
 
 	for _, counter := range m.counterBuffer {
 		counters = append(counters, counter)
