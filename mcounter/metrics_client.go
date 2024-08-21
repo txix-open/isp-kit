@@ -4,18 +4,12 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"github.com/lib/pq"
-	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/metrics"
 	"slices"
 	"sync"
 	"time"
-)
-
-var (
-	DuplicateNameErr = errors.New("duplicate name")
 )
 
 type CounterTransaction interface {
@@ -33,43 +27,6 @@ type MetricRep interface {
 
 	UpsertCounter(ctx context.Context, counter []*counter) error
 	UpsertCounterValue(ctx context.Context, counter []*counterValue) error
-}
-
-type counter struct {
-	Name   string         `db:"name"`
-	Labels pq.StringArray `db:"labels"`
-
-	counterValues map[string]*counterValue
-}
-
-type counterValue struct {
-	// id = hash(CounterName + LabelValues)
-	Id          string         `db:"id"`
-	CounterName string         `db:"counter_name"`
-	LabelValues pq.StringArray `db:"label_values"`
-	AddValue    int            `db:"counter_value"`
-}
-
-type CounterConfig struct {
-	BufferCap     uint
-	FlushInterval time.Duration
-}
-
-func DefaultConfig() *CounterConfig {
-	return &CounterConfig{
-		BufferCap:     10,
-		FlushInterval: 5 * time.Second,
-	}
-}
-
-func (c *CounterConfig) WithFlushInterval(interval time.Duration) *CounterConfig {
-	c.FlushInterval = interval
-	return c
-}
-
-func (c *CounterConfig) WithBufferCap(capacity uint) *CounterConfig {
-	c.BufferCap = capacity
-	return c
 }
 
 type CounterMetrics struct {
