@@ -1,6 +1,6 @@
 -- +goose Up
 create table counter (
-    name text primary key,
+    name text primary key check(name ~ '^[^\.]*$'),
     labels text[]
 );
 
