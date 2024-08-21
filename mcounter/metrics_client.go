@@ -65,11 +65,10 @@ func NewCounterMetrics(
 	}
 
 	err := counterMetrics.load()
-	go counterMetrics.runTimedFlusher(ctx, config.FlushInterval)
-
 	if err != nil {
 		return nil, err
 	}
+	go counterMetrics.runTimedFlusher(ctx, config.FlushInterval)
 
 	return counterMetrics, nil
 }
