@@ -1,6 +1,7 @@
 package mcounter
 
 import (
+	"github.com/stretchr/testify/require"
 	"github.com/txix-open/isp-kit/dbx"
 	"github.com/txix-open/isp-kit/metrics"
 	"github.com/txix-open/isp-kit/test"
@@ -10,18 +11,23 @@ import (
 	"time"
 )
 
-func TestCloseFlushing(t *testing.T) {
+func InitTest(t *testing.T, conf *CounterConfig) (*CounterMetrics, *require.Assertions, context.Context, *dbt.TestDb) {
 	ctx := context.Background()
 	test, assert := test.New(t)
 	testDb := dbt.New(test, dbx.WithMigrationRunner("./migration", test.Logger()))
 	rep := NewCounterRepo(testDb)
 	txManager := NewTxManager(testDb)
-
-	conf := DefaultConfig().WithFlushInterval(time.Second * 3).WithBufferCap(3)
 	metricsCli, err := NewCounterMetrics(ctx, metrics.NewRegistry(), test.Logger(), rep, txManager, conf)
 	assert.NoError(err)
 
-	err = metricsCli.Inc("test1", map[string]string{"fieldName1": "fieldValue1"})
+	return metricsCli, assert, ctx, testDb
+}
+
+func TestCloseFlushing(t *testing.T) {
+	conf := DefaultConfig().WithFlushInterval(time.Second * 3).WithBufferCap(3)
+	metricsCli, assert, ctx, testDb := InitTest(t, conf)
+
+	err := metricsCli.Inc("test1", map[string]string{"fieldName1": "fieldValue1"})
 	assert.NoError(err)
 	var counters []counter
 	err = testDb.Select(ctx, &counters, "SELECT * FROM counter")
@@ -37,17 +43,10 @@ func TestCloseFlushing(t *testing.T) {
 }
 
 func TestTimedFlushing(t *testing.T) {
-	ctx := context.Background()
-	test, assert := test.New(t)
-	testDb := dbt.New(test, dbx.WithMigrationRunner("./migration", test.Logger()))
-	rep := NewCounterRepo(testDb)
-	txManager := NewTxManager(testDb)
-
 	conf := DefaultConfig().WithFlushInterval(time.Second).WithBufferCap(3)
-	metricsCli, err := NewCounterMetrics(ctx, metrics.NewRegistry(), test.Logger(), rep, txManager, conf)
-	assert.NoError(err)
+	metricsCli, assert, ctx, testDb := InitTest(t, conf)
 
-	err = metricsCli.Inc("test1", map[string]string{"fieldName1": "fieldValue1"})
+	err := metricsCli.Inc("test1", map[string]string{"fieldName1": "fieldValue1"})
 	assert.NoError(err)
 	var counters []counter
 	err = testDb.Select(ctx, &counters, "SELECT * FROM counter")
@@ -61,17 +60,10 @@ func TestTimedFlushing(t *testing.T) {
 }
 
 func TestDuplicate(t *testing.T) {
-	ctx := context.Background()
-	test, assert := test.New(t)
-	testDb := dbt.New(test, dbx.WithMigrationRunner("./migration", test.Logger()))
-	rep := NewCounterRepo(testDb)
-	txManager := NewTxManager(testDb)
-
 	conf := DefaultConfig().WithFlushInterval(time.Second).WithBufferCap(3)
-	metricsCli, err := NewCounterMetrics(ctx, metrics.NewRegistry(), test.Logger(), rep, txManager, conf)
-	assert.NoError(err)
+	metricsCli, assert, ctx, testDb := InitTest(t, conf)
 
-	err = metricsCli.Inc("test1", map[string]string{"fieldName1": "fieldValue1"})
+	err := metricsCli.Inc("test1", map[string]string{"fieldName1": "fieldValue1"})
 	assert.NoError(err)
 	err = metricsCli.Inc("test1", map[string]string{"fieldName1": "fieldValue1"})
 	assert.NoError(err)
@@ -91,17 +83,10 @@ func TestDuplicate(t *testing.T) {
 }
 
 func TestBufferOverflow(t *testing.T) {
-	ctx := context.Background()
-	test, assert := test.New(t)
-	testDb := dbt.New(test, dbx.WithMigrationRunner("./migration", test.Logger()))
-	rep := NewCounterRepo(testDb)
-	txManager := NewTxManager(testDb)
-
 	conf := DefaultConfig().WithFlushInterval(time.Second * 100).WithBufferCap(1)
-	metricsCli, err := NewCounterMetrics(ctx, metrics.NewRegistry(), test.Logger(), rep, txManager, conf)
-	assert.NoError(err)
+	metricsCli, assert, ctx, testDb := InitTest(t, conf)
 
-	err = metricsCli.Inc("test1", map[string]string{"fieldName1": "fieldValue1"})
+	err := metricsCli.Inc("test1", map[string]string{"fieldName1": "fieldValue1"})
 	assert.NoError(err)
 	err = metricsCli.Inc("test1", map[string]string{"fieldName1": "another value"})
 	assert.NoError(err)
@@ -115,17 +100,10 @@ func TestBufferOverflow(t *testing.T) {
 }
 
 func TestAddValue(t *testing.T) {
-	ctx := context.Background()
-	test, assert := test.New(t)
-	testDb := dbt.New(test, dbx.WithMigrationRunner("./migration", test.Logger()))
-	rep := NewCounterRepo(testDb)
-	txManager := NewTxManager(testDb)
-
 	conf := DefaultConfig().WithFlushInterval(time.Second * 100).WithBufferCap(1)
-	metricsCli, err := NewCounterMetrics(ctx, metrics.NewRegistry(), test.Logger(), rep, txManager, conf)
-	assert.NoError(err)
+	metricsCli, assert, ctx, testDb := InitTest(t, conf)
 
-	err = metricsCli.Inc("test1", map[string]string{"fieldName1": "fieldValue1"})
+	err := metricsCli.Inc("test1", map[string]string{"fieldName1": "fieldValue1"})
 	assert.NoError(err)
 	err = metricsCli.Inc("test1", map[string]string{"fieldName1": "another value"})
 	assert.NoError(err)

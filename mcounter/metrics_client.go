@@ -30,11 +30,14 @@ type CounterTransactionRunner interface {
 type MetricRep interface {
 	Counters(ctx context.Context) ([]counter, error)
 	CounterValues(ctx context.Context, counterId string) ([]counterValue, error)
+
+	UpsertCounter(ctx context.Context, counter []*counter) error
+	UpsertCounterValue(ctx context.Context, counter []*counterValue) error
 }
 
 type counter struct {
-	Name   string
-	Labels pq.StringArray
+	Name   string         `db:"name"`
+	Labels pq.StringArray `db:"labels"`
 
 	counterValues map[string]*counterValue
 }
