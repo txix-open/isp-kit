@@ -8,7 +8,7 @@ create table counter_value (
     id text primary key,
     counter_name text references counter(name),
     label_values text[],
-    counter_value bigint check(counter_value >= 0)
+    value bigint check(value >= 0)
 );
 
 -- +goose Down

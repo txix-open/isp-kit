@@ -50,7 +50,7 @@ func (c *CounterRepo) UpsertCounterValue(ctx context.Context, counterValues []*c
 		_, err := c.cli.Exec(ctx,
 			`insert into counter_value values($1, $2, $3, $4) on conflict (id) 
 			do update set label_values = EXCLUDED.label_values,
- 			counter_value = counter_value.counter_value + EXCLUDED.counter_value,
+ 			value = counter_value.value + EXCLUDED.value,
  			counter_name = EXCLUDED.counter_name`,
 			counterVal.Id, counterVal.CounterName, counterVal.LabelValues, counterVal.AddValue)
 		if err != nil {

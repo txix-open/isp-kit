@@ -14,5 +14,5 @@ type counterValue struct {
 	Id          string         `db:"id"`
 	CounterName string         `db:"counter_name"`
 	LabelValues pq.StringArray `db:"label_values"`
-	AddValue    int            `db:"counter_value"`
+	AddValue    int            `db:"value"`
 }
