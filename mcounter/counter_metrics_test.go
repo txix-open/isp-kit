@@ -113,3 +113,36 @@ func TestBufferOverflow(t *testing.T) {
 	assert.NoError(err)
 	assert.Len(counterValues, 2)
 }
+
+func TestAddValue(t *testing.T) {
+	ctx := context.Background()
+	test, assert := test.New(t)
+	testDb := dbt.New(test, dbx.WithMigrationRunner("./migration", test.Logger()))
+	rep := NewCounterRepo(testDb)
+	txManager := NewTxManager(testDb)
+
+	conf := DefaultConfig().WithFlushInterval(time.Second * 100).WithBufferCap(1)
+	metricsCli, err := NewCounterMetrics(ctx, metrics.NewRegistry(), test.Logger(), rep, txManager, conf)
+	assert.NoError(err)
+
+	err = metricsCli.Inc("test1", map[string]string{"fieldName1": "fieldValue1"})
+	assert.NoError(err)
+	err = metricsCli.Inc("test1", map[string]string{"fieldName1": "another value"})
+	assert.NoError(err)
+
+	time.Sleep(time.Second)
+
+	err = metricsCli.Inc("test1", map[string]string{"fieldName1": "fieldValue1"})
+	assert.NoError(err)
+	err = metricsCli.Inc("test1", map[string]string{"fieldName1": "another value"})
+	assert.NoError(err)
+
+	time.Sleep(time.Second)
+
+	var counterValues []counterValue
+	err = testDb.Select(ctx, &counterValues, "SELECT * FROM counter_value where counter_name = 'test1'")
+	assert.NoError(err)
+	assert.Len(counterValues, 2)
+
+	assert.Equal(2, counterValues[0].AddValue)
+}
