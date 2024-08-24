@@ -144,3 +144,12 @@ func TestCancelFlushing(t *testing.T) {
 	err = metricsCli.Inc("test1", map[string]string{"fieldName1": "fieldValue1"})
 	assert.Equal(ContextCanceledErr, err)
 }
+
+func TestValidationCheck(t *testing.T) {
+	conf := DefaultConfig().WithFlushInterval(time.Second * 100).WithBufferCap(10)
+	ctx, _ := context.WithCancel(context.Background())
+	metricsCli, assert, _, _ := InitTest(ctx, t, conf)
+
+	err := metricsCli.Inc("te.st1", map[string]string{"fieldName1": "fieldValue1"})
+	assert.Equal(InvalidNameErr, err)
+}

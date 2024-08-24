@@ -8,6 +8,7 @@ import (
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/metrics"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 )
@@ -74,10 +75,9 @@ func NewCounterMetrics(
 }
 
 func (m *CounterMetrics) Inc(name string, meta map[string]string) error {
-	if m.ctx.Err() != nil {
-		return ContextCanceledErr
+	if err := m.validateInc(name, meta); err != nil {
+		return err
 	}
-
 	var (
 		labelValuesHash = sha256.New()
 		labelNames      []string
@@ -140,6 +140,16 @@ func (m *CounterMetrics) Inc(name string, meta map[string]string) error {
 		}()
 	}
 
+	return nil
+}
+
+func (m *CounterMetrics) validateInc(name string, meta map[string]string) error {
+	if m.ctx.Err() != nil {
+		return ContextCanceledErr
+	}
+	if strings.Contains(name, ".") {
+		return InvalidNameErr
+	}
 	return nil
 }
 
