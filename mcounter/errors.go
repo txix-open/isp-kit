@@ -3,5 +3,6 @@ package mcounter
 import "github.com/pkg/errors"
 
 var (
-	DuplicateNameErr = errors.New("duplicate name")
+	DuplicateNameErr   = errors.New("duplicate name")
+	ContextCanceledErr = errors.New("context canceled")
 )

@@ -11,8 +11,7 @@ import (
 	"time"
 )
 
-func InitTest(t *testing.T, conf *CounterConfig) (*CounterMetrics, *require.Assertions, context.Context, *dbt.TestDb) {
-	ctx := context.Background()
+func InitTest(ctx context.Context, t *testing.T, conf *CounterConfig) (*CounterMetrics, *require.Assertions, context.Context, *dbt.TestDb) {
 	test, assert := test.New(t)
 	testDb := dbt.New(test, dbx.WithMigrationRunner("./migration", test.Logger()))
 	rep := NewCounterRepo(testDb)
@@ -25,7 +24,7 @@ func InitTest(t *testing.T, conf *CounterConfig) (*CounterMetrics, *require.Asse
 
 func TestCloseFlushing(t *testing.T) {
 	conf := DefaultConfig().WithFlushInterval(time.Second * 3).WithBufferCap(3)
-	metricsCli, assert, ctx, testDb := InitTest(t, conf)
+	metricsCli, assert, ctx, testDb := InitTest(context.Background(), t, conf)
 
 	err := metricsCli.Inc("test1", map[string]string{"fieldName1": "fieldValue1"})
 	assert.NoError(err)
@@ -44,7 +43,7 @@ func TestCloseFlushing(t *testing.T) {
 
 func TestTimedFlushing(t *testing.T) {
 	conf := DefaultConfig().WithFlushInterval(time.Second).WithBufferCap(3)
-	metricsCli, assert, ctx, testDb := InitTest(t, conf)
+	metricsCli, assert, ctx, testDb := InitTest(context.Background(), t, conf)
 
 	err := metricsCli.Inc("test1", map[string]string{"fieldName1": "fieldValue1"})
 	assert.NoError(err)
@@ -61,7 +60,7 @@ func TestTimedFlushing(t *testing.T) {
 
 func TestDuplicate(t *testing.T) {
 	conf := DefaultConfig().WithFlushInterval(time.Second).WithBufferCap(3)
-	metricsCli, assert, ctx, testDb := InitTest(t, conf)
+	metricsCli, assert, ctx, testDb := InitTest(context.Background(), t, conf)
 
 	err := metricsCli.Inc("test1", map[string]string{"fieldName1": "fieldValue1"})
 	assert.NoError(err)
@@ -84,7 +83,7 @@ func TestDuplicate(t *testing.T) {
 
 func TestBufferOverflow(t *testing.T) {
 	conf := DefaultConfig().WithFlushInterval(time.Second * 100).WithBufferCap(1)
-	metricsCli, assert, ctx, testDb := InitTest(t, conf)
+	metricsCli, assert, ctx, testDb := InitTest(context.Background(), t, conf)
 
 	err := metricsCli.Inc("test1", map[string]string{"fieldName1": "fieldValue1"})
 	assert.NoError(err)
@@ -101,7 +100,7 @@ func TestBufferOverflow(t *testing.T) {
 
 func TestAddValue(t *testing.T) {
 	conf := DefaultConfig().WithFlushInterval(time.Second * 100).WithBufferCap(1)
-	metricsCli, assert, ctx, testDb := InitTest(t, conf)
+	metricsCli, assert, ctx, testDb := InitTest(context.Background(), t, conf)
 
 	err := metricsCli.Inc("test1", map[string]string{"fieldName1": "fieldValue1"})
 	assert.NoError(err)
@@ -123,4 +122,25 @@ func TestAddValue(t *testing.T) {
 	assert.Len(counterValues, 2)
 
 	assert.Equal(2, counterValues[0].AddValue)
+}
+
+func TestCancelFlushing(t *testing.T) {
+	conf := DefaultConfig().WithFlushInterval(time.Second * 100).WithBufferCap(10)
+	ctx, cancel := context.WithCancel(context.Background())
+	metricsCli, assert, _, testDb := InitTest(ctx, t, conf)
+
+	err := metricsCli.Inc("test1", map[string]string{"fieldName1": "fieldValue1"})
+	assert.NoError(err)
+
+	cancel()
+	time.Sleep(time.Second)
+
+	var counterValues []counterValue
+	err = testDb.Select(context.Background(), &counterValues, "SELECT * FROM counter_value where counter_name = 'test1'")
+	assert.NoError(err)
+	assert.Len(counterValues, 1)
+	assert.Equal(1, counterValues[0].AddValue)
+
+	err = metricsCli.Inc("test1", map[string]string{"fieldName1": "fieldValue1"})
+	assert.Equal(ContextCanceledErr, err)
 }

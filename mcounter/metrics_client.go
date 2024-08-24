@@ -68,12 +68,16 @@ func NewCounterMetrics(
 	if err != nil {
 		return nil, err
 	}
-	go counterMetrics.runTimedFlusher(ctx, config.FlushInterval)
+	go counterMetrics.runTimedFlusher(config.FlushInterval)
 
 	return counterMetrics, nil
 }
 
 func (m *CounterMetrics) Inc(name string, meta map[string]string) error {
+	if m.ctx.Err() != nil {
+		return ContextCanceledErr
+	}
+
 	var (
 		labelValuesHash = sha256.New()
 		labelNames      []string
@@ -140,6 +144,8 @@ func (m *CounterMetrics) Inc(name string, meta map[string]string) error {
 }
 
 func (m *CounterMetrics) Close(ctx context.Context) error {
+	// we do not flush in timedFlusher on Close
+	// because we need to return an error here
 	var err error
 	if err = m.flush(ctx); err == nil {
 		return nil
@@ -220,7 +226,7 @@ func (m *CounterMetrics) flush(ctx context.Context) error {
 	return nil
 }
 
-func (m *CounterMetrics) runTimedFlusher(ctx context.Context, interval time.Duration) {
+func (m *CounterMetrics) runTimedFlusher(interval time.Duration) {
 	if interval == 0 {
 		return
 	}
@@ -229,14 +235,21 @@ func (m *CounterMetrics) runTimedFlusher(ctx context.Context, interval time.Dura
 
 	for {
 		select {
-		case <-ctx.Done():
+		case <-m.ctx.Done():
+			err := m.flush(context.Background())
+			if err != nil {
+				m.log.Error(m.ctx, "metrics: ctx done, saving counter metrics to db")
+				m.close <- struct{}{}
+				return
+			}
 			return
 		case <-m.close:
+			// flushing in Close()
 			return
 		case <-timer.C:
-			err := m.flush(ctx)
+			err := m.flush(m.ctx)
 			if err != nil {
-				m.log.Error(ctx, "metrics: saving counter metrics to db")
+				m.log.Error(m.ctx, "metrics.timer: saving counter metrics to db")
 				m.close <- struct{}{}
 				return
 			}
