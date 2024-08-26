@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/txix-open/isp-kit/dbx"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/metrics"
 	"slices"
@@ -46,6 +47,28 @@ type CounterMetrics struct {
 	registry        *metrics.Registry
 	metricsRep      MetricRep
 	counterTxRunner CounterTransactionRunner
+}
+
+func NewDefault(ctx context.Context, log log.Logger, db *dbx.Client) (*CounterMetrics, error) {
+	counterMetrics := &CounterMetrics{
+		counterBuffer: make(map[string]*counter),
+		log:           log,
+		ctx:           ctx,
+		close:         make(chan struct{}),
+
+		registry:        metrics.NewRegistry(),
+		bufferCap:       DefaultConfig().BufferCap,
+		metricsRep:      NewCounterRepo(db),
+		counterTxRunner: NewTxManager(db),
+	}
+
+	err := counterMetrics.load()
+	if err != nil {
+		return nil, err
+	}
+	go counterMetrics.runTimedFlusher(DefaultConfig().FlushInterval)
+
+	return counterMetrics, nil
 }
 
 func NewCounterMetrics(
@@ -102,7 +125,6 @@ func (m *CounterMetrics) Inc(name string, meta map[string]string) error {
 	if reg == nil {
 		return DuplicateNameErr
 	}
-
 	reg.With(meta).Inc()
 
 	m.buffMu.Lock()
@@ -149,6 +171,9 @@ func (m *CounterMetrics) validateInc(name string, meta map[string]string) error 
 	}
 	if strings.Contains(name, ".") {
 		return InvalidNameErr
+	}
+	if len(meta) == 0 {
+		return EmptyLabelsErr
 	}
 	return nil
 }

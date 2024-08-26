@@ -153,3 +153,25 @@ func TestValidationCheck(t *testing.T) {
 	err := metricsCli.Inc("te.st1", map[string]string{"fieldName1": "fieldValue1"})
 	assert.Equal(InvalidNameErr, err)
 }
+
+func TestDefaultClient(t *testing.T) {
+	test, assert := test.New(t)
+	testDb := dbt.New(test, dbx.WithMigrationRunner("./migration", test.Logger()))
+	ctx := context.Background()
+	metricsCli, err := NewDefault(ctx, test.Logger(), testDb.Client)
+	assert.NoError(err)
+
+	err = metricsCli.Inc("test1", map[string]string{"fieldName1": "fieldValue1"})
+	assert.NoError(err)
+	err = metricsCli.Inc("test1", map[string]string{"fieldName1": "another value"})
+	assert.NoError(err)
+
+	assert.NoError(metricsCli.Close(ctx))
+
+	var counterValues []counterValue
+	err = testDb.Select(ctx, &counterValues, "SELECT * FROM counter_value where counter_name = 'test1'")
+	assert.NoError(err)
+	assert.Len(counterValues, 2)
+
+	assert.Equal(1, counterValues[0].AddValue)
+}
