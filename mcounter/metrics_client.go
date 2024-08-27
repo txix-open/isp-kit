@@ -50,25 +50,7 @@ type CounterMetrics struct {
 }
 
 func NewDefault(ctx context.Context, log log.Logger, db *dbx.Client) (*CounterMetrics, error) {
-	counterMetrics := &CounterMetrics{
-		counterBuffer: make(map[string]*counter),
-		log:           log,
-		ctx:           ctx,
-		close:         make(chan struct{}),
-
-		registry:        metrics.NewRegistry(),
-		bufferCap:       DefaultConfig().BufferCap,
-		metricsRep:      NewCounterRepo(db),
-		counterTxRunner: NewTxManager(db),
-	}
-
-	err := counterMetrics.load()
-	if err != nil {
-		return nil, err
-	}
-	go counterMetrics.runTimedFlusher(DefaultConfig().FlushInterval)
-
-	return counterMetrics, nil
+	return NewCounterMetrics(ctx, metrics.NewRegistry(), log, NewCounterRepo(db), NewTxManager(db), DefaultConfig())
 }
 
 func NewCounterMetrics(
