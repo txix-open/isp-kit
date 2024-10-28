@@ -21,6 +21,9 @@ func TestOpen(t *testing.T) {
 		Database: envOrDefault("PG_DB", "test"),
 		Username: envOrDefault("PG_USER", "test"),
 		Password: envOrDefault("PG_PASS", "test"),
+		Params: map[string]string{
+			"target_session_attrs": "read-write",
+		},
 	}
 	db, err := dbx.Open(context.Background(), cfg)
 	require.NoError(err)

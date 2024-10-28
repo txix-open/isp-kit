@@ -21,6 +21,7 @@ type RequestBuilder struct {
 	retryOptions      *retryOptions
 	timeout           time.Duration
 	statusCodeToError bool
+	middlewares       []Middleware
 
 	execute func(ctx context.Context, req *RequestBuilder) (*Response, error)
 }
@@ -113,6 +114,11 @@ func (b *RequestBuilder) StatusCodeToError() *RequestBuilder {
 // Set per request attempt timeout, default timeout 15 seconds
 func (b *RequestBuilder) Timeout(timeout time.Duration) *RequestBuilder {
 	b.timeout = timeout
+	return b
+}
+
+func (b *RequestBuilder) Middlewares(middlewares ...Middleware) *RequestBuilder {
+	b.middlewares = append(b.middlewares, middlewares...)
 	return b
 }
 

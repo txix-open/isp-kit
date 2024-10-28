@@ -256,6 +256,21 @@ func TestRequestBuilder_MultipartData(t *testing.T) {
 	require.Equal(expected, actual)
 }
 
+func TestRequestBuilder_Middlewares(t *testing.T) {
+	require := require.New(t)
+	url := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
+		require.EqualValues("5", r.Header.Get("Content-Length"))
+		require.NotEqual("chunked", r.Header.Get("Transfer-Encoding"))
+		writer.WriteHeader(http.StatusOK)
+	})).URL
+	err := httpcli.New().Post(url).
+		RequestBody([]byte("hello")).
+		StatusCodeToError().
+		Middlewares(httpcli.SetContentLength()).
+		DoWithoutResponse(context.Background())
+	require.NoError(err)
+}
+
 func TestConcurrency(t *testing.T) {
 	t.Parallel()
 

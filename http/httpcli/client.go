@@ -63,11 +63,8 @@ func NewWithClient(cli *http.Client, opts ...Option) *Client {
 	for _, opt := range opts {
 		opt(c)
 	}
-	roundTripper := RoundTripper(RoundTripperFunc(c.executeWithRetries))
-	for i := len(c.mws) - 1; i >= 0; i-- {
-		roundTripper = c.mws[i](roundTripper)
-	}
-	c.roundTripper = roundTripper
+
+	c.roundTripper = joinMiddlewares(RoundTripperFunc(c.executeWithRetries), c.mws...)
 	return c
 }
 
@@ -140,7 +137,12 @@ func (c *Client) execute(ctx context.Context, builder *RequestBuilder) (*Respons
 		rr.body = buff.Bytes()
 	}
 
-	resp, err := c.roundTripper.RoundTrip(ctx, rr)
+	roundTripper := c.roundTripper
+	if len(builder.middlewares) > 0 {
+		roundTripper = joinMiddlewares(roundTripper, builder.middlewares...)
+	}
+
+	resp, err := roundTripper.RoundTrip(ctx, rr)
 	if err != nil {
 		return nil, err
 	}
@@ -197,4 +199,12 @@ func (c *Client) executeWithRetries(ctx context.Context, request *Request) (*Res
 
 func defaultTransportDialContext(dialer *net.Dialer) func(context.Context, string, string) (net.Conn, error) {
 	return dialer.DialContext
+}
+
+func joinMiddlewares(root RoundTripper, mws ...Middleware) RoundTripper {
+	roundTripper := root
+	for i := len(mws) - 1; i >= 0; i-- {
+		roundTripper = mws[i](roundTripper)
+	}
+	return roundTripper
 }
