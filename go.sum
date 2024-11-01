@@ -160,8 +160,8 @@ github.com/txix-open/bellows v1.2.0 h1:CXv8nQaZtB/micraeRilYyj/gtfv+bqBgP5aPYQgj
 github.com/txix-open/bellows v1.2.0/go.mod h1:qbKCy+RTgD30Qpw1fyb3y3jp5Y9mGhLLxgae1l0W92o=
 github.com/txix-open/bgjob v1.4.0 h1:yfo0AgJKBa27nD34mHhV4YcDn4xfCXScDQw7WTigCZo=
 github.com/txix-open/bgjob v1.4.0/go.mod h1:akgEmwPCJatnIljUN7D7IyuwL8MTPBWxYPJ+216HWpY=
-github.com/txix-open/etp/v3 v3.2.0 h1:EgTchT8VtCYV1iEo/y4jII3/NybrXiQDE0y6pmS350M=
-github.com/txix-open/etp/v3 v3.2.0/go.mod h1:lgen0TJmiturgBhvlxH1/PQ7iLL/OebKbxPAQYkuKI0=
+github.com/txix-open/etp/v4 v4.0.1 h1:5VSYgGsvnMz0tvUHsjVWFETI0qWBTCF1O3ARCHaCIgA=
+github.com/txix-open/etp/v4 v4.0.1/go.mod h1:FIu7TUDdwcgmtmF6tFTV1bGA2fRY/iVaPQdsGzvqYc8=
 github.com/txix-open/grmq v1.6.0 h1:V4QRb0sI2CMfdMaMsFGvGvUIDGad5vr3khNU7A3LlP8=
 github.com/txix-open/grmq v1.6.0/go.mod h1:s+NNNv42+32yLpjvl2tpqtyBbMB9e7kKFee3lfa/dyo=
 github.com/txix-open/jsonschema v1.2.0 h1:B8TrdSsPhDvYv67oi/LVqf7/+PuqFlMsNwUzGeHfl1s=

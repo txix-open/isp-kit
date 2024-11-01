@@ -2,11 +2,11 @@ package cluster
 
 import (
 	"context"
+	"github.com/txix-open/etp/v4"
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/txix-open/etp/v3"
-	"github.com/txix-open/etp/v3/msg"
+	"github.com/txix-open/etp/v4/msg"
 	"github.com/txix-open/isp-kit/log"
 )
 
