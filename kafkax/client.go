@@ -60,6 +60,10 @@ func (c *Client) Close() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
+	if c.cli == nil {
+		return
+	}
+
 	c.cli.observer.ShutdownStarted()
 
 	closeGroup, _ := errgroup.WithContext(context.Background())
@@ -85,6 +89,7 @@ func (c *Client) Close() {
 
 	_ = closeGroup.Wait()
 	c.cli.observer.ShutdownDone()
+	c.cli = nil
 }
 
 func (c *Client) upgradeAndServe(ctx context.Context, config Config) error {
