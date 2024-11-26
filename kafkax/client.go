@@ -63,7 +63,11 @@ func (c *Client) Close() {
 	if c.cli == nil {
 		return
 	}
+	c.Shutdown()
+	c.cli = nil
+}
 
+func (c *Client) Shutdown() {
 	c.cli.observer.ShutdownStarted()
 
 	closeGroup, _ := errgroup.WithContext(context.Background())
@@ -89,7 +93,6 @@ func (c *Client) Close() {
 
 	_ = closeGroup.Wait()
 	c.cli.observer.ShutdownDone()
-	c.cli = nil
 }
 
 func (c *Client) upgradeAndServe(ctx context.Context, config Config) error {
@@ -106,7 +109,7 @@ func (c *Client) upgradeAndServe(ctx context.Context, config Config) error {
 	c.logger.Debug(ctx, "kafka client: initialization began")
 
 	if c.cli != nil {
-		c.Close()
+		c.Shutdown()
 		c.cli = nil
 	}
 
