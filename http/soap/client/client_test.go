@@ -3,6 +3,7 @@ package client_test
 import (
 	"context"
 	"encoding/xml"
+	"github.com/txix-open/isp-kit/http/endpoint"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -25,7 +26,7 @@ func TestClient_Invoke(t *testing.T) {
 	handler := func(ctx context.Context, book Book) (*Book, error) {
 		return &book, nil
 	}
-	wrapper := soap.DefaultWrapper(test.Logger())
+	wrapper := soap.DefaultWrapper(test.Logger(), endpoint.DefaultLog(test.Logger(), true))
 	mux := soap.NewActionMux().Handle("test", wrapper.Endpoint(handler))
 	srv := httptest.NewServer(mux)
 	cli := client.New(httpclix.Default())
