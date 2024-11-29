@@ -89,13 +89,13 @@ func ErrorHandler(logger log.Logger) http2.Middleware {
 func RequestId() http2.Middleware {
 	return func(next http2.HandlerFunc) http2.HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-			requestId := r.Header.Get(requestid.RequestIdHeader)
+			requestId := r.Header.Get(requestid.Header)
 			if requestId == "" {
 				requestId = requestid.Next()
 			}
 
 			ctx = requestid.ToContext(ctx, requestId)
-			ctx = log.ToContext(ctx, log.String("requestId", requestId))
+			ctx = log.ToContext(ctx, log.String(requestid.LogKey, requestId))
 
 			return next(ctx, w, r)
 		}

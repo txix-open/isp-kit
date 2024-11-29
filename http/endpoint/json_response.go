@@ -19,7 +19,7 @@ func (j JsonResponseMapper) Map(ctx context.Context, result any, w http.Response
 
 	reqId := requestid.FromContext(ctx)
 	if reqId != "" {
-		w.Header().Set(requestid.RequestIdHeader, reqId)
+		w.Header().Set(requestid.Header, reqId)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

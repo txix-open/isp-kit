@@ -12,8 +12,6 @@ import (
 	"github.com/txix-open/isp-kit/requestid"
 )
 
-const RequestIdHeader = "x-request-id"
-
 type PublisherMetricStorage interface {
 	ObservePublishDuration(topic string, t time.Duration)
 	ObservePublishMsgSize(topic string, size int)
@@ -102,13 +100,13 @@ func ConsumerLog(logger log.Logger) consumer.Middleware {
 func ConsumerRequestId() consumer.Middleware {
 	return func(next consumer.Handler) consumer.Handler {
 		return consumer.HandlerFunc(func(ctx context.Context, delivery *consumer.Delivery) {
-			requestId := GetHeaderValue(delivery.Source().Headers, RequestIdHeader)
+			requestId := GetHeaderValue(delivery.Source().Headers, requestid.Header)
 
 			if requestId == "" {
 				requestId = requestid.Next()
 			}
 			ctx = requestid.ToContext(ctx, requestId)
-			ctx = log.ToContext(ctx, log.String("requestId", requestId))
+			ctx = log.ToContext(ctx, log.String(requestid.LogKey, requestId))
 
 			next.Handle(ctx, delivery)
 		})

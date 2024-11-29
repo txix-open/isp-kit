@@ -36,7 +36,7 @@ func RequestId() httpcli.Middleware {
 				requestId = requestid.Next()
 			}
 
-			request.Raw.Header.Set(requestid.RequestIdHeader, requestId)
+			request.Raw.Header.Set(requestid.Header, requestId)
 			return next.RoundTrip(ctx, request)
 		})
 	}

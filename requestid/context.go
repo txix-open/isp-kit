@@ -5,7 +5,8 @@ import (
 )
 
 const (
-	RequestIdHeader = "x-request-id"
+	Header = "x-request-id"
+	LogKey = "requestId"
 )
 
 type contextKey struct{}

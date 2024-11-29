@@ -36,7 +36,7 @@ func PublisherRequestId() publisher.Middleware {
 			if msg.Headers == nil {
 				msg.Headers = amqp091.Table{}
 			}
-			msg.Headers[requestid.RequestIdHeader] = requestId
+			msg.Headers[requestid.Header] = requestId
 			return next.Publish(ctx, exchange, routingKey, msg)
 		})
 	}
@@ -84,7 +84,7 @@ func ConsumerRequestId() consumer.Middleware {
 			requestId := ""
 			headers := delivery.Source().Headers
 			if headers != nil {
-				value, ok := headers[requestid.RequestIdHeader].(string)
+				value, ok := headers[requestid.Header].(string)
 				if ok {
 					requestId = value
 				}
@@ -93,7 +93,7 @@ func ConsumerRequestId() consumer.Middleware {
 				requestId = requestid.Next()
 			}
 			ctx = requestid.ToContext(ctx, requestId)
-			ctx = log.ToContext(ctx, log.String("requestId", requestId))
+			ctx = log.ToContext(ctx, log.String(requestid.LogKey, requestId))
 			next.Handle(ctx, delivery)
 		})
 	}

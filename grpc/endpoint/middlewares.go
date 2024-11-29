@@ -81,7 +81,7 @@ func RequestId() grpc.Middleware {
 			if !ok {
 				return nil, errors.New("metadata is expected in context")
 			}
-			values := md.Get(requestid.RequestIdHeader)
+			values := md.Get(requestid.Header)
 			requestId := ""
 			if len(values) > 0 {
 				requestId = values[0]
@@ -90,7 +90,7 @@ func RequestId() grpc.Middleware {
 				requestId = requestid.Next()
 			}
 			ctx = requestid.ToContext(ctx, requestId)
-			ctx = log.ToContext(ctx, log.String("requestId", requestId))
+			ctx = log.ToContext(ctx, log.String(requestid.LogKey, requestId))
 
 			return next(ctx, message)
 		}

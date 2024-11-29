@@ -67,7 +67,7 @@ func TestRequestIdChain(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 
 	ctx := requestid.ToContext(context.Background(), expectedRequestId)
-	ctx = log.ToContext(ctx, log.String("requestId", expectedRequestId))
+	ctx = log.ToContext(ctx, log.String(requestid.LogKey, expectedRequestId))
 
 	for i := 1; i <= 5; i++ {
 		err = pub1.Publish(ctx, kafka.Message{

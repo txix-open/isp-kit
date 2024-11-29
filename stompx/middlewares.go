@@ -64,13 +64,13 @@ func ConsumerRequestId() consumer.Middleware {
 			requestId := ""
 			headers := delivery.Source().Header
 			if headers != nil {
-				requestId = headers.Get(requestid.RequestIdHeader)
+				requestId = headers.Get(requestid.Header)
 			}
 			if requestId == "" {
 				requestId = requestid.Next()
 			}
 			ctx = requestid.ToContext(ctx, requestId)
-			ctx = log.ToContext(ctx, log.String("requestId", requestId))
+			ctx = log.ToContext(ctx, log.String(requestid.LogKey, requestId))
 			next.Handle(ctx, delivery)
 		})
 	}

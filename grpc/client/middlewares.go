@@ -19,7 +19,7 @@ func RequestId() request.Middleware {
 				requestId = requestid.Next()
 			}
 
-			ctx = metadata.AppendToOutgoingContext(ctx, requestid.RequestIdHeader, requestId)
+			ctx = metadata.AppendToOutgoingContext(ctx, requestid.Header, requestId)
 			return next(ctx, builder, message)
 		}
 	}
