@@ -77,7 +77,7 @@ func (a *Adapter) Debug(ctx context.Context, message any, fields ...Field) {
 func (a *Adapter) Log(ctx context.Context, level Level, message any, fields ...Field) {
 	entry := a.logger.Check(level, castString(message))
 	if entry != nil {
-		arr := append(ContextLogValues(ctx), fields...)
+		arr := append(fields, ContextLogValues(ctx)...)
 		entry.Write(arr...)
 	}
 }
