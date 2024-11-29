@@ -25,14 +25,19 @@ func RequestId() request.Middleware {
 	}
 }
 
-func Log(logger log.Logger) request.Middleware {
+func Log(logger log.Logger, logBody bool) request.Middleware {
 	return func(next request.RoundTripper) request.RoundTripper {
 		return func(ctx context.Context, builder *request.Builder, message *isp.Message) (*isp.Message, error) {
+			requestFields := []log.Field{
+				log.String("endpoint", builder.Endpoint),
+			}
+			if logBody {
+				requestFields = append(requestFields, log.ByteString("requestBody", message.GetBytesBody()))
+			}
 			logger.Debug(
 				ctx,
 				"grpc client: request",
-				log.String("requestEndpoint", builder.Endpoint),
-				log.ByteString("requestBody", message.GetBytesBody()),
+				requestFields...,
 			)
 
 			now := time.Now()
@@ -47,11 +52,17 @@ func Log(logger log.Logger) request.Middleware {
 				return resp, err
 			}
 
+			responseFields := []log.Field{
+				log.String("endpoint", builder.Endpoint),
+				log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()),
+			}
+			if logBody {
+				responseFields = append(responseFields, log.ByteString("responseBody", resp.GetBytesBody()))
+			}
 			logger.Debug(
 				ctx,
 				"grpc client: response",
-				log.ByteString("responseBody", resp.GetBytesBody()),
-				log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()),
+				responseFields...,
 			)
 
 			return resp, err
