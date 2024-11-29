@@ -3,17 +3,13 @@ package endpoint
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"runtime"
-	"strings"
-	"time"
-
 	"github.com/getsentry/sentry-go"
 	http2 "github.com/txix-open/isp-kit/http"
 	"github.com/txix-open/isp-kit/http/apierrors"
-	"github.com/txix-open/isp-kit/http/endpoint/buffer"
 	"github.com/txix-open/isp-kit/log/logutil"
 	sentry2 "github.com/txix-open/isp-kit/observability/sentry"
+	"net/http"
+	"runtime"
 
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/log"
@@ -72,6 +68,11 @@ func ErrorHandler(logger log.Logger) http2.Middleware {
 			})
 			logFunc(logContext, err)
 
+			reqId := requestid.FromContext(ctx)
+			if reqId != "" {
+				w.Header().Set(requestid.Header, reqId)
+			}
+
 			var httpErr HttpError
 			if errors.As(err, &httpErr) {
 				err = httpErr.WriteError(w)
@@ -100,72 +101,6 @@ func RequestId() http2.Middleware {
 			return next(ctx, w, r)
 		}
 	}
-}
-
-var defaultAvailableContentTypes = []string{
-	"application/json",
-	`application/json; charset="utf-8"`,
-	"text/xml",
-	`text/xml; charset="utf-8"`,
-}
-
-func Log(logger log.Logger, availableContentTypes []string) http2.Middleware {
-	return func(next http2.HandlerFunc) http2.HandlerFunc {
-		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-			buf := buffer.Acquire(w)
-			defer buffer.Release(buf)
-
-			now := time.Now()
-			requestLogFields := []log.Field{
-				log.String("method", r.Method),
-				log.String("url", r.URL.String()),
-			}
-			requestContentType := r.Header.Get("Content-Type")
-			if matchContentType(requestContentType, availableContentTypes) {
-				err := buf.ReadRequestBody(r.Body)
-				if err != nil {
-					return errors.WithMessage(err, "read request body for logging")
-				}
-				err = r.Body.Close()
-				if err != nil {
-					return errors.WithMessage(err, "close request reader")
-				}
-				r.Body = buffer.NewRequestBody(buf.RequestBody())
-
-				requestLogFields = append(requestLogFields, log.ByteString("requestBody", buf.RequestBody()))
-			}
-
-			logger.Debug(ctx, "http handler: request", requestLogFields...)
-
-			err := next(ctx, buf, r)
-
-			responseLogFields := []log.Field{
-				log.Int("statusCode", buf.StatusCode()),
-				log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()),
-			}
-			responseContentType := buf.Header().Get("Content-Type")
-			if matchContentType(responseContentType, availableContentTypes) {
-				responseLogFields = append(responseLogFields, log.ByteString("responseBody", buf.ResponseBody()))
-			}
-
-			logger.Debug(ctx, "http handler: response", responseLogFields...)
-
-			return err
-		}
-	}
-}
-
-func DefaultLog(logger log.Logger) http2.Middleware {
-	return Log(logger, defaultAvailableContentTypes)
-}
-
-func matchContentType(contentType string, availableContentTypes []string) bool {
-	for _, content := range availableContentTypes {
-		if strings.HasPrefix(contentType, content) {
-			return true
-		}
-	}
-	return false
 }
 
 func sentryRequest(r *http.Request) *sentry.Request {

@@ -9,7 +9,7 @@ import (
 	"github.com/txix-open/isp-kit/validator"
 )
 
-func DefaultWrapper(logger log.Logger, restMiddlewares ...http.Middleware) Wrapper {
+func DefaultWrapper(logger log.Logger, logMiddleware LogMiddleware, restMiddlewares ...http.Middleware) Wrapper {
 	paramMappers := []ParamMapper{
 		ContextParam(),
 		ResponseWriterParam(),
@@ -19,7 +19,7 @@ func DefaultWrapper(logger log.Logger, restMiddlewares ...http.Middleware) Wrapp
 		[]http.Middleware{
 			MaxRequestBodySize(defaultMaxRequestBodySize),
 			RequestId(),
-			DefaultLog(logger),
+			http.Middleware(logMiddleware),
 			Metrics(http_metrics.NewServerStorage(metrics.DefaultRegistry)),
 			server_tracing.NewConfig().Middleware(),
 			ErrorHandler(logger),
