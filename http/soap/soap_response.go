@@ -17,7 +17,7 @@ func (j ResponseMapper) Map(ctx context.Context, result any, w http.ResponseWrit
 
 	reqId := requestid.FromContext(ctx)
 	if reqId != "" {
-		w.Header().Set(requestid.RequestIdHeader, reqId)
+		w.Header().Set(requestid.Header, reqId)
 	}
 
 	env := Envelope{Body: Body{Content: result}}

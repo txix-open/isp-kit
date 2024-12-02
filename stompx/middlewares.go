@@ -17,14 +17,19 @@ func PublisherPersistent() publisher.Middleware {
 	}
 }
 
-func PublisherLog(logger log.Logger) publisher.Middleware {
+func PublisherLog(logger log.Logger, logBody bool) publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
 		return publisher.RoundTripperFunc(func(ctx context.Context, queue string, msg *publisher.Message) error {
+			fields := []log.Field{
+				log.String("queue", queue),
+			}
+			if logBody {
+				fields = append(fields, log.ByteString("body", msg.Body))
+			}
 			logger.Debug(
 				ctx,
 				"stomp client: publish message",
-				log.String("queue", queue),
-				log.ByteString("body", msg.Body),
+				fields...,
 			)
 			return next.Publish(ctx, queue, msg)
 		})
@@ -38,20 +43,25 @@ func PublisherRequestId() publisher.Middleware {
 			if requestId == "" {
 				requestId = requestid.Next()
 			}
-			msg = msg.WithHeader(requestid.RequestIdHeader, requestId)
+			msg = msg.WithHeader(requestid.Header, requestId)
 			return next.Publish(ctx, queue, msg)
 		})
 	}
 }
 
-func ConsumerLog(logger log.Logger) consumer.Middleware {
+func ConsumerLog(logger log.Logger, logBody bool) consumer.Middleware {
 	return func(next consumer.Handler) consumer.Handler {
 		return consumer.HandlerFunc(func(ctx context.Context, delivery *consumer.Delivery) {
+			fields := []log.Field{
+				log.String("queue", delivery.Source().Destination),
+			}
+			if logBody {
+				fields = append(fields, log.ByteString("body", delivery.Source().Body))
+			}
 			logger.Debug(
 				ctx,
 				"stomp client: consume message",
-				log.String("queue", delivery.Source().Destination),
-				log.ByteString("body", delivery.Source().Body),
+				fields...,
 			)
 			next.Handle(ctx, delivery)
 		})
@@ -64,13 +74,13 @@ func ConsumerRequestId() consumer.Middleware {
 			requestId := ""
 			headers := delivery.Source().Header
 			if headers != nil {
-				requestId = headers.Get(requestid.RequestIdHeader)
+				requestId = headers.Get(requestid.Header)
 			}
 			if requestId == "" {
 				requestId = requestid.Next()
 			}
 			ctx = requestid.ToContext(ctx, requestId)
-			ctx = log.ToContext(ctx, log.String("requestId", requestId))
+			ctx = log.ToContext(ctx, log.String(requestid.LogKey, requestId))
 			next.Handle(ctx, delivery)
 		})
 	}

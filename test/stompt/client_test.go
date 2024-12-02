@@ -30,10 +30,10 @@ func Test(t *testing.T) {
 		counter.Add(1)
 		return handler.Ack()
 	}))
-	consumer := stompx.DefaultConsumer(consumerCfg, handler, logger, stompx.ConsumerLog(logger))
+	consumer := stompx.DefaultConsumer(consumerCfg, handler, logger, stompx.ConsumerLog(logger, true))
 	cli.Upgrade(consumer)
 
-	pub := stompx.DefaultPublisher(publisherCfg, stompx.PublisherLog(logger))
+	pub := stompx.DefaultPublisher(publisherCfg, stompx.PublisherLog(logger, true))
 	group, ctx := errgroup.WithContext(context.Background())
 	group.SetLimit(8)
 	for i := 0; i < 100; i++ {

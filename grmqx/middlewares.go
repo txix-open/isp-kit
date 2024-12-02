@@ -11,15 +11,20 @@ import (
 	"github.com/txix-open/isp-kit/requestid"
 )
 
-func PublisherLog(logger log.Logger) publisher.Middleware {
+func PublisherLog(logger log.Logger, logBody bool) publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
 		return publisher.RoundTripperFunc(func(ctx context.Context, exchange string, routingKey string, msg *amqp091.Publishing) error {
+			fields := []log.Field{
+				log.String("exchange", exchange),
+				log.String("routingKey", routingKey),
+			}
+			if logBody {
+				fields = append(fields, log.ByteString("body", msg.Body))
+			}
 			logger.Debug(
 				ctx,
 				"rmq client: publish message",
-				log.String("exchange", exchange),
-				log.String("routingKey", routingKey),
-				log.ByteString("body", msg.Body),
+				fields...,
 			)
 			return next.Publish(ctx, exchange, routingKey, msg)
 		})
@@ -36,7 +41,7 @@ func PublisherRequestId() publisher.Middleware {
 			if msg.Headers == nil {
 				msg.Headers = amqp091.Table{}
 			}
-			msg.Headers[requestid.RequestIdHeader] = requestId
+			msg.Headers[requestid.Header] = requestId
 			return next.Publish(ctx, exchange, routingKey, msg)
 		})
 	}
@@ -63,15 +68,20 @@ func PublisherMetrics(storage PublisherMetricStorage) publisher.Middleware {
 	}
 }
 
-func ConsumerLog(logger log.Logger) consumer.Middleware {
+func ConsumerLog(logger log.Logger, logBody bool) consumer.Middleware {
 	return func(next consumer.Handler) consumer.Handler {
 		return consumer.HandlerFunc(func(ctx context.Context, delivery *consumer.Delivery) {
+			fields := []log.Field{
+				log.String("exchange", delivery.Source().Exchange),
+				log.String("routingKey", delivery.Source().RoutingKey),
+			}
+			if logBody {
+				fields = append(fields, log.ByteString("body", delivery.Source().Body))
+			}
 			logger.Debug(
 				ctx,
 				"rmq client: consume message",
-				log.String("exchange", delivery.Source().Exchange),
-				log.String("routingKey", delivery.Source().RoutingKey),
-				log.ByteString("body", delivery.Source().Body),
+				fields...,
 			)
 			next.Handle(ctx, delivery)
 		})
@@ -84,7 +94,7 @@ func ConsumerRequestId() consumer.Middleware {
 			requestId := ""
 			headers := delivery.Source().Headers
 			if headers != nil {
-				value, ok := headers[requestid.RequestIdHeader].(string)
+				value, ok := headers[requestid.Header].(string)
 				if ok {
 					requestId = value
 				}
@@ -93,7 +103,7 @@ func ConsumerRequestId() consumer.Middleware {
 				requestId = requestid.Next()
 			}
 			ctx = requestid.ToContext(ctx, requestId)
-			ctx = log.ToContext(ctx, log.String("requestId", requestId))
+			ctx = log.ToContext(ctx, log.String(requestid.LogKey, requestId))
 			next.Handle(ctx, delivery)
 		})
 	}

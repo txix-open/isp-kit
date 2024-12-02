@@ -35,7 +35,7 @@ func TestRequestIdChain(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 
 	pubCfg := testKafka.PublisherConfig(testRequestIdTopic)
-	pub1 := pubCfg.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger()))
+	pub1 := pubCfg.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger(), true))
 
 	consumerCfg := testKafka.ConsumerConfig(testRequestIdTopic, groupIdRequestId)
 	consumerCfg.Concurrency = 3
@@ -53,7 +53,7 @@ func TestRequestIdChain(t *testing.T) {
 		}),
 	)
 
-	cons1 := consumerCfg.DefaultConsumer(test.Logger(), handler1, kafkax.ConsumerLog(test.Logger()))
+	cons1 := consumerCfg.DefaultConsumer(test.Logger(), handler1, kafkax.ConsumerLog(test.Logger(), true))
 
 	kafkaBrokerConfig := kafkax.NewConfig(
 		kafkax.WithPublishers(pub1),
@@ -67,7 +67,7 @@ func TestRequestIdChain(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 
 	ctx := requestid.ToContext(context.Background(), expectedRequestId)
-	ctx = log.ToContext(ctx, log.String("requestId", expectedRequestId))
+	ctx = log.ToContext(ctx, log.String(requestid.LogKey, expectedRequestId))
 
 	for i := 1; i <= 5; i++ {
 		err = pub1.Publish(ctx, kafka.Message{
@@ -104,7 +104,7 @@ func TestRetry(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 
 	pubCfg := testKafka.PublisherConfig(testRetryTopic)
-	pub1 := pubCfg.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger()))
+	pub1 := pubCfg.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger(), true))
 
 	consumerCfg := testKafka.ConsumerConfig(testRetryTopic, groupIdRetry)
 
@@ -121,7 +121,7 @@ func TestRetry(t *testing.T) {
 			return handler.Commit()
 		}),
 	)
-	cons1 := consumerCfg.DefaultConsumer(test.Logger(), handler1, kafkax.ConsumerLog(test.Logger()))
+	cons1 := consumerCfg.DefaultConsumer(test.Logger(), handler1, kafkax.ConsumerLog(test.Logger(), true))
 
 	kafkaBrokerConfig := kafkax.NewConfig(
 		kafkax.WithPublishers(pub1),

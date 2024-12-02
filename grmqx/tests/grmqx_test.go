@@ -27,14 +27,14 @@ func TestRequestIdChain(t *testing.T) {
 		Exchange:   "",
 		RoutingKey: "queue1",
 	}
-	pub1 := pubCfg1.DefaultPublisher(grmqx.PublisherLog(test.Logger()))
+	pub1 := pubCfg1.DefaultPublisher(grmqx.PublisherLog(test.Logger(), true))
 	consumerCfg1 := grmqx.Consumer{
 		Queue: "queue1",
 	}
 	pubCfg2 := grmqx.Publisher{
 		RoutingKey: "queue2",
 	}
-	pub2 := pubCfg2.DefaultPublisher(grmqx.PublisherLog(test.Logger()))
+	pub2 := pubCfg2.DefaultPublisher(grmqx.PublisherLog(test.Logger(), true))
 	consumerCfg2 := grmqx.Consumer{
 		Queue: "queue2",
 	}
@@ -47,7 +47,7 @@ func TestRequestIdChain(t *testing.T) {
 			return handler.Ack()
 		}),
 	)
-	consumer1 := consumerCfg1.DefaultConsumer(handler1, grmqx.ConsumerLog(test.Logger()))
+	consumer1 := consumerCfg1.DefaultConsumer(handler1, grmqx.ConsumerLog(test.Logger(), true))
 
 	await := make(chan struct{})
 	handler2 := grmqx.NewResultHandler(
@@ -59,7 +59,7 @@ func TestRequestIdChain(t *testing.T) {
 			return handler.Ack()
 		}),
 	)
-	consumer2 := consumerCfg2.DefaultConsumer(handler2, grmqx.ConsumerLog(test.Logger()))
+	consumer2 := consumerCfg2.DefaultConsumer(handler2, grmqx.ConsumerLog(test.Logger(), true))
 
 	testCli := grmqt.New(test)
 	cli := grmqx.New(test.Logger())
@@ -76,7 +76,7 @@ func TestRequestIdChain(t *testing.T) {
 	require.NoError(err)
 
 	ctx := requestid.ToContext(context.Background(), expectedRequestId)
-	ctx = log.ToContext(ctx, log.String("requestId", expectedRequestId))
+	ctx = log.ToContext(ctx, log.String(requestid.LogKey, expectedRequestId))
 	err = pub1.Publish(ctx, &amqp091.Publishing{})
 	require.NoError(err)
 
@@ -115,7 +115,7 @@ func TestRetry(t *testing.T) {
 			"x-single-active-consumer": true,
 		},
 	}
-	consumer := consumerCfg.DefaultConsumer(handler, grmqx.ConsumerLog(test.Logger()))
+	consumer := consumerCfg.DefaultConsumer(handler, grmqx.ConsumerLog(test.Logger(), true))
 	cli := grmqt.New(test)
 	config := grmqx.NewConfig("",
 		grmqx.WithConsumers(consumer),
@@ -153,7 +153,7 @@ func TestBatchHandler(t *testing.T) {
 		BatchSize:         100,
 		PurgeIntervalInMs: 60000,
 	}
-	consumer := consumerCfg.DefaultConsumer(handler, grmqx.ConsumerLog(test.Logger()))
+	consumer := consumerCfg.DefaultConsumer(handler, grmqx.ConsumerLog(test.Logger(), true))
 	cli := grmqt.New(test)
 	config := grmqx.NewConfig("",
 		grmqx.WithConsumers(consumer),
