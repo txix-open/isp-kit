@@ -22,7 +22,7 @@ func NewMock(t *test.Test) *MockServer {
 	t.T().Cleanup(func() {
 		srv.Close()
 	})
-	wrapper := endpoint.DefaultWrapper(t.Logger(), endpoint.DefaultLog(t.Logger(), true))
+	wrapper := endpoint.DefaultWrapper(t.Logger(), endpoint.Log(t.Logger(), true))
 	return &MockServer{
 		Wrapper: wrapper,
 		srv:     srv,

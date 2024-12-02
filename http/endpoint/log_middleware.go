@@ -20,7 +20,7 @@ var (
 	}
 )
 
-func Log(logger log.Logger, logBody bool, logBodyContentTypes []string) LogMiddleware {
+func LogWithContentTypes(logger log.Logger, logBody bool, logBodyContentTypes []string) LogMiddleware {
 	return func(next http2.HandlerFunc) http2.HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 			buf := buffer.Acquire(w)
@@ -66,8 +66,8 @@ func Log(logger log.Logger, logBody bool, logBodyContentTypes []string) LogMiddl
 	}
 }
 
-func DefaultLog(logger log.Logger, logBody bool) LogMiddleware {
-	return Log(logger, logBody, defaultLogBodyContentTypes)
+func Log(logger log.Logger, logBody bool) LogMiddleware {
+	return LogWithContentTypes(logger, logBody, defaultLogBodyContentTypes)
 }
 
 func Noop() LogMiddleware {
