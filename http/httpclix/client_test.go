@@ -25,7 +25,7 @@ func TestDefault(t *testing.T) {
 
 	expectedId := requestid.Next()
 	ctx := requestid.ToContext(context.Background(), expectedId)
-	ctx = log.ToContext(ctx, log.String("requestId", expectedId))
+	ctx = log.ToContext(ctx, log.String(requestid.LogKey, expectedId))
 
 	invokeNumber := 0
 	url := httpt.NewMock(test).POST("/api/save", func(ctx context.Context, req example) (*example, error) {
@@ -62,7 +62,7 @@ func TestLogHeaders(t *testing.T) {
 
 	expectedId := requestid.Next()
 	ctx := requestid.ToContext(context.Background(), expectedId)
-	ctx = log.ToContext(ctx, log.String("requestId", expectedId))
+	ctx = log.ToContext(ctx, log.String(requestid.LogKey, expectedId))
 
 	url := httpt.NewMock(testEnv).POST("/api/save", func(ctx context.Context, req example) (*example, error) {
 		return &req, nil

@@ -14,7 +14,7 @@ const (
 	defaultMaxRequestBodySize = 64 * 1024 * 1024
 )
 
-func DefaultWrapper(logger log.Logger, restMiddlewares ...http.Middleware) endpoint.Wrapper {
+func DefaultWrapper(logger log.Logger, logMiddleware endpoint.LogMiddleware, restMiddlewares ...http.Middleware) endpoint.Wrapper {
 	paramMappers := []endpoint.ParamMapper{
 		endpoint.ContextParam(),
 		endpoint.ResponseWriterParam(),
@@ -24,7 +24,7 @@ func DefaultWrapper(logger log.Logger, restMiddlewares ...http.Middleware) endpo
 		[]http.Middleware{
 			endpoint.MaxRequestBodySize(defaultMaxRequestBodySize),
 			endpoint.RequestId(),
-			endpoint.DefaultLog(logger),
+			http.Middleware(logMiddleware),
 			endpoint.Metrics(http_metrics.NewServerStorage(metrics.DefaultRegistry)),
 			server_tracing.NewConfig().Middleware(),
 			ErrorHandler(logger),

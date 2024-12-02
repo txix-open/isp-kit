@@ -12,8 +12,6 @@ import (
 	"github.com/txix-open/isp-kit/requestid"
 )
 
-const RequestIdHeader = "x-request-id"
-
 type PublisherMetricStorage interface {
 	ObservePublishDuration(topic string, t time.Duration)
 	ObservePublishMsgSize(topic string, size int)
@@ -42,17 +40,22 @@ func PublisherMetrics(storage PublisherMetricStorage) publisher.Middleware {
 	}
 }
 
-func PublisherLog(logger log.Logger) publisher.Middleware {
+func PublisherLog(logger log.Logger, logBody bool) publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
 		return publisher.RoundTripperFunc(func(ctx context.Context, msgs ...kafka.Message) error {
 			for _, msg := range msgs {
-				logger.Debug(
-					ctx,
-					"kafka client: publish message",
+				fields := []log.Field{
 					log.String("topic", msg.Topic),
 					log.Int("partition", msg.Partition),
 					log.ByteString("messageKey", msg.Key),
-					log.ByteString("messageValue", msg.Value),
+				}
+				if logBody {
+					fields = append(fields, log.ByteString("body", msg.Value))
+				}
+				logger.Debug(
+					ctx,
+					"kafka client: publish message",
+					fields...,
 				)
 			}
 
@@ -72,7 +75,7 @@ func PublisherRequestId() publisher.Middleware {
 				}
 
 				msgs[i].Headers = append(msg.Headers, protocol.Header{
-					Key:   RequestIdHeader,
+					Key:   requestid.Header,
 					Value: []byte(requestId),
 				})
 			}
@@ -82,17 +85,22 @@ func PublisherRequestId() publisher.Middleware {
 	}
 }
 
-func ConsumerLog(logger log.Logger) consumer.Middleware {
+func ConsumerLog(logger log.Logger, logBody bool) consumer.Middleware {
 	return func(next consumer.Handler) consumer.Handler {
 		return consumer.HandlerFunc(func(ctx context.Context, delivery *consumer.Delivery) {
-			logger.Debug(
-				ctx,
-				"kafka consumer: consume message",
+			fields := []log.Field{
 				log.String("topic", delivery.Source().Topic),
 				log.Int("partition", delivery.Source().Partition),
 				log.Int64("offset", delivery.Source().Offset),
 				log.ByteString("messageKey", delivery.Source().Key),
-				log.ByteString("messageValue", delivery.Source().Value),
+			}
+			if logBody {
+				fields = append(fields, log.ByteString("body", delivery.Source().Value))
+			}
+			logger.Debug(
+				ctx,
+				"kafka consumer: consume message",
+				fields...,
 			)
 			next.Handle(ctx, delivery)
 		})
@@ -102,13 +110,13 @@ func ConsumerLog(logger log.Logger) consumer.Middleware {
 func ConsumerRequestId() consumer.Middleware {
 	return func(next consumer.Handler) consumer.Handler {
 		return consumer.HandlerFunc(func(ctx context.Context, delivery *consumer.Delivery) {
-			requestId := GetHeaderValue(delivery.Source().Headers, RequestIdHeader)
+			requestId := GetHeaderValue(delivery.Source().Headers, requestid.Header)
 
 			if requestId == "" {
 				requestId = requestid.Next()
 			}
 			ctx = requestid.ToContext(ctx, requestId)
-			ctx = log.ToContext(ctx, log.String("requestId", requestId))
+			ctx = log.ToContext(ctx, log.String(requestid.LogKey, requestId))
 
 			next.Handle(ctx, delivery)
 		})
