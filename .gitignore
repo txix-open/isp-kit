@@ -69,3 +69,4 @@ fabric.properties
 
 /node_modules/
 /vendor/
+/.ignore_go_hooks
