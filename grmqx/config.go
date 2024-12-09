@@ -163,11 +163,11 @@ func TopologyFromConsumers(consumers ...Consumer) topology.Declarations {
 		}
 		for k, v := range consumer.QueueArgs {
 			switch k {
-			case "x-max-priority", "x-message-ttl", "-max-length", "x-max-length-bytes", "x-expires", "x-max-age",
+			case "x-max-priority", "x-message-ttl", "x-max-length", "x-max-length-bytes", "x-expires", "x-max-age",
 				"x-stream-max-segment-size-bytes":
 				vv, ok := v.(float64)
 				if ok {
-					queueOpts = append(queueOpts, topology.WithQueueArg(k, vv))
+					queueOpts = append(queueOpts, topology.WithQueueArg(k, int(vv)))
 				}
 			default:
 				queueOpts = append(queueOpts, topology.WithQueueArg(k, v))
