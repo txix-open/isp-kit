@@ -2,22 +2,31 @@ package consumer
 
 import (
 	"context"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
 )
 
 type Watcher struct {
-	config       Config
-	close        chan struct{}
-	shutdownDone chan struct{}
+	config        Config
+	close         chan struct{}
+	shutdownDone  chan struct{}
+	mustReconnect *atomic.Bool
+	reportErrOnce *sync.Once
 }
 
 func NewWatcher(config Config) *Watcher {
+	mustReconnect := &atomic.Bool{}
+	mustReconnect.Store(true)
+
 	return &Watcher{
-		close:        make(chan struct{}),
-		shutdownDone: make(chan struct{}),
-		config:       config,
+		close:         make(chan struct{}),
+		shutdownDone:  make(chan struct{}),
+		config:        config,
+		mustReconnect: mustReconnect,
+		reportErrOnce: &sync.Once{},
 	}
 }
 
@@ -29,8 +38,16 @@ func (w *Watcher) Run(ctx context.Context) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	case err := <-firstSessionErr:
+		if err != nil {
+			w.mustReconnect.Store(false)
+		}
 		return err
 	}
+}
+
+func (w *Watcher) Serve(ctx context.Context) {
+	firstSessionErr := make(chan error, 1)
+	go w.run(ctx, firstSessionErr)
 }
 
 func (w *Watcher) run(ctx context.Context, firstSessionErr chan error) {
@@ -38,12 +55,19 @@ func (w *Watcher) run(ctx context.Context, firstSessionErr chan error) {
 		close(w.shutdownDone)
 	}()
 
-	sessNum := 0
 	for {
-		sessNum++
-		err := w.runSession(sessNum, firstSessionErr)
+		err := w.runSession(firstSessionErr)
 		if err == nil { //normal close
 			return
+		}
+
+		consumer := &Consumer{
+			Config: w.config,
+		}
+		w.config.Observer.Error(consumer, err)
+
+		if !w.mustReconnect.Load() {
+			return //prevent goroutine leak for Run if error occurred
 		}
 
 		select {
@@ -57,11 +81,10 @@ func (w *Watcher) run(ctx context.Context, firstSessionErr chan error) {
 	}
 }
 
-func (w *Watcher) runSession(sessNum int, firstSessionErr chan error) (err error) {
-	firstSessionErrWritten := false
+func (w *Watcher) runSession(firstSessionErr chan error) (err error) {
 	defer func() {
-		if !firstSessionErrWritten && sessNum == 1 {
-			firstSessionErr <- err
+		if err != nil {
+			w.reportFirstSessionError(firstSessionErr, err)
 		}
 	}()
 
@@ -71,10 +94,7 @@ func (w *Watcher) runSession(sessNum int, firstSessionErr chan error) (err error
 	}
 	defer c.Close()
 
-	if sessNum == 1 {
-		firstSessionErrWritten = true
-		firstSessionErr <- nil
-	}
+	w.reportFirstSessionError(firstSessionErr, nil) //to unblock Run
 
 	errCh := make(chan error, 1)
 	go func() {
@@ -93,4 +113,10 @@ func (w *Watcher) runSession(sessNum int, firstSessionErr chan error) (err error
 func (w *Watcher) Shutdown() {
 	close(w.close)
 	<-w.shutdownDone
+}
+
+func (w *Watcher) reportFirstSessionError(firstSessionErr chan error, err error) {
+	w.reportErrOnce.Do(func() {
+		firstSessionErr <- err
+	})
 }
