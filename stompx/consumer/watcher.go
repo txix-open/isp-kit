@@ -33,6 +33,11 @@ func (w *Watcher) Run(ctx context.Context) error {
 	}
 }
 
+func (w *Watcher) Serve(ctx context.Context) {
+	firstSessionErr := make(chan error, 1)
+	go w.run(ctx, firstSessionErr)
+}
+
 func (w *Watcher) run(ctx context.Context, firstSessionErr chan error) {
 	defer func() {
 		close(w.shutdownDone)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/stompx"
 	"github.com/txix-open/isp-kit/stompx/consumer"
 	"github.com/txix-open/isp-kit/test"
@@ -14,6 +15,7 @@ type Client struct {
 	address  string
 	username string
 	password string
+	logger   log.Logger
 }
 
 func New(t *test.Test) *Client {
@@ -48,7 +50,7 @@ func (c *Client) PublisherConfig(queue string) stompx.PublisherConfig {
 }
 
 func (c *Client) Upgrade(consumers ...consumer.Config) {
-	group := stompx.NewConsumerGroup()
+	group := stompx.NewConsumerGroup(c.logger)
 	c.t.T().Cleanup(func() {
 		err := group.Close()
 		c.t.Assert().NoError(err)
