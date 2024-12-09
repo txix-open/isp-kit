@@ -162,7 +162,16 @@ func TopologyFromConsumers(consumers ...Consumer) topology.Declarations {
 			topology.WithDLQ(consumer.Dlq),
 		}
 		for k, v := range consumer.QueueArgs {
-			queueOpts = append(queueOpts, topology.WithQueueArg(k, v))
+			switch k {
+			case "x-max-priority", "x-message-ttl", "-max-length", "x-max-length-bytes", "x-expires", "x-max-age",
+				"x-stream-max-segment-size-bytes":
+				vv, ok := v.(float64)
+				if ok {
+					queueOpts = append(queueOpts, topology.WithQueueArg(k, vv))
+				}
+			default:
+				queueOpts = append(queueOpts, topology.WithQueueArg(k, v))
+			}
 		}
 
 		if consumer.RetryPolicy != nil {
