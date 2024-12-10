@@ -162,7 +162,12 @@ func TopologyFromConsumers(consumers ...Consumer) topology.Declarations {
 			topology.WithDLQ(consumer.Dlq),
 		}
 		for k, v := range consumer.QueueArgs {
-			queueOpts = append(queueOpts, topology.WithQueueArg(k, v))
+			switch vv := v.(type) {
+			case float64:
+				queueOpts = append(queueOpts, topology.WithQueueArg(k, int(vv)))
+			default:
+				queueOpts = append(queueOpts, topology.WithQueueArg(k, v))
+			}
 		}
 
 		if consumer.RetryPolicy != nil {
