@@ -35,7 +35,7 @@ func TestRequestIdChain(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 
 	pubCfg := testKafka.PublisherConfig(testRequestIdTopic)
-	pub1 := pubCfg.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger(), true))
+	pub1 := pubCfg.DefaultPublisher(context.Background(), test.Logger(), kafkax.PublisherLog(test.Logger(), true))
 
 	consumerCfg := testKafka.ConsumerConfig(testRequestIdTopic, groupIdRequestId)
 	consumerCfg.Concurrency = 3
@@ -53,7 +53,7 @@ func TestRequestIdChain(t *testing.T) {
 		}),
 	)
 
-	cons1 := consumerCfg.DefaultConsumer(test.Logger(), handler1, kafkax.ConsumerLog(test.Logger(), true))
+	cons1 := consumerCfg.DefaultConsumer(context.Background(), test.Logger(), handler1, kafkax.ConsumerLog(test.Logger(), true))
 
 	kafkaBrokerConfig := kafkax.NewConfig(
 		kafkax.WithPublishers(pub1),
@@ -61,8 +61,7 @@ func TestRequestIdChain(t *testing.T) {
 	)
 
 	client := kafkax.New(test.Logger())
-	err := client.UpgradeAndServe(context.Background(), kafkaBrokerConfig)
-	require.NoError(err)
+	client.UpgradeAndServe(context.Background(), kafkaBrokerConfig)
 
 	time.Sleep(500 * time.Millisecond)
 
@@ -70,7 +69,7 @@ func TestRequestIdChain(t *testing.T) {
 	ctx = log.ToContext(ctx, log.String(requestid.LogKey, expectedRequestId))
 
 	for i := 1; i <= 5; i++ {
-		err = pub1.Publish(ctx, kafka.Message{
+		err := pub1.Publish(ctx, kafka.Message{
 			Key:   []byte(strconv.Itoa(i)),
 			Value: []byte("test message"),
 		})
@@ -104,7 +103,7 @@ func TestRetry(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 
 	pubCfg := testKafka.PublisherConfig(testRetryTopic)
-	pub1 := pubCfg.DefaultPublisher(test.Logger(), kafkax.PublisherLog(test.Logger(), true))
+	pub1 := pubCfg.DefaultPublisher(context.Background(), test.Logger(), kafkax.PublisherLog(test.Logger(), true))
 
 	consumerCfg := testKafka.ConsumerConfig(testRetryTopic, groupIdRetry)
 
@@ -121,7 +120,7 @@ func TestRetry(t *testing.T) {
 			return handler.Commit()
 		}),
 	)
-	cons1 := consumerCfg.DefaultConsumer(test.Logger(), handler1, kafkax.ConsumerLog(test.Logger(), true))
+	cons1 := consumerCfg.DefaultConsumer(context.Background(), test.Logger(), handler1, kafkax.ConsumerLog(test.Logger(), true))
 
 	kafkaBrokerConfig := kafkax.NewConfig(
 		kafkax.WithPublishers(pub1),
@@ -129,12 +128,11 @@ func TestRetry(t *testing.T) {
 	)
 
 	client := kafkax.New(test.Logger())
-	err := client.UpgradeAndServe(context.Background(), kafkaBrokerConfig)
-	require.NoError(err)
+	client.UpgradeAndServe(context.Background(), kafkaBrokerConfig)
 
 	time.Sleep(500 * time.Millisecond)
 
-	err = pub1.Publish(context.Background(), kafka.Message{
+	err := pub1.Publish(context.Background(), kafka.Message{
 		Value: []byte("test message"),
 	})
 	require.NoError(err)
