@@ -3,11 +3,12 @@ package cluster
 import (
 	"context"
 	"fmt"
-	"github.com/txix-open/etp/v4"
 	"net"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/txix-open/etp/v4"
 
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/json"
@@ -98,7 +99,7 @@ func (h Handshake) Do(ctx context.Context, host string) (w *clientWrapper, err e
 		return nil, errors.WithMessagef(err, "send module requirements")
 	}
 
-	remoteConfig, err := cli.Await(ctx, remoteConfigChan, 1*time.Second)
+	remoteConfig, err := cli.Await(ctx, remoteConfigChan, 5*time.Second)
 	if err != nil {
 		return nil, errors.WithMessage(err, "await remote config")
 	}
