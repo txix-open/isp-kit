@@ -3,6 +3,7 @@ package bootstrap
 type LocalConfig struct {
 	ConfigServiceAddress    ConfigServiceAddr
 	GrpcOuterAddress        GrpcOuterAddr
+	HttpOuterAddress        HttpOuterAddr
 	GrpcInnerAddress        GrpcInnerAddr
 	ModuleName              string `validate:"required"`
 	DefaultRemoteConfigPath string
@@ -37,6 +38,11 @@ type ConfigServiceAddr struct {
 type GrpcOuterAddr struct {
 	IP   string
 	Port int `validate:"required"`
+}
+
+type HttpOuterAddr struct {
+	IP   string
+	Port int
 }
 
 type GrpcInnerAddr struct {

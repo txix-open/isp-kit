@@ -44,6 +44,7 @@ type Bootstrap struct {
 	ModuleName          string
 	SentryHub           sentry.Hub
 	TracingProvider     tracing.Provider
+	LocalConfig         LocalConfig
 }
 
 func New(moduleVersion string, remoteConfig any, endpoints []cluster.EndpointDescriptor) *Bootstrap {
@@ -168,6 +169,10 @@ func bootstrap(
 		}, pprof.Endpoints("/internal")...)),
 	)
 
+	if localConfig.HttpOuterAddress.Port == 0 {
+		localConfig.HttpOuterAddress.Port = localConfig.GrpcOuterAddress.Port + 2
+	}
+
 	application.AddClosers(app.CloserFunc(func() error {
 		sentryHub.Flush()
 		return nil
@@ -214,6 +219,7 @@ func bootstrap(
 		HealthcheckRegistry: healthcheckRegistry,
 		SentryHub:           sentryHub,
 		TracingProvider:     tracingProvider,
+		LocalConfig:         localConfig,
 	}, nil
 }
 
@@ -417,4 +423,8 @@ func appConfig(isDev bool) (*app.Config, error) {
 		LoggerConfigSupplier: logConfigSupplier,
 		ConfigOptions:        configsOpts,
 	}, nil
+}
+
+func (b *Bootstrap) HttpServerAddress() string {
+	return net.JoinHostPort("0.0.0.0", strconv.Itoa(b.LocalConfig.HttpOuterAddress.Port))
 }
