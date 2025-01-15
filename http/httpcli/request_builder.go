@@ -37,6 +37,21 @@ func NewRequestBuilder(method string, url string, cfg *GlobalRequestConfig, exec
 	return builder
 }
 
+func (b *RequestBuilder) BaseUrl(baseUrl string) *RequestBuilder {
+	b.baseUrl = baseUrl
+	return b
+}
+
+func (b *RequestBuilder) Url(url string) *RequestBuilder {
+	b.url = url
+	return b
+}
+
+func (b *RequestBuilder) Method(method string) *RequestBuilder {
+	b.method = method
+	return b
+}
+
 func (b *RequestBuilder) Header(name string, value string) *RequestBuilder {
 	if b.headers == nil {
 		b.headers = map[string]string{}

@@ -73,26 +73,26 @@ func (c *Client) GlobalRequestConfig() *GlobalRequestConfig {
 }
 
 func (c *Client) Post(url string) *RequestBuilder {
-	return NewRequestBuilder(http.MethodPost, url, c.globalConfig, c.execute)
+	return NewRequestBuilder(http.MethodPost, url, c.globalConfig, c.Execute)
 }
 
 func (c *Client) Get(url string) *RequestBuilder {
-	return NewRequestBuilder(http.MethodGet, url, c.globalConfig, c.execute)
+	return NewRequestBuilder(http.MethodGet, url, c.globalConfig, c.Execute)
 }
 
 func (c *Client) Put(url string) *RequestBuilder {
-	return NewRequestBuilder(http.MethodPut, url, c.globalConfig, c.execute)
+	return NewRequestBuilder(http.MethodPut, url, c.globalConfig, c.Execute)
 }
 
 func (c *Client) Delete(url string) *RequestBuilder {
-	return NewRequestBuilder(http.MethodDelete, url, c.globalConfig, c.execute)
+	return NewRequestBuilder(http.MethodDelete, url, c.globalConfig, c.Execute)
 }
 
 func (c *Client) Patch(url string) *RequestBuilder {
-	return NewRequestBuilder(http.MethodPatch, url, c.globalConfig, c.execute)
+	return NewRequestBuilder(http.MethodPatch, url, c.globalConfig, c.Execute)
 }
 
-func (c *Client) execute(ctx context.Context, builder *RequestBuilder) (*Response, error) {
+func (c *Client) Execute(ctx context.Context, builder *RequestBuilder) (*Response, error) {
 	request, err := builder.newHttpRequest(ctx)
 	if err != nil {
 		return nil, err
