@@ -228,6 +228,8 @@ func TestRequestBuilder_MultipartData(t *testing.T) {
 		require.EqualValues("test", r.MultipartForm.Value["field1"][0])
 
 		fh := r.MultipartForm.File["file"][0]
+		contentTypeHeader := fh.Header.Get("Content-Type")
+		require.EqualValues("application/json1", contentTypeHeader)
 		file, err := fh.Open()
 		require.NoError(err)
 		defer file.Close()
@@ -240,7 +242,13 @@ func TestRequestBuilder_MultipartData(t *testing.T) {
 	file, err := os.Open("test_data/multipart.json")
 	require.NoError(err)
 	resp, err := httpcli.New().Post(url).MultipartRequestBody(&httpcli.MultipartData{
-		Files:  map[string]httpcli.MultipartFieldFile{"file": {Filename: "multipart.json", Reader: file}},
+		Files: map[string]httpcli.MultipartFieldFile{"file": {
+			Filename: "multipart.json",
+			Reader:   file,
+			Headers: map[string]string{
+				"Content-Type": "application/json1",
+			},
+		}},
 		Values: map[string]string{"field1": "test"},
 	}).Do(context.Background())
 	require.NoError(err)

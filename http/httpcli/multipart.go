@@ -1,8 +1,11 @@
 package httpcli
 
 import (
+	"fmt"
 	"io"
 	"mime/multipart"
+	"net/textproto"
+	"strings"
 )
 
 type MultipartData struct {
@@ -11,6 +14,7 @@ type MultipartData struct {
 }
 
 type MultipartFieldFile struct {
+	Headers  map[string]string
 	Filename string
 	Reader   io.ReadCloser
 }
@@ -33,7 +37,7 @@ func (m *MultipartData) openReader() (string, io.ReadCloser) {
 			}
 		}
 		for name, file := range m.Files {
-			wr, err := writer.CreateFormFile(name, file.Filename)
+			wr, err := CreateFormFile(writer, file.Headers, name, file.Filename)
 			if err != nil {
 				return
 			}
@@ -44,4 +48,26 @@ func (m *MultipartData) openReader() (string, io.ReadCloser) {
 		}
 	}()
 	return writer.FormDataContentType(), pr
+}
+
+func CreateFormFile(
+	w *multipart.Writer,
+	header map[string]string,
+	fieldname string,
+	filename string,
+) (io.Writer, error) {
+	h := make(textproto.MIMEHeader)
+	for key, value := range header {
+		h.Set(key, value)
+	}
+	h.Set("Content-Disposition",
+		fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
+			escapeQuotes(fieldname), escapeQuotes(filename)))
+	return w.CreatePart(h)
+}
+
+var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
+
+func escapeQuotes(s string) string {
+	return quoteEscaper.Replace(s)
 }
