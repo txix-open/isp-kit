@@ -1,12 +1,15 @@
 package httpclix
 
 import (
+	"bytes"
 	"context"
+	"io"
+	"net/http/httputil"
+	"time"
+
 	"github.com/txix-open/isp-kit/http/httpcli"
 	"github.com/txix-open/isp-kit/json"
 	"github.com/txix-open/isp-kit/log"
-	"net/http/httputil"
-	"time"
 )
 
 type logConfig struct {
@@ -94,6 +97,7 @@ func Log(logger log.Logger) httpcli.Middleware {
 			}
 
 			if config.LogDumpRequest {
+				request.Raw.Body = io.NopCloser(bytes.NewBuffer(request.Body()))
 				dumpReq, _ := httputil.DumpRequestOut(request.Raw, true)
 				responseFields = append(responseFields, log.ByteString("requestDump", dumpReq))
 			}
