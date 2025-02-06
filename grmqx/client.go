@@ -18,18 +18,18 @@ const (
 )
 
 type Client struct {
-	logger  log.Logger
 	cli     *grmq.Client
 	prevCfg Config
 	lock    sync.Locker
+	logger  log.Logger
 }
 
 func New(logger log.Logger) *Client {
 	return &Client{
-		logger:  logger,
-		lock:    &sync.Mutex{},
 		cli:     nil,
 		prevCfg: Config{},
+		lock:    &sync.Mutex{},
+		logger:  logger,
 	}
 }
 
@@ -107,6 +107,8 @@ func (c *Client) upgrade(ctx context.Context, config Config, justServe bool) err
 			return err
 		}
 	}
+
+	c.logger.Debug(ctx, "rmq client: initialization done")
 
 	c.cli = cli
 	c.prevCfg = config

@@ -12,15 +12,15 @@ import (
 type ConsumerGroup struct {
 	locker    sync.Locker
 	consumers []*consumer.Watcher
-	logger    log.Logger
 	prevCfg   []consumer.Config
+	logger    log.Logger
 }
 
 func NewConsumerGroup(logger log.Logger) *ConsumerGroup {
 	return &ConsumerGroup{
 		locker:  &sync.Mutex{},
-		logger:  logger,
 		prevCfg: []consumer.Config{},
+		logger:  logger,
 	}
 }
 
@@ -62,6 +62,7 @@ func (g *ConsumerGroup) upgrade(ctx context.Context, justServe bool, consumers .
 		g.consumers = append(g.consumers, c)
 	}
 
+	g.logger.Debug(ctx, "stomp client: initialization done")
 	g.prevCfg = consumers
 
 	return nil
