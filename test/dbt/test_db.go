@@ -21,25 +21,15 @@ type TestDb struct {
 }
 
 func New(t *test.Test, opts ...dbx.Option) *TestDb {
-	cfg := t.Config()
-	schema := fmt.Sprintf("test_%s", t.Id()) //name must start from none digit
-	dbConfig := dbx.Config{
-		Host:        cfg.Optional().String("PG_HOST", "127.0.0.1"),
-		Port:        cfg.Optional().Int("PG_PORT", 5432),
-		Database:    cfg.Optional().String("PG_DB", "test"),
-		Username:    cfg.Optional().String("PG_USER", "test"),
-		Password:    cfg.Optional().String("PG_PASS", "test"),
-		Schema:      schema,
-		MaxOpenConn: runtime.NumCPU(),
-	}
+	dbConfig := Config(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	cli, err := dbx.Open(ctx, dbConfig, opts...)
-	t.Assert().NoError(err, errors.WithMessagef(err, "open test db cli, schema: %s", schema))
+	t.Assert().NoError(err, errors.WithMessagef(err, "open test db cli, schema: %s", dbConfig.Schema))
 
 	db := &TestDb{
 		Client: cli,
-		schema: schema,
+		schema: dbConfig.Schema,
 		must: must{
 			db:     cli.Client,
 			assert: t.Assert(),
@@ -104,4 +94,19 @@ func (m must) Count(query string, args ...any) int {
 	value := 0
 	m.SelectRow(&value, query, args...)
 	return value
+}
+
+func Config(t *test.Test) dbx.Config {
+	cfg := t.Config()
+	schema := fmt.Sprintf("test_%s", t.Id()) //name must start from none digit
+	dbConfig := dbx.Config{
+		Host:        cfg.Optional().String("PG_HOST", "127.0.0.1"),
+		Port:        cfg.Optional().Int("PG_PORT", 5432),
+		Database:    cfg.Optional().String("PG_DB", "test"),
+		Username:    cfg.Optional().String("PG_USER", "test"),
+		Password:    cfg.Optional().String("PG_PASS", "test"),
+		Schema:      schema,
+		MaxOpenConn: runtime.NumCPU(),
+	}
+	return dbConfig
 }

@@ -25,18 +25,18 @@ func (c *state) run(ctx context.Context) {
 }
 
 type Client struct {
-	logger  log.Logger
 	prevCfg Config
 	state   *state
 	lock    sync.Locker
+	logger  log.Logger
 }
 
 func New(logger log.Logger) *Client {
 	return &Client{
-		logger:  logger,
 		prevCfg: Config{},
 		state:   nil,
 		lock:    &sync.Mutex{},
+		logger:  logger,
 	}
 }
 
@@ -62,6 +62,7 @@ func (c *Client) UpgradeAndServe(ctx context.Context, config Config) {
 	c.state.run(ctx)
 
 	c.state.observer.ClientReady()
+	c.logger.Debug(ctx, "kafka client: initialization done")
 
 	c.prevCfg = config
 }

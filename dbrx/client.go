@@ -3,8 +3,9 @@ package dbrx
 import (
 	"context"
 	"database/sql"
+	"github.com/txix-open/isp-kit/log"
 	"reflect"
-	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
@@ -22,26 +23,30 @@ var (
 
 type Client struct {
 	options []dbx.Option
-	lock    *sync.RWMutex
-	prevCfg dbx.Config
-	cli     *dbx.Client
+	prevCfg *atomic.Value
+	cli     *atomic.Pointer[dbx.Client]
+	logger  log.Logger
 }
 
-func New(opts ...dbx.Option) *Client {
+func New(logger log.Logger, opts ...dbx.Option) *Client {
+	prevCfg := &atomic.Value{}
+	prevCfg.Store(dbx.Config{})
 	return &Client{
 		options: opts,
-		prevCfg: dbx.Config{},
-		lock:    &sync.RWMutex{},
-		cli:     nil,
+		prevCfg: prevCfg,
+		cli:     &atomic.Pointer[dbx.Client]{},
+		logger:  logger,
 	}
 }
 func (c *Client) Upgrade(ctx context.Context, config dbx.Config) error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.logger.Debug(ctx, "db client: received new config")
 
-	if reflect.DeepEqual(c.prevCfg, config) {
+	if reflect.DeepEqual(c.prevCfg.Load(), config) {
+		c.logger.Debug(ctx, "db client: configs are equal. skipping initialization")
 		return nil
 	}
+
+	c.logger.Debug(ctx, "db client: initialization began")
 
 	metricsTracer := sql_metrics.NewTracer(metrics.DefaultRegistry)
 	tracingConfig := sql_tracing.NewConfig()
@@ -50,34 +55,30 @@ func (c *Client) Upgrade(ctx context.Context, config dbx.Config) error {
 		dbx.WithQueryTracer(metricsTracer, tracingConfig.QueryTracer()),
 	}, c.options...)
 
-	cli, err := dbx.Open(ctx, config, opts...)
+	newCli, err := dbx.Open(ctx, config, opts...)
 	if err != nil {
 		return errors.WithMessage(err, "open new client")
 	}
 
-	if c.cli != nil {
-		_ = c.cli.Close()
+	oldCli := c.cli.Swap(newCli)
+	if oldCli != nil {
+		_ = oldCli.Close()
 	}
 
-	c.cli = cli
-	c.prevCfg = config
+	c.logger.Debug(ctx, "db client: initialization done")
 
-	db_metrics.Register(metrics.DefaultRegistry, c.cli.Client.DB.DB, config.Database)
+	c.prevCfg.Store(config)
+
+	db_metrics.Register(metrics.DefaultRegistry, newCli.Client.DB.DB, config.Database)
 
 	return nil
 }
 
 func (c *Client) DB() (*dbx.Client, error) {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-
 	return c.db()
 }
 
 func (c *Client) Select(ctx context.Context, ptr any, query string, args ...any) error {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-
 	cli, err := c.db()
 	if err != nil {
 		return err
@@ -86,9 +87,6 @@ func (c *Client) Select(ctx context.Context, ptr any, query string, args ...any)
 }
 
 func (c *Client) SelectRow(ctx context.Context, ptr any, query string, args ...any) error {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-
 	cli, err := c.db()
 	if err != nil {
 		return err
@@ -97,9 +95,6 @@ func (c *Client) SelectRow(ctx context.Context, ptr any, query string, args ...a
 }
 
 func (c *Client) Exec(ctx context.Context, query string, args ...any) (sql.Result, error) {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-
 	cli, err := c.db()
 	if err != nil {
 		return nil, err
@@ -108,9 +103,6 @@ func (c *Client) Exec(ctx context.Context, query string, args ...any) (sql.Resul
 }
 
 func (c *Client) ExecNamed(ctx context.Context, query string, arg any) (sql.Result, error) {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-
 	cli, err := c.db()
 	if err != nil {
 		return nil, err
@@ -119,9 +111,6 @@ func (c *Client) ExecNamed(ctx context.Context, query string, arg any) (sql.Resu
 }
 
 func (c *Client) RunInTransaction(ctx context.Context, txFunc db.TxFunc, opts ...db.TxOption) error {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-
 	cli, err := c.db()
 	if err != nil {
 		return err
@@ -130,14 +119,11 @@ func (c *Client) RunInTransaction(ctx context.Context, txFunc db.TxFunc, opts ..
 }
 
 func (c *Client) Close() error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
-	c.prevCfg = dbx.Config{}
-	cli := c.cli
-	c.cli = nil
-	if cli != nil {
-		return cli.Close()
+	c.logger.Debug(context.Background(), "db client: call close")
+	c.prevCfg.Store(dbx.Config{})
+	oldCli := c.cli.Swap(nil)
+	if oldCli != nil {
+		return oldCli.Close()
 	}
 	return nil
 }
@@ -147,6 +133,7 @@ func (c *Client) Healthcheck(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
 	ctx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
 	defer cancel()
 	_, err = cli.Exec(ctx, "SELECT 1")
@@ -157,8 +144,9 @@ func (c *Client) Healthcheck(ctx context.Context) error {
 }
 
 func (c *Client) db() (*dbx.Client, error) {
-	if c.cli == nil {
+	oldCli := c.cli.Load()
+	if oldCli == nil {
 		return nil, ErrClientIsNotInitialized
 	}
-	return c.cli, nil
+	return oldCli, nil
 }
