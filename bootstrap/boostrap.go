@@ -393,7 +393,7 @@ func appConfig(isDev bool) (*app.Config, error) {
 		logCounter := app_metrics.NewLogCounter(metrics.DefaultRegistry)
 
 		var sampling *log.SamplingConfig
-		isEnableSampling := cfg.Optional().Bool("LOGS.SAMPLING.ENABLE", true)
+		isEnableSampling := cfg.Optional().Bool("LOGS.SAMPLING.ENABLE", false)
 		if !isDev && isEnableSampling {
 			sampling = &log.SamplingConfig{
 				Initial:    cfg.Optional().Int("LOGS.SAMPLING.MAXPERSECOND", 1000),
