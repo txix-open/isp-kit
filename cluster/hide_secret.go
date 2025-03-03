@@ -61,7 +61,7 @@ func RegisterSecretSubstrings(substrings []string) {
 	}
 }
 
-func UnregisterSecrets(substrings []string) {
+func UnregisterSecretSubstrings(substrings []string) {
 	for _, substring := range substrings {
 		delete(secretFieldSubstrings, strings.ToLower(substring))
 	}
