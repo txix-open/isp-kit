@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	tagConfigSecrets    = []string{"password", "secret", "token"}
+	tagConfigSecrets    = map[string]struct{}{"password": {}, "secret": {}, "token": {}}
 	hidingSecretsEvents = map[string]bool{
 		ConfigSendConfigWhenConnected: true,
 		ConfigSendConfigChanged:       true,
@@ -30,7 +30,7 @@ func HideSecrets(data []byte) ([]byte, error) {
 		if flattenConf[key] == "" {
 			continue
 		}
-		for _, tag := range tagConfigSecrets {
+		for tag := range tagConfigSecrets {
 			if strings.Contains(strings.ToLower(key), tag) {
 				flattenConf[key] = "***"
 			}
@@ -56,23 +56,15 @@ func HideSecrets(data []byte) ([]byte, error) {
 }
 
 func RegisterTagsSecrets(customTagConfigSecrets []string) {
-	tagConfigSecrets = append(tagConfigSecrets, customTagConfigSecrets...)
+	for _, tag := range customTagConfigSecrets {
+		tagConfigSecrets[strings.ToLower(tag)] = struct{}{}
+	}
 }
 
 func UnregisterTagsSecrets(tagsToRemove []string) {
-	removeTagsMap := make(map[string]bool)
 	for _, tag := range tagsToRemove {
-		removeTagsMap[tag] = true
+		delete(tagConfigSecrets, strings.ToLower(tag))
 	}
-
-	newTags := []string{}
-	for _, tag := range tagConfigSecrets {
-		found := removeTagsMap[tag]
-		if !found {
-			newTags = append(newTags, tag)
-		}
-	}
-	tagConfigSecrets = newTags
 }
 
 func hideSecrets(event string, data []byte) []byte {
