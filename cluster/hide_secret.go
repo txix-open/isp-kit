@@ -9,8 +9,12 @@ import (
 )
 
 var (
-	secretFieldSubstrings = map[string]struct{}{"password": {}, "secret": {}, "token": {}}
-	hidingSecretsEvents   = map[string]bool{
+	secretFieldSubstrings = map[string]bool{
+		"password": true,
+		"secret":   true,
+		"token":    true,
+	}
+	hidingSecretsEvents = map[string]bool{
 		ConfigSendConfigWhenConnected: true,
 		ConfigSendConfigChanged:       true,
 		ModuleSendConfigSchema:        true,
@@ -57,7 +61,7 @@ func HideSecrets(data []byte) ([]byte, error) {
 
 func RegisterSecretSubstrings(substrings []string) {
 	for _, substring := range substrings {
-		secretFieldSubstrings[strings.ToLower(substring)] = struct{}{}
+		secretFieldSubstrings[strings.ToLower(substring)] = true
 	}
 }
 
