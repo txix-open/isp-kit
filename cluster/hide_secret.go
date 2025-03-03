@@ -55,7 +55,7 @@ func HideSecrets(data []byte) ([]byte, error) {
 	return data, nil
 }
 
-func RegisterSecrets(substrings []string) {
+func RegisterSecretSubstrings(substrings []string) {
 	for _, substring := range substrings {
 		secretFieldSubstrings[strings.ToLower(substring)] = struct{}{}
 	}
