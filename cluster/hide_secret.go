@@ -59,6 +59,22 @@ func RegisterTagsSecrets(customTagConfigSecrets []string) {
 	tagConfigSecrets = append(tagConfigSecrets, customTagConfigSecrets...)
 }
 
+func UnregisterTagsSecrets(tagsToRemove []string) {
+	removeTagsMap := make(map[string]bool)
+	for _, tag := range tagsToRemove {
+		removeTagsMap[tag] = true
+	}
+
+	newTags := []string{}
+	for _, tag := range tagConfigSecrets {
+		found := removeTagsMap[tag]
+		if !found {
+			newTags = append(newTags, tag)
+		}
+	}
+	tagConfigSecrets = newTags
+}
+
 func hideSecrets(event string, data []byte) []byte {
 	if hidingSecretsEvents[event] {
 		dataToLog, err := HideSecrets(data)
