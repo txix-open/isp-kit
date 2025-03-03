@@ -23,7 +23,7 @@ func ToContext(ctx context.Context, kvs ...Field) context.Context {
 func RewriteContextField(ctx context.Context, field Field) context.Context {
 	existedValues := ContextLogValues(ctx)
 	fields := make([]Field, 0, len(existedValues))
-	
+
 	for i := range existedValues {
 		if existedValues[i].Key == field.Key {
 			fields = append(fields, field)
