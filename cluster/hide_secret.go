@@ -55,6 +55,10 @@ func HideSecrets(data []byte) ([]byte, error) {
 	return data, nil
 }
 
+func RegisterTagsSecrets(customTagConfigSecrets []string) {
+	tagConfigSecrets = append(tagConfigSecrets, customTagConfigSecrets...)
+}
+
 func hideSecrets(event string, data []byte) []byte {
 	if hidingSecretsEvents[event] {
 		dataToLog, err := HideSecrets(data)
