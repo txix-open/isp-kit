@@ -3,9 +3,10 @@ package soap_test
 import (
 	"context"
 	"encoding/xml"
-	"github.com/txix-open/isp-kit/http/endpoint"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/txix-open/isp-kit/http/endpoint/log_middleware"
 
 	"github.com/stretchr/testify/require"
 	"github.com/txix-open/isp-kit/http/httpcli"
@@ -38,7 +39,8 @@ func TestNamespace(t *testing.T) {
 </soapenv:Envelope>`
 	logger, err := log.New()
 	require.NoError(err)
-	wrapper := soap.DefaultWrapper(logger, endpoint.Log(logger, true))
+	wrapper := soap.DefaultWrapper(logger,
+		log_middleware.Log(logger, log_middleware.WithLogRequestBody(true), log_middleware.WithLogResponseBody(true)))
 	handler := wrapper.Endpoint(func(ctx context.Context, req Req) {
 		require.EqualValues("Test", req.EntryItem.EntryName)
 	})

@@ -12,6 +12,7 @@ import (
 	isphttp "github.com/txix-open/isp-kit/http"
 	"github.com/txix-open/isp-kit/http/apierrors"
 	"github.com/txix-open/isp-kit/http/endpoint"
+	"github.com/txix-open/isp-kit/http/endpoint/log_middleware"
 	"github.com/txix-open/isp-kit/log"
 )
 
@@ -87,7 +88,8 @@ func prepareServer(t *testing.T) string {
 		},
 	}}
 
-	mapper := endpoint.DefaultWrapper(logger, endpoint.Log(logger, true))
+	mapper := endpoint.DefaultWrapper(logger,
+		log_middleware.Log(logger, log_middleware.WithLogRequestBody(true), log_middleware.WithLogResponseBody(true)))
 	muxer := http.NewServeMux()
 	for _, descriptor := range endpoints {
 		muxer.Handle(descriptor.Path, mapper.Endpoint(descriptor.Handler))
