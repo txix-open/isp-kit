@@ -39,8 +39,7 @@ func TestNamespace(t *testing.T) {
 </soapenv:Envelope>`
 	logger, err := log.New()
 	require.NoError(err)
-	wrapper := soap.DefaultWrapper(logger,
-		log_middleware.Log(logger, log_middleware.WithLogRequestBody(true), log_middleware.WithLogResponseBody(true)))
+	wrapper := soap.DefaultWrapper(logger, log_middleware.Log(logger, log_middleware.WithLogBody(true)))
 	handler := wrapper.Endpoint(func(ctx context.Context, req Req) {
 		require.EqualValues("Test", req.EntryItem.EntryName)
 	})

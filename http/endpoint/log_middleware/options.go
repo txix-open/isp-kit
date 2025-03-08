@@ -8,6 +8,14 @@ func WithContentTypes(logBodyContentTypes []string) Option {
 	}
 }
 
+// Shortcut for logResponseBody and logRequestBody
+func WithLogBody(logBody bool) Option {
+	return func(cfg *logConfig) {
+		cfg.logResponseBody = logBody
+		cfg.logRequestBody = logBody
+	}
+}
+
 func WithLogResponseBody(logResponseBody bool) Option {
 	return func(cfg *logConfig) {
 		cfg.logResponseBody = logResponseBody
