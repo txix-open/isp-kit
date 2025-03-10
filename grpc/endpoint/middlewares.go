@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"runtime"
-	"time"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
@@ -93,36 +92,6 @@ func RequestId() grpc.Middleware {
 			ctx = log.ToContext(ctx, log.String(requestid.LogKey, requestId))
 
 			return next(ctx, message)
-		}
-	}
-}
-
-func Log(logger log.Logger, logBody bool) grpc.Middleware {
-	return func(next grpc.HandlerFunc) grpc.HandlerFunc {
-		return func(ctx context.Context, message *isp.Message) (*isp.Message, error) {
-			requestFields := []log.Field{}
-			if logBody {
-				requestFields = append(requestFields, log.ByteString("requestBody", message.GetBytesBody()))
-			}
-			logger.Debug(ctx, "grpc handler: request", requestFields...)
-
-			now := time.Now()
-			response, err := next(ctx, message)
-			if err != nil {
-				return response, err
-			}
-
-			responseFields := []log.Field{
-				log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()),
-			}
-			if logBody {
-				responseFields = append(responseFields, log.ByteString("responseBody", response.GetBytesBody()))
-			}
-			logger.Debug(ctx,
-				"grpc handler: response",
-				responseFields...,
-			)
-			return response, err
 		}
 	}
 }
