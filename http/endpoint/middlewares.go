@@ -20,6 +20,8 @@ const (
 	defaultMaxRequestBodySize = 64 * 1024 * 1024
 )
 
+type LogMiddleware http2.Middleware
+
 func MaxRequestBodySize(maxBytes int64) http2.Middleware {
 	return func(next http2.HandlerFunc) http2.HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {

@@ -17,7 +17,8 @@ type Client struct {
 	lb              *lb.RoundRobin
 	eventHandler    *EventHandler
 	logger          log.Logger
-	sessionIsActive *atomic.Int32
+	sessionIsActive *atomic.Bool
+	closed          *atomic.Bool
 
 	cli *clientWrapper
 }
@@ -27,15 +28,21 @@ func NewClient(moduleInfo ModuleInfo, configData ConfigData, hosts []string, log
 		moduleInfo:      moduleInfo,
 		configData:      configData,
 		lb:              lb.NewRoundRobin(hosts),
-		sessionIsActive: &atomic.Int32{},
+		sessionIsActive: &atomic.Bool{},
+		closed:          &atomic.Bool{},
 		logger:          logger,
 	}
 }
 
 func (c *Client) Run(ctx context.Context, eventHandler *EventHandler) error {
 	c.eventHandler = eventHandler
+	c.closed.Store(false)
 
 	for {
+		if c.closed.Load() {
+			return nil
+		}
+
 		err := c.runSession(ctx)
 		if errors.Is(err, context.Canceled) {
 			return nil
@@ -52,6 +59,7 @@ func (c *Client) Run(ctx context.Context, eventHandler *EventHandler) error {
 }
 
 func (c *Client) Close() error {
+	c.closed.Store(true)
 	if c.cli != nil {
 		return c.cli.Close()
 	}
@@ -59,14 +67,14 @@ func (c *Client) Close() error {
 }
 
 func (c *Client) Healthcheck(ctx context.Context) error {
-	if c.sessionIsActive.Load() == int32(1) {
+	if c.sessionIsActive.Load() {
 		return nil
 	}
 	return errors.New("session inactive")
 }
 
 func (c *Client) runSession(ctx context.Context) error {
-	defer c.sessionIsActive.Store(0)
+	defer c.sessionIsActive.Store(false)
 
 	host, err := c.lb.Next()
 	if err != nil {
@@ -124,7 +132,7 @@ func (c *Client) runSession(ctx context.Context) error {
 		}
 	})
 
-	c.sessionIsActive.Store(1)
+	c.sessionIsActive.Store(true)
 
 	for {
 		err := c.waitAndPing(ctx)

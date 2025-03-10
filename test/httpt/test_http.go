@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 
 	"github.com/txix-open/isp-kit/http/endpoint"
+	"github.com/txix-open/isp-kit/http/endpoint/httplog"
 	"github.com/txix-open/isp-kit/http/httpcli"
 	"github.com/txix-open/isp-kit/http/router"
 	"github.com/txix-open/isp-kit/test"
@@ -22,7 +23,7 @@ func NewMock(t *test.Test) *MockServer {
 	t.T().Cleanup(func() {
 		srv.Close()
 	})
-	wrapper := endpoint.DefaultWrapper(t.Logger(), endpoint.Log(t.Logger(), true))
+	wrapper := endpoint.DefaultWrapper(t.Logger(), httplog.Log(t.Logger(), true))
 	return &MockServer{
 		Wrapper: wrapper,
 		srv:     srv,
