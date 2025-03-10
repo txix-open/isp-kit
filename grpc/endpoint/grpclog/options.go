@@ -1,4 +1,4 @@
-package log_middleware
+package grpclog
 
 type Option func(cfg *logConfig)
 
