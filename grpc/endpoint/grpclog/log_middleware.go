@@ -14,7 +14,15 @@ type logConfig struct {
 	logResponseBody bool
 }
 
-func Log(logger log.Logger, opts ...Option) grpc.Middleware {
+func Log(logger log.Logger, logBody bool) grpc.Middleware {
+	cfg := &logConfig{
+		logRequestBody:  logBody,
+		logResponseBody: logBody,
+	}
+	return middleware(logger, cfg)
+}
+
+func LogWithOptions(logger log.Logger, opts ...Option) grpc.Middleware {
 	cfg := &logConfig{
 		logRequestBody:  false,
 		logResponseBody: false,

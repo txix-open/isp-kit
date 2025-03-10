@@ -26,7 +26,16 @@ type logConfig struct {
 	logResponseBody     bool
 }
 
-func Log(logger log.Logger, opts ...Option) endpoint.LogMiddleware {
+func Log(logger log.Logger, logBody bool) endpoint.LogMiddleware {
+	cfg := &logConfig{
+		logBodyContentTypes: defaultLogBodyContentTypes,
+		logRequestBody:      logBody,
+		logResponseBody:     logBody,
+	}
+	return middleware(logger, cfg)
+}
+
+func LogWithOptions(logger log.Logger, opts ...Option) endpoint.LogMiddleware {
 	cfg := &logConfig{
 		logBodyContentTypes: defaultLogBodyContentTypes,
 		logRequestBody:      false,
