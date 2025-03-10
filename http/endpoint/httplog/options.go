@@ -1,4 +1,4 @@
-package log_middleware
+package httplog
 
 type Option func(cfg *logConfig)
 

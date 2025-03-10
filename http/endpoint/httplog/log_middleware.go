@@ -1,4 +1,4 @@
-package log_middleware
+package httplog
 
 import (
 	"context"

@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/txix-open/isp-kit/http/endpoint/log_middleware"
+	"github.com/txix-open/isp-kit/http/endpoint/httplog"
 
 	"github.com/stretchr/testify/require"
 	"github.com/txix-open/isp-kit/http/httpcli"
@@ -39,7 +39,7 @@ func TestNamespace(t *testing.T) {
 </soapenv:Envelope>`
 	logger, err := log.New()
 	require.NoError(err)
-	wrapper := soap.DefaultWrapper(logger, log_middleware.Log(logger, log_middleware.WithLogBody(true)))
+	wrapper := soap.DefaultWrapper(logger, httplog.Log(logger, httplog.WithLogBody(true)))
 	handler := wrapper.Endpoint(func(ctx context.Context, req Req) {
 		require.EqualValues("Test", req.EntryItem.EntryName)
 	})
