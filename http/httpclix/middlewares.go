@@ -2,12 +2,23 @@ package httpclix
 
 import (
 	"context"
-	"github.com/txix-open/isp-kit/http/httpcli"
-	"github.com/txix-open/isp-kit/metrics/http_metrics"
-	"github.com/txix-open/isp-kit/requestid"
 	"net/http/httptrace"
 	"time"
+
+	"github.com/txix-open/isp-kit/http/httpcli"
+	"github.com/txix-open/isp-kit/metrics"
+	"github.com/txix-open/isp-kit/metrics/http_metrics"
+	"github.com/txix-open/isp-kit/observability/tracing/http/client_tracing"
+	"github.com/txix-open/isp-kit/requestid"
 )
+
+func DefaultMiddlewares() []httpcli.Middleware {
+	return []httpcli.Middleware{
+		RequestId(),
+		Metrics(http_metrics.NewClientStorage(metrics.DefaultRegistry)),
+		client_tracing.NewConfig().Middleware(),
+	}
+}
 
 func RequestId() httpcli.Middleware {
 	return func(next httpcli.RoundTripper) httpcli.RoundTripper {
