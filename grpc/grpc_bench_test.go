@@ -92,7 +92,9 @@ func BenchmarkHttp2H2CParallel(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	go server.Serve(listener)
+	go func() {
+		_ = server.Serve(listener)
+	}()
 	time.Sleep(100 * time.Millisecond)
 
 	client := http.Client{
@@ -134,7 +136,9 @@ func BenchmarkHttp2Parallel(b *testing.B) {
 		Addr:    ":8080",
 		Handler: router,
 	}
-	go server.ListenAndServeTLS("_certificates/server.crt", "_certificates/server.key")
+	go func() {
+		_ = server.ListenAndServeTLS("_certificates/server.crt", "_certificates/server.key")
+	}()
 	time.Sleep(100 * time.Millisecond)
 
 	transport := httpcli.StdClient.Transport.(*http.Transport).Clone()
