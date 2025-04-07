@@ -2,10 +2,14 @@ package cluster
 
 import (
 	"context"
-	"github.com/txix-open/isp-kit/json"
+	"fmt"
 	"net"
+	"net/url"
 	"sync/atomic"
 	"time"
+
+	"github.com/txix-open/etp/v4"
+	"github.com/txix-open/isp-kit/json"
 
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/lb"
@@ -95,24 +99,36 @@ func (c *Client) runSession(ctx context.Context) error {
 		RequireRoutes:   c.eventHandler.routesReceiver != nil,
 	}
 
-	handshake := NewHandshake(c.moduleInfo, c.configData, requirements, c.logger)
-	c.cli, err = handshake.Do(ctx, host)
+	err = c.initClientWrapper(ctx, host)
 	if err != nil {
-		return errors.WithMessage(err, "do handshake")
+		return errors.WithMessage(err, "init client wrapper")
 	}
+	defer func() {
+		if err != nil {
+			_ = c.cli.Close()
+		}
+	}()
 	c.subscribeToEvents()
+
+	_, err = c.cli.EmitJsonWithAck(ctx, ModuleSendConfigSchema, c.configData)
+	if err != nil {
+		return errors.WithMessage(err, "emit module config schema")
+	}
+
+	_, err = c.cli.EmitJsonWithAck(ctx, ModuleSendRequirements, requirements)
+	if err != nil {
+		return errors.WithMessage(err, "emit module requirements")
+	}
 
 	err = c.waitModuleReady(ctx, requirements)
 	if err != nil {
 		return errors.WithMessage(err, "wait module ready")
 	}
-
-	err = handshake.EmitModuleReady(ctx, c.cli)
+	err = c.notifyModuleReady(ctx, requirements)
 	if err != nil {
-		return errors.WithMessage(err, "emit module ready")
+		return errors.WithMessage(err, "notify module ready")
 	}
 
-	c.sessionIsActive.Store(true)
 	for {
 		err := c.waitAndPing(ctx)
 		if err != nil {
@@ -181,6 +197,32 @@ func (c *Client) waitModuleReady(ctx context.Context, requirements ModuleRequire
 	return nil
 }
 
+func (c *Client) notifyModuleReady(ctx context.Context, requirements ModuleRequirements) error {
+	moduleDependencies := make([]ModuleDependency, 0)
+	for _, module := range requirements.RequiredModules {
+		dep := ModuleDependency{
+			Name:     module,
+			Required: true,
+		}
+		moduleDependencies = append(moduleDependencies, dep)
+	}
+	declaration := BackendDeclaration{
+		ModuleName:      c.moduleInfo.ModuleName,
+		Version:         c.moduleInfo.ModuleVersion,
+		LibVersion:      c.moduleInfo.LibVersion,
+		Endpoints:       c.moduleInfo.Endpoints,
+		RequiredModules: moduleDependencies,
+		Address:         c.moduleInfo.GrpcOuterAddress,
+	}
+	_, err := c.cli.EmitJsonWithAck(ctx, ModuleReady, declaration)
+	if err != nil {
+		return errors.WithMessage(err, "emit module ready")
+	}
+
+	c.sessionIsActive.Store(true)
+	return nil
+}
+
 func (c *Client) applyRemoteConfig(ctx context.Context, config []byte) (err error) {
 	ctx, cancel := context.WithTimeout(ctx, c.eventHandler.handleConfigTimeout)
 	defer cancel()
@@ -196,6 +238,25 @@ func (c *Client) applyRemoteConfig(ctx context.Context, config []byte) (err erro
 	case <-ctx.Done():
 		return ctx.Err()
 	}
+}
+
+func (c *Client) initClientWrapper(ctx context.Context, host string) error {
+	etpCli := etp.NewClient(etp.WithClientReadLimit(4 * 1024 * 1024))
+	c.cli = newClientWrapper(ctx, etpCli, c.logger)
+
+	connUrl, err := url.Parse(fmt.Sprintf("ws://%s/isp-etp/", host))
+	if err != nil {
+		return errors.WithMessage(err, "parse conn url")
+	}
+	params := url.Values{}
+	params.Add("module_name", c.moduleInfo.ModuleName)
+	connUrl.RawQuery = params.Encode()
+
+	err = c.cli.Dial(ctx, connUrl.String())
+	if err != nil {
+		return errors.WithMessagef(err, "connect to config service %s", host)
+	}
+	return nil
 }
 
 func (c *Client) waitAndPing(ctx context.Context) error {
