@@ -28,10 +28,8 @@ func newClientWrapper(ctx context.Context, cli *etp.Client, logger log.Logger) *
 		ctx:    ctx,
 		logger: logger,
 	}
-	errorChan := w.eventChan(ErrorConnection)
-	configErrorChan := w.eventChan(ConfigError)
-	w.errorChan = errorChan
-	w.configErrorChan = configErrorChan
+	w.errorChan = w.eventChan(ErrorConnection)
+	w.configErrorChan = w.eventChan(ConfigError)
 	cli.OnUnknownEvent(etp.HandlerFunc(func(ctx context.Context, conn *etp.Conn, event msg.Event) []byte {
 		logger.Error(
 			ctx,
