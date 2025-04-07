@@ -99,16 +99,19 @@ func (c *Client) runSession(ctx context.Context) error {
 		RequireRoutes:   c.eventHandler.routesReceiver != nil,
 	}
 
-	err = c.initClientWrapper(ctx, host)
+	etpCli := etp.NewClient(etp.WithClientReadLimit(4 * 1024 * 1024))
+	c.cli = newClientWrapper(ctx, etpCli, c.logger)
+	c.subscribeToEvents()
+
+	err = c.dialClientWrapper(ctx, host)
 	if err != nil {
-		return errors.WithMessage(err, "init client wrapper")
+		return errors.WithMessage(err, "dial client wrapper")
 	}
 	defer func() {
 		if err != nil {
 			_ = c.cli.Close()
 		}
 	}()
-	c.subscribeToEvents()
 
 	_, err = c.cli.EmitJsonWithAck(ctx, ModuleSendConfigSchema, c.configData)
 	if err != nil {
@@ -239,10 +242,7 @@ func (c *Client) applyRemoteConfig(ctx context.Context, config []byte) (err erro
 	}
 }
 
-func (c *Client) initClientWrapper(ctx context.Context, host string) error {
-	etpCli := etp.NewClient(etp.WithClientReadLimit(4 * 1024 * 1024))
-	c.cli = newClientWrapper(ctx, etpCli, c.logger)
-
+func (c *Client) dialClientWrapper(ctx context.Context, host string) error {
 	connUrl, err := url.Parse(fmt.Sprintf("ws://%s/isp-etp/", host))
 	if err != nil {
 		return errors.WithMessage(err, "parse conn url")
