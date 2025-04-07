@@ -170,6 +170,22 @@ func (c *Client) subscribeToEvents() {
 	})
 }
 
+func (c *Client) dialClientWrapper(ctx context.Context, host string) error {
+	connUrl, err := url.Parse(fmt.Sprintf("ws://%s/isp-etp/", host))
+	if err != nil {
+		return errors.WithMessage(err, "parse conn url")
+	}
+	params := url.Values{}
+	params.Add("module_name", c.moduleInfo.ModuleName)
+	connUrl.RawQuery = params.Encode()
+
+	err = c.cli.Dial(ctx, connUrl.String())
+	if err != nil {
+		return errors.WithMessagef(err, "connect to config service %s", host)
+	}
+	return nil
+}
+
 func (c *Client) remoteConfigEventHandler(data []byte) error {
 	c.logger.Info(c.cli.ctx, "remote config applying...")
 	err := c.applyRemoteConfig(c.cli.ctx, data)
@@ -240,22 +256,6 @@ func (c *Client) applyRemoteConfig(ctx context.Context, config []byte) (err erro
 	case <-ctx.Done():
 		return ctx.Err()
 	}
-}
-
-func (c *Client) dialClientWrapper(ctx context.Context, host string) error {
-	connUrl, err := url.Parse(fmt.Sprintf("ws://%s/isp-etp/", host))
-	if err != nil {
-		return errors.WithMessage(err, "parse conn url")
-	}
-	params := url.Values{}
-	params.Add("module_name", c.moduleInfo.ModuleName)
-	connUrl.RawQuery = params.Encode()
-
-	err = c.cli.Dial(ctx, connUrl.String())
-	if err != nil {
-		return errors.WithMessagef(err, "connect to config service %s", host)
-	}
-	return nil
 }
 
 func (c *Client) waitAndPing(ctx context.Context) error {
