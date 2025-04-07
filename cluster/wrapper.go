@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/txix-open/etp/v4/msg"
+	"github.com/txix-open/isp-kit/json"
 	"github.com/txix-open/isp-kit/log"
 )
 
@@ -61,6 +62,19 @@ func (w *clientWrapper) on(event string, handler func(data []byte)) {
 		handler(event.Data)
 		return nil
 	}))
+}
+
+func (w *clientWrapper) EmitJsonWithAck(ctx context.Context, event string, data any) ([]byte, error) {
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "marshal '%s' data", event)
+	}
+
+	resp, err := w.EmitWithAck(ctx, event, jsonData)
+	if err != nil {
+		return nil, errors.WithMessage(err, "emit with ask")
+	}
+	return resp, nil
 }
 
 func (w *clientWrapper) EmitWithAck(ctx context.Context, event string, data []byte) ([]byte, error) {

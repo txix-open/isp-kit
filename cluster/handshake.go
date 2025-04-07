@@ -8,7 +8,6 @@ import (
 	"github.com/txix-open/etp/v4"
 
 	"github.com/pkg/errors"
-	"github.com/txix-open/isp-kit/json"
 	"github.com/txix-open/isp-kit/log"
 )
 
@@ -55,12 +54,12 @@ func (h Handshake) Do(ctx context.Context, host string) (w *clientWrapper, err e
 		}
 	}()
 
-	err = h.emitEvent(ctx, cli, ModuleSendConfigSchema, h.configData)
+	_, err = cli.EmitJsonWithAck(ctx, ModuleSendConfigSchema, h.configData)
 	if err != nil {
 		return nil, errors.WithMessage(err, "emit module config")
 	}
 
-	err = h.emitEvent(ctx, cli, ModuleSendRequirements, h.requirements)
+	_, err = cli.EmitJsonWithAck(ctx, ModuleSendRequirements, h.requirements)
 	if err != nil {
 		return nil, errors.WithMessage(err, "emit module requirements")
 	}
@@ -85,22 +84,9 @@ func (h Handshake) EmitModuleReady(ctx context.Context, cli *clientWrapper) erro
 		RequiredModules: moduleDependencies,
 		Address:         h.moduleInfo.GrpcOuterAddress,
 	}
-	err := h.emitEvent(ctx, cli, ModuleReady, declaration)
+	_, err := cli.EmitJsonWithAck(ctx, ModuleReady, declaration)
 	if err != nil {
 		return errors.WithMessage(err, "emit module ready")
-	}
-	return nil
-}
-
-func (h Handshake) emitEvent(ctx context.Context, cli *clientWrapper, event string, data any) error {
-	configData, err := json.Marshal(data)
-	if err != nil {
-		return errors.WithMessagef(err, "marshal '%s' data", event)
-	}
-
-	_, err = cli.EmitWithAck(ctx, event, configData)
-	if err != nil {
-		return errors.WithMessagef(err, "send '%s' data", event)
 	}
 	return nil
 }
