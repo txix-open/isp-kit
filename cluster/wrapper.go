@@ -2,13 +2,22 @@ package cluster
 
 import (
 	"context"
-	"github.com/txix-open/etp/v4"
+	"sync"
+	"sync/atomic"
 	"time"
+
+	"github.com/txix-open/etp/v4"
 
 	"github.com/pkg/errors"
 	"github.com/txix-open/etp/v4/msg"
 	"github.com/txix-open/isp-kit/log"
 )
+
+type eventState struct {
+	mu    sync.Mutex
+	data  []byte
+	ready atomic.Bool
+}
 
 type clientWrapper struct {
 	cli             *etp.Client
@@ -16,6 +25,7 @@ type clientWrapper struct {
 	configErrorChan chan []byte
 	ctx             context.Context
 	logger          log.Logger
+	eventStates     sync.Map // map[eventName]*eventState
 }
 
 func newClientWrapper(ctx context.Context, cli *etp.Client, logger log.Logger) *clientWrapper {
@@ -24,8 +34,8 @@ func newClientWrapper(ctx context.Context, cli *etp.Client, logger log.Logger) *
 		ctx:    ctx,
 		logger: logger,
 	}
-	errorChan := w.EventChan(ErrorConnection)
-	configErrorChan := w.EventChan(ConfigError)
+	errorChan := w.eventChan(ErrorConnection)
+	configErrorChan := w.eventChan(ConfigError)
 	w.errorChan = errorChan
 	w.configErrorChan = configErrorChan
 	cli.OnUnknownEvent(etp.HandlerFunc(func(ctx context.Context, conn *etp.Conn, event msg.Event) []byte {
@@ -40,7 +50,7 @@ func newClientWrapper(ctx context.Context, cli *etp.Client, logger log.Logger) *
 	return w
 }
 
-func (w *clientWrapper) On(event string, handler func(data []byte)) {
+func (w *clientWrapper) on(event string, handler func(data []byte)) {
 	w.cli.On(event, etp.HandlerFunc(func(ctx context.Context, conn *etp.Conn, event msg.Event) []byte {
 		w.logger.Info(
 			w.ctx,
@@ -74,15 +84,68 @@ func (w *clientWrapper) EmitWithAck(ctx context.Context, event string, data []by
 	return resp, err
 }
 
-func (w *clientWrapper) EventChan(event string) chan []byte {
+func (w *clientWrapper) eventChan(event string) chan []byte {
 	ch := make(chan []byte, 1)
-	w.On(event, func(data []byte) {
+	w.on(event, func(data []byte) {
 		select {
 		case <-w.ctx.Done():
 		case ch <- data:
 		}
 	})
 	return ch
+}
+
+func (c *clientWrapper) RegisterEvent(event string, handler func([]byte)) {
+	state := &eventState{}
+	c.eventStates.Store(event, state)
+
+	c.on(event, func(data []byte) {
+		state.mu.Lock()
+		defer state.mu.Unlock()
+
+		state.data = data
+		state.ready.Store(true)
+		handler(data)
+	})
+}
+
+func (c *clientWrapper) AwaitEvent(ctx context.Context, event string, timeout time.Duration) ([]byte, error) {
+	val, ok := c.eventStates.Load(event)
+	if !ok {
+		return nil, errors.Errorf("event %s not registered", event)
+	}
+	state := val.(*eventState)
+
+	if state.ready.Load() {
+		state.mu.Lock()
+		defer state.mu.Unlock()
+		return state.data, nil
+	}
+
+	t := time.NewTimer(timeout)
+	defer t.Stop()
+
+	tick := time.NewTicker(10 * time.Millisecond)
+	defer tick.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case data := <-c.errorChan:
+			return nil, errors.New(string(data))
+		case data := <-c.configErrorChan:
+			return nil, errors.New(string(data))
+		case <-t.C:
+			return nil, errors.Errorf("timeout waiting for event %s", event)
+		case <-tick.C:
+			if state.ready.Load() {
+				state.mu.Lock()
+				defer state.mu.Unlock()
+				return state.data, nil
+			}
+		}
+	}
 }
 
 func (w *clientWrapper) Await(ctx context.Context, ch chan []byte, timeout time.Duration) ([]byte, error) {

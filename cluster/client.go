@@ -2,6 +2,8 @@ package cluster
 
 import (
 	"context"
+	"github.com/txix-open/isp-kit/json"
+	"net"
 	"sync/atomic"
 	"time"
 
@@ -93,47 +95,24 @@ func (c *Client) runSession(ctx context.Context) error {
 		RequireRoutes:   c.eventHandler.routesReceiver != nil,
 	}
 
-	handshake := NewHandshake(c.moduleInfo, c.configData, requirements, c, c.logger)
+	handshake := NewHandshake(c.moduleInfo, c.configData, requirements, c.logger)
 	c.cli, err = handshake.Do(ctx, host)
 	if err != nil {
 		return errors.WithMessage(err, "do handshake")
 	}
+	c.subscribeToEvents()
 
-	for moduleName := range c.eventHandler.requiredModules {
-		event := ModuleConnectedEvent(moduleName)
-		upgrader := c.eventHandler.requiredModules[moduleName]
-		c.cli.On(event, func(data []byte) {
-			hosts, err := readHosts(data)
-			if err != nil {
-				c.logger.Error(ctx, errors.WithMessage(err, "read hosts"), log.String("event", event))
-				return
-			}
-			upgrader.Upgrade(hosts)
-		})
+	err = c.waitModuleReady(ctx, requirements)
+	if err != nil {
+		return errors.WithMessage(err, "wait module ready")
 	}
-	c.cli.On(ConfigSendConfigChanged, func(data []byte) {
-		c.logger.Info(ctx, "remote config applying...")
-		err := c.applyRemoteConfig(ctx, data)
-		if err != nil {
-			c.logger.Error(ctx, errors.WithMessage(err, "apply remote config"), log.String("event", ConfigSendConfigChanged))
-			return
-		}
-		c.logger.Info(ctx, "remote config successfully applied")
-	})
-	c.cli.On(ConfigSendRoutesChanged, func(data []byte) {
-		routes, err := readRoutes(data)
-		if err != nil {
-			c.logger.Error(ctx, errors.WithMessage(err, "read route"), log.String("event", ConfigSendRoutesChanged))
-			return
-		}
-		err = c.eventHandler.routesReceiver.ReceiveRoutes(ctx, routes)
-		if err != nil {
-			c.logger.Error(ctx, errors.WithMessage(err, "handle routes"), log.String("event", ConfigSendRoutesChanged))
-		}
-	})
+
+	err = handshake.EmitModuleReady(ctx, c.cli)
+	if err != nil {
+		return errors.WithMessage(err, "emit module ready")
+	}
 
 	c.sessionIsActive.Store(true)
-
 	for {
 		err := c.waitAndPing(ctx)
 		if err != nil {
@@ -142,21 +121,61 @@ func (c *Client) runSession(ctx context.Context) error {
 	}
 }
 
-func (c *Client) confirm(ctx context.Context, data HandshakeData) error {
-	for module, hosts := range data.initialModulesHosts {
-		upgrader := c.eventHandler.requiredModules[module]
-		upgrader.Upgrade(hosts)
+func (c *Client) subscribeToEvents() {
+	for moduleName, upgrader := range c.eventHandler.requiredModules {
+		event := ModuleConnectedEvent(moduleName)
+		c.cli.RegisterEvent(event, func(data []byte) {
+			hosts, err := readHosts(data)
+			if err != nil {
+				c.logger.Error(c.cli.ctx, errors.WithMessage(err, "read hosts"), log.String("event", event))
+				return
+			}
+			upgrader.Upgrade(hosts)
+		})
 	}
 
-	if c.eventHandler.routesReceiver != nil {
-		err := c.eventHandler.routesReceiver.ReceiveRoutes(ctx, data.initialRoutes)
+	c.cli.RegisterEvent(ConfigSendConfigChanged, func(data []byte) {
+		c.logger.Info(c.cli.ctx, "remote config applying...")
+		err := c.applyRemoteConfig(c.cli.ctx, data)
 		if err != nil {
-			return errors.WithMessagef(err, "receive routes")
+			c.logger.Error(c.cli.ctx, errors.WithMessage(err, "apply remote config"), log.String("event", ConfigSendConfigChanged))
+			return
+		}
+		c.logger.Info(c.cli.ctx, "remote config successfully applied")
+	})
+
+	c.cli.RegisterEvent(ConfigSendRoutesChanged, func(data []byte) {
+		routes, err := readRoutes(data)
+		if err != nil {
+			c.logger.Error(c.cli.ctx, errors.WithMessage(err, "read route"), log.String("event", ConfigSendRoutesChanged))
+			return
+		}
+		err = c.eventHandler.routesReceiver.ReceiveRoutes(c.cli.ctx, routes)
+		if err != nil {
+			c.logger.Error(c.cli.ctx, errors.WithMessage(err, "handle routes"), log.String("event", ConfigSendRoutesChanged))
+		}
+	})
+}
+
+func (c *Client) waitModuleReady(ctx context.Context, requirements ModuleRequirements) error {
+	awaitEvents := make([]string, 0, len(requirements.RequiredModules)+1)
+	awaitEvents = append(awaitEvents, ConfigSendConfigWhenConnected)
+	for _, module := range requirements.RequiredModules {
+		event := ModuleConnectedEvent(module)
+		awaitEvents = append(awaitEvents, event)
+	}
+	for _, event := range awaitEvents {
+		_, err := c.cli.AwaitEvent(ctx, event, time.Second)
+		if err != nil {
+			return errors.WithMessagef(err, "await '%s' event", event)
 		}
 	}
 
-	if c.eventHandler.remoteConfigReceiver != nil {
-		return c.applyRemoteConfig(ctx, data.initialRemoteConfig)
+	if requirements.RequireRoutes {
+		_, err := c.cli.AwaitEvent(ctx, ConfigSendRoutesWhenConnected, time.Second)
+		if err != nil {
+			return errors.WithMessagef(err, "await '%s' event", ConfigSendRoutesWhenConnected)
+		}
 	}
 
 	return nil
@@ -195,4 +214,27 @@ func (c *Client) waitAndPing(ctx context.Context) error {
 	}
 
 	return err
+}
+
+func readRoutes(data []byte) (RoutingConfig, error) {
+	var routes RoutingConfig
+	err := json.Unmarshal(data, &routes)
+	if err != nil {
+		return nil, errors.WithMessage(err, "unmarshal routes")
+	}
+	return routes, nil
+}
+
+func readHosts(data []byte) ([]string, error) {
+	addresses := make([]AddressConfiguration, 0)
+	err := json.Unmarshal(data, &addresses)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "unmarshal to address")
+	}
+	hosts := make([]string, 0)
+	for _, addr := range addresses {
+		host := net.JoinHostPort(addr.IP, addr.Port)
+		hosts = append(hosts, host)
+	}
+	return hosts, nil
 }
