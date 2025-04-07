@@ -180,24 +180,20 @@ func (c *Client) remoteConfigEventHandler(data []byte) error {
 func (c *Client) waitModuleReady(ctx context.Context, requirements ModuleRequirements) error {
 	awaitEvents := make([]string, 0, len(requirements.RequiredModules)+1)
 	awaitEvents = append(awaitEvents, ConfigSendConfigWhenConnected)
+	if requirements.RequireRoutes {
+		awaitEvents = append(awaitEvents, ConfigSendRoutesWhenConnected)
+	}
 	for _, module := range requirements.RequiredModules {
 		event := ModuleConnectedEvent(module)
 		awaitEvents = append(awaitEvents, event)
 	}
+
 	for _, event := range awaitEvents {
 		err := c.cli.AwaitEvent(ctx, event, time.Second)
 		if err != nil {
 			return errors.WithMessagef(err, "await '%s' event", event)
 		}
 	}
-
-	if requirements.RequireRoutes {
-		err := c.cli.AwaitEvent(ctx, ConfigSendRoutesWhenConnected, time.Second)
-		if err != nil {
-			return errors.WithMessagef(err, "await '%s' event", ConfigSendRoutesWhenConnected)
-		}
-	}
-
 	return nil
 }
 
