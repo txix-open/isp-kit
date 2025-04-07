@@ -156,18 +156,8 @@ func (c *Client) subscribeToEvents() {
 
 	c.cli.RegisterEvent(ConfigSendConfigWhenConnected, c.remoteConfigEventHandler)
 	c.cli.RegisterEvent(ConfigSendConfigChanged, c.remoteConfigEventHandler)
-
-	c.cli.RegisterEvent(ConfigSendRoutesChanged, func(data []byte) error {
-		routes, err := readRoutes(data)
-		if err != nil {
-			return errors.WithMessage(err, "read route")
-		}
-		err = c.eventHandler.routesReceiver.ReceiveRoutes(c.cli.ctx, routes)
-		if err != nil {
-			return errors.WithMessage(err, "handle routes")
-		}
-		return nil
-	})
+	c.cli.RegisterEvent(ConfigSendRoutesChanged, c.routesEventHandler)
+	c.cli.RegisterEvent(ConfigSendRoutesWhenConnected, c.routesEventHandler)
 }
 
 func (c *Client) dialClientWrapper(ctx context.Context, host string) error {
@@ -193,6 +183,18 @@ func (c *Client) remoteConfigEventHandler(data []byte) error {
 		return errors.WithMessage(err, "apply remote config")
 	}
 	c.logger.Info(c.cli.ctx, "remote config successfully applied")
+	return nil
+}
+
+func (c *Client) routesEventHandler(data []byte) error {
+	routes, err := readRoutes(data)
+	if err != nil {
+		return errors.WithMessage(err, "read route")
+	}
+	err = c.eventHandler.routesReceiver.ReceiveRoutes(c.cli.ctx, routes)
+	if err != nil {
+		return errors.WithMessage(err, "handle routes")
+	}
 	return nil
 }
 
