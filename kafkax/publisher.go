@@ -2,13 +2,18 @@ package kafkax
 
 import (
 	"context"
+	"crypto/tls"
+	"encoding/base64"
 	"fmt"
+	"time"
+
+	"github.com/pkg/errors"
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/kafka-go/sasl"
 	"github.com/txix-open/isp-kit/kafkax/publisher"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/metrics"
 	"github.com/txix-open/isp-kit/metrics/kafka_metrics"
-	"time"
 )
 
 type PublisherConfig struct {
@@ -20,6 +25,7 @@ type PublisherConfig struct {
 	WriteTimeoutSec            *int     `schema:"Таймаут отправки сообщений, по умолчанию 10 секунд"`
 	RequiredAckLevel           int      `schema:"Количество подтверждений реплик разделов для получения ответа на запрос отправки сообщения"`
 	Auth                       *Auth    `schema:"Параметры аутентификации"`
+	TLS                        *TLS     `schema:"Данные для установки TLS-соединения"`
 	DialTimeoutMs              *int     `schema:"Таймаут установки соединения, по умолчанию 5 секунд"`
 }
 
@@ -70,11 +76,63 @@ func (p PublisherConfig) GetDialTimeout() time.Duration {
 	return time.Duration(*p.DialTimeoutMs) * time.Millisecond
 }
 
+func (p PublisherConfig) createTransport(mechanismType string) (*kafka.Transport, error) {
+	var saslMechanism sasl.Mechanism
+
+	switch mechanismType {
+	case AuthTypePlain:
+		saslMechanism = PlainAuth(p.Auth)
+	case AuthTypeSCRAM:
+		var err error
+		saslMechanism, err = ScramAuth(p.Auth)
+		if err != nil {
+			return nil, errors.WithMessage(err, "get scram mechanism")
+		}
+	default:
+		return nil, errors.Errorf("unexpected sasl mechanism: %s", mechanismType)
+	}
+
+	transport := &kafka.Transport{
+		DialTimeout: p.GetDialTimeout(),
+		SASL:        saslMechanism,
+	}
+
+	if p.TLS != nil {
+		rawCert, err := base64.StdEncoding.DecodeString(p.TLS.Certificate)
+		if err != nil {
+			return nil, errors.WithMessage(err, "decode base64 tls certificate")
+		}
+
+		transport.TLS = &tls.Config{
+			Certificates: []tls.Certificate{
+				{
+					Certificate: [][]byte{rawCert},
+					PrivateKey:  p.TLS.PrivateKey,
+				},
+			},
+		}
+	}
+
+	return transport, nil
+}
+
 func (p PublisherConfig) DefaultPublisher(
 	logCtx context.Context,
 	logger log.Logger,
 	restMiddlewares ...publisher.Middleware,
 ) *publisher.Publisher {
+	var authMechanism string
+	if p.Auth.Mechanism == nil {
+		authMechanism = AuthTypePlain
+	} else {
+		authMechanism = *p.Auth.Mechanism
+	}
+
+	transport, err := p.createTransport(authMechanism)
+	if err != nil {
+		logger.Error(logCtx, errors.WithMessage(err, "create kafka publisher transport"))
+	}
+
 	writer := kafka.Writer{
 		Addr:         kafka.TCP(p.Addresses...),
 		WriteTimeout: p.GetWriteTimeout(),
@@ -82,10 +140,7 @@ func (p PublisherConfig) DefaultPublisher(
 		BatchBytes:   p.GetMaxMessageSizePerPartition() * bytesInMb,
 		BatchSize:    p.GetBatchSizePerPartition(),
 		BatchTimeout: p.GetBatchTimeoutPerPartition(),
-		Transport: &kafka.Transport{
-			DialTimeout: p.GetDialTimeout(),
-			SASL:        PlainAuth(p.Auth),
-		},
+		Transport:    transport,
 		ErrorLogger: kafka.LoggerFunc(func(s string, i ...interface{}) {
 			logger.Error(logCtx, "kafka publisher: "+fmt.Sprintf(s, i...))
 		}),
