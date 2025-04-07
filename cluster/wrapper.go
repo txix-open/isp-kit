@@ -44,19 +44,6 @@ func newClientWrapper(ctx context.Context, cli *etp.Client, logger log.Logger) *
 	return w
 }
 
-func (w *clientWrapper) on(event string, handler func(data []byte)) {
-	w.cli.On(event, etp.HandlerFunc(func(ctx context.Context, conn *etp.Conn, event msg.Event) []byte {
-		w.logger.Info(
-			w.ctx,
-			"event received",
-			log.String("event", event.Name),
-			log.ByteString("data", hideSecrets(event.Name, event.Data)),
-		)
-		handler(event.Data)
-		return nil
-	}))
-}
-
 func (w *clientWrapper) EmitJsonWithAck(ctx context.Context, event string, data any) ([]byte, error) {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
@@ -91,26 +78,15 @@ func (w *clientWrapper) EmitWithAck(ctx context.Context, event string, data []by
 	return resp, err
 }
 
-func (w *clientWrapper) eventChan(event string) chan []byte {
-	ch := make(chan []byte, 1)
-	w.on(event, func(data []byte) {
-		select {
-		case <-w.ctx.Done():
-		case ch <- data:
-		}
-	})
-	return ch
-}
-
-func (c *clientWrapper) RegisterEvent(event string, handler func([]byte) error) {
+func (w *clientWrapper) RegisterEvent(event string, handler func([]byte) error) {
 	state := make(chan struct{}, 1)
-	c.eventStates.Store(event, state)
+	w.eventStates.Store(event, state)
 
-	c.on(event, func(data []byte) {
+	w.on(event, func(data []byte) {
 		err := handler(data)
 		if err != nil {
-			sendNonBlocking(c.errorChan, err)
-			c.logger.Error(c.ctx, "handle event",
+			sendNonBlocking(w.errorChan, err)
+			w.logger.Error(w.ctx, "handle event",
 				log.String("event", event),
 				log.String("error", err.Error()),
 			)
@@ -120,11 +96,11 @@ func (c *clientWrapper) RegisterEvent(event string, handler func([]byte) error) 
 	})
 }
 
-func (c *clientWrapper) AwaitEvent(ctx context.Context, event string, timeout time.Duration) error {
+func (w *clientWrapper) AwaitEvent(ctx context.Context, event string, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	val, ok := c.eventStates.Load(event)
+	val, ok := w.eventStates.Load(event)
 	if !ok {
 		return errors.Errorf("event %s not registered", event)
 	}
@@ -133,11 +109,11 @@ func (c *clientWrapper) AwaitEvent(ctx context.Context, event string, timeout ti
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
-	case data := <-c.errorConnChan:
+	case data := <-w.errorConnChan:
 		return errors.New(string(data))
-	case data := <-c.configErrorChan:
+	case data := <-w.configErrorChan:
 		return errors.New(string(data))
-	case err := <-c.errorChan:
+	case err := <-w.errorChan:
 		return err
 	case <-state:
 		return nil
@@ -154,6 +130,30 @@ func (w *clientWrapper) Close() error {
 
 func (w *clientWrapper) Dial(ctx context.Context, url string) error {
 	return w.cli.Dial(ctx, url)
+}
+
+func (w *clientWrapper) eventChan(event string) chan []byte {
+	ch := make(chan []byte, 1)
+	w.on(event, func(data []byte) {
+		select {
+		case <-w.ctx.Done():
+		case ch <- data:
+		}
+	})
+	return ch
+}
+
+func (w *clientWrapper) on(event string, handler func(data []byte)) {
+	w.cli.On(event, etp.HandlerFunc(func(ctx context.Context, conn *etp.Conn, event msg.Event) []byte {
+		w.logger.Info(
+			w.ctx,
+			"event received",
+			log.String("event", event.Name),
+			log.ByteString("data", hideSecrets(event.Name, event.Data)),
+		)
+		handler(event.Data)
+		return nil
+	}))
 }
 
 func sendNonBlocking[T any](ch chan T, data T) {
