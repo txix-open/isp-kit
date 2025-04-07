@@ -129,6 +129,7 @@ func (c *Client) runSession(ctx context.Context) error {
 		return errors.WithMessage(err, "notify module ready")
 	}
 
+	c.sessionIsActive.Store(true)
 	for {
 		err := c.waitAndPing(ctx)
 		if err != nil {
@@ -150,15 +151,8 @@ func (c *Client) subscribeToEvents() {
 		})
 	}
 
-	c.cli.RegisterEvent(ConfigSendConfigChanged, func(data []byte) {
-		c.logger.Info(c.cli.ctx, "remote config applying...")
-		err := c.applyRemoteConfig(c.cli.ctx, data)
-		if err != nil {
-			c.logger.Error(c.cli.ctx, errors.WithMessage(err, "apply remote config"), log.String("event", ConfigSendConfigChanged))
-			return
-		}
-		c.logger.Info(c.cli.ctx, "remote config successfully applied")
-	})
+	c.cli.RegisterEvent(ConfigSendConfigWhenConnected, c.remoteConfigEventHandler(ConfigSendConfigWhenConnected))
+	c.cli.RegisterEvent(ConfigSendConfigChanged, c.remoteConfigEventHandler(ConfigSendConfigChanged))
 
 	c.cli.RegisterEvent(ConfigSendRoutesChanged, func(data []byte) {
 		routes, err := readRoutes(data)
@@ -173,6 +167,18 @@ func (c *Client) subscribeToEvents() {
 	})
 }
 
+func (c *Client) remoteConfigEventHandler(eventName string) func(data []byte) {
+	return func(data []byte) {
+		c.logger.Info(c.cli.ctx, "remote config applying...")
+		err := c.applyRemoteConfig(c.cli.ctx, data)
+		if err != nil {
+			c.logger.Error(c.cli.ctx, errors.WithMessage(err, "apply remote config"), log.String("event", eventName))
+			return
+		}
+		c.logger.Info(c.cli.ctx, "remote config successfully applied")
+	}
+}
+
 func (c *Client) waitModuleReady(ctx context.Context, requirements ModuleRequirements) error {
 	awaitEvents := make([]string, 0, len(requirements.RequiredModules)+1)
 	awaitEvents = append(awaitEvents, ConfigSendConfigWhenConnected)
@@ -181,14 +187,14 @@ func (c *Client) waitModuleReady(ctx context.Context, requirements ModuleRequire
 		awaitEvents = append(awaitEvents, event)
 	}
 	for _, event := range awaitEvents {
-		_, err := c.cli.AwaitEvent(ctx, event, time.Second)
+		err := c.cli.AwaitEvent(ctx, event, time.Second)
 		if err != nil {
 			return errors.WithMessagef(err, "await '%s' event", event)
 		}
 	}
 
 	if requirements.RequireRoutes {
-		_, err := c.cli.AwaitEvent(ctx, ConfigSendRoutesWhenConnected, time.Second)
+		err := c.cli.AwaitEvent(ctx, ConfigSendRoutesWhenConnected, time.Second)
 		if err != nil {
 			return errors.WithMessagef(err, "await '%s' event", ConfigSendRoutesWhenConnected)
 		}
@@ -219,7 +225,6 @@ func (c *Client) notifyModuleReady(ctx context.Context, requirements ModuleRequi
 		return errors.WithMessage(err, "emit module ready")
 	}
 
-	c.sessionIsActive.Store(true)
 	return nil
 }
 
