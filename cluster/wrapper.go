@@ -16,10 +16,10 @@ import (
 type clientWrapper struct {
 	cli             *etp.Client
 	errorConnChan   chan []byte
-	errorChan       chan error
 	configErrorChan chan []byte
 	ctx             context.Context
 	eventStates     sync.Map // map[eventName]chan struct{}
+	eventErrors     sync.Map //  map[eventName]chan error
 	logger          log.Logger
 }
 
@@ -30,7 +30,6 @@ func newClientWrapper(ctx context.Context, cli *etp.Client, logger log.Logger) *
 		logger: logger,
 	}
 	w.errorConnChan = w.eventChan(ErrorConnection)
-	w.errorChan = make(chan error, 1)
 	w.configErrorChan = w.eventChan(ConfigError)
 	cli.OnUnknownEvent(etp.HandlerFunc(func(ctx context.Context, conn *etp.Conn, event msg.Event) []byte {
 		logger.Error(
@@ -82,10 +81,13 @@ func (w *clientWrapper) RegisterEvent(event string, handler func([]byte) error) 
 	state := make(chan struct{}, 1)
 	w.eventStates.Store(event, state)
 
+	errorCh := make(chan error, 1)
+	w.eventErrors.Store(event, errorCh)
+
 	w.on(event, func(data []byte) {
 		err := handler(data)
 		if err != nil {
-			sendNonBlocking(w.errorChan, err)
+			sendNonBlocking(errorCh, err)
 			w.logger.Error(w.ctx, "handle event",
 				log.String("event", event),
 				log.String("error", err.Error()),
@@ -102,9 +104,15 @@ func (w *clientWrapper) AwaitEvent(ctx context.Context, event string, timeout ti
 
 	val, ok := w.eventStates.Load(event)
 	if !ok {
-		return errors.Errorf("event %s not registered", event)
+		return errors.Errorf("event %s state channel not registered", event)
 	}
 	state := val.(chan struct{})
+
+	errVal, ok := w.eventErrors.Load(event)
+	if !ok {
+		return errors.Errorf("event %s error channel not registered", event)
+	}
+	errorCh := errVal.(chan error)
 
 	select {
 	case <-ctx.Done():
@@ -113,7 +121,7 @@ func (w *clientWrapper) AwaitEvent(ctx context.Context, event string, timeout ti
 		return errors.New(string(data))
 	case data := <-w.configErrorChan:
 		return errors.New(string(data))
-	case err := <-w.errorChan:
+	case err := <-errorCh:
 		return err
 	case <-state:
 		return nil
