@@ -151,8 +151,8 @@ func (c *Client) subscribeToEvents() {
 		})
 	}
 
-	c.cli.RegisterEvent(ConfigSendConfigWhenConnected, c.remoteConfigEventHandler(ConfigSendConfigWhenConnected))
-	c.cli.RegisterEvent(ConfigSendConfigChanged, c.remoteConfigEventHandler(ConfigSendConfigChanged))
+	c.cli.RegisterEvent(ConfigSendConfigWhenConnected, c.remoteConfigEventHandler)
+	c.cli.RegisterEvent(ConfigSendConfigChanged, c.remoteConfigEventHandler)
 
 	c.cli.RegisterEvent(ConfigSendRoutesChanged, func(data []byte) error {
 		routes, err := readRoutes(data)
@@ -167,16 +167,14 @@ func (c *Client) subscribeToEvents() {
 	})
 }
 
-func (c *Client) remoteConfigEventHandler(eventName string) func(data []byte) error {
-	return func(data []byte) error {
-		c.logger.Info(c.cli.ctx, "remote config applying...")
-		err := c.applyRemoteConfig(c.cli.ctx, data)
-		if err != nil {
-			return errors.WithMessage(err, "apply remote config")
-		}
-		c.logger.Info(c.cli.ctx, "remote config successfully applied")
-		return nil
+func (c *Client) remoteConfigEventHandler(data []byte) error {
+	c.logger.Info(c.cli.ctx, "remote config applying...")
+	err := c.applyRemoteConfig(c.cli.ctx, data)
+	if err != nil {
+		return errors.WithMessage(err, "apply remote config")
 	}
+	c.logger.Info(c.cli.ctx, "remote config successfully applied")
+	return nil
 }
 
 func (c *Client) waitModuleReady(ctx context.Context, requirements ModuleRequirements) error {
