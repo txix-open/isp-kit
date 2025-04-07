@@ -19,8 +19,8 @@ type clientWrapper struct {
 	errorChan       chan error
 	configErrorChan chan []byte
 	ctx             context.Context
-	logger          log.Logger
 	eventStates     sync.Map // map[eventName]chan struct{}
+	logger          log.Logger
 }
 
 func newClientWrapper(ctx context.Context, cli *etp.Client, logger log.Logger) *clientWrapper {
