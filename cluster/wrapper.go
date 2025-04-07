@@ -15,7 +15,8 @@ import (
 
 type clientWrapper struct {
 	cli             *etp.Client
-	errorChan       chan []byte
+	errorConnChan   chan []byte
+	errorChan       chan error
 	configErrorChan chan []byte
 	ctx             context.Context
 	logger          log.Logger
@@ -28,7 +29,8 @@ func newClientWrapper(ctx context.Context, cli *etp.Client, logger log.Logger) *
 		ctx:    ctx,
 		logger: logger,
 	}
-	w.errorChan = w.eventChan(ErrorConnection)
+	w.errorConnChan = w.eventChan(ErrorConnection)
+	w.errorChan = make(chan error, 1)
 	w.configErrorChan = w.eventChan(ConfigError)
 	cli.OnUnknownEvent(etp.HandlerFunc(func(ctx context.Context, conn *etp.Conn, event msg.Event) []byte {
 		logger.Error(
@@ -100,16 +102,21 @@ func (w *clientWrapper) eventChan(event string) chan []byte {
 	return ch
 }
 
-func (c *clientWrapper) RegisterEvent(event string, handler func([]byte)) {
+func (c *clientWrapper) RegisterEvent(event string, handler func([]byte) error) {
 	state := make(chan struct{}, 1)
 	c.eventStates.Store(event, state)
 
 	c.on(event, func(data []byte) {
-		handler(data)
-		select {
-		case state <- struct{}{}:
-		default:
+		err := handler(data)
+		if err != nil {
+			sendNonBlocking(c.errorChan, err)
+			c.logger.Error(c.ctx, "handle event",
+				log.String("event", event),
+				log.String("error", err.Error()),
+			)
+			return
 		}
+		sendNonBlocking(state, struct{}{})
 	})
 }
 
@@ -123,17 +130,17 @@ func (c *clientWrapper) AwaitEvent(ctx context.Context, event string, timeout ti
 	}
 	state := val.(chan struct{})
 
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case data := <-c.errorChan:
-			return errors.New(string(data))
-		case data := <-c.configErrorChan:
-			return errors.New(string(data))
-		case <-state:
-			return nil
-		}
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case data := <-c.errorConnChan:
+		return errors.New(string(data))
+	case data := <-c.configErrorChan:
+		return errors.New(string(data))
+	case err := <-c.errorChan:
+		return err
+	case <-state:
+		return nil
 	}
 }
 
@@ -147,4 +154,11 @@ func (w *clientWrapper) Close() error {
 
 func (w *clientWrapper) Dial(ctx context.Context, url string) error {
 	return w.cli.Dial(ctx, url)
+}
+
+func sendNonBlocking[T any](ch chan T, data T) {
+	select {
+	case ch <- data:
+	default:
+	}
 }

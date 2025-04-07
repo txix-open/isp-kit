@@ -131,7 +131,7 @@ func (c *Client) runSession(ctx context.Context) error {
 
 	c.sessionIsActive.Store(true)
 	for {
-		err := c.waitAndPing(ctx)
+		err = c.waitAndPing(ctx)
 		if err != nil {
 			return err
 		}
@@ -141,41 +141,41 @@ func (c *Client) runSession(ctx context.Context) error {
 func (c *Client) subscribeToEvents() {
 	for moduleName, upgrader := range c.eventHandler.requiredModules {
 		event := ModuleConnectedEvent(moduleName)
-		c.cli.RegisterEvent(event, func(data []byte) {
+		c.cli.RegisterEvent(event, func(data []byte) error {
 			hosts, err := readHosts(data)
 			if err != nil {
-				c.logger.Error(c.cli.ctx, errors.WithMessage(err, "read hosts"), log.String("event", event))
-				return
+				return errors.WithMessage(err, "read hosts")
 			}
 			upgrader.Upgrade(hosts)
+			return nil
 		})
 	}
 
 	c.cli.RegisterEvent(ConfigSendConfigWhenConnected, c.remoteConfigEventHandler(ConfigSendConfigWhenConnected))
 	c.cli.RegisterEvent(ConfigSendConfigChanged, c.remoteConfigEventHandler(ConfigSendConfigChanged))
 
-	c.cli.RegisterEvent(ConfigSendRoutesChanged, func(data []byte) {
+	c.cli.RegisterEvent(ConfigSendRoutesChanged, func(data []byte) error {
 		routes, err := readRoutes(data)
 		if err != nil {
-			c.logger.Error(c.cli.ctx, errors.WithMessage(err, "read route"), log.String("event", ConfigSendRoutesChanged))
-			return
+			return errors.WithMessage(err, "read route")
 		}
 		err = c.eventHandler.routesReceiver.ReceiveRoutes(c.cli.ctx, routes)
 		if err != nil {
-			c.logger.Error(c.cli.ctx, errors.WithMessage(err, "handle routes"), log.String("event", ConfigSendRoutesChanged))
+			return errors.WithMessage(err, "handle routes")
 		}
+		return nil
 	})
 }
 
-func (c *Client) remoteConfigEventHandler(eventName string) func(data []byte) {
-	return func(data []byte) {
+func (c *Client) remoteConfigEventHandler(eventName string) func(data []byte) error {
+	return func(data []byte) error {
 		c.logger.Info(c.cli.ctx, "remote config applying...")
 		err := c.applyRemoteConfig(c.cli.ctx, data)
 		if err != nil {
-			c.logger.Error(c.cli.ctx, errors.WithMessage(err, "apply remote config"), log.String("event", eventName))
-			return
+			return errors.WithMessage(err, "apply remote config")
 		}
 		c.logger.Info(c.cli.ctx, "remote config successfully applied")
+		return nil
 	}
 }
 
