@@ -199,18 +199,18 @@ func (c *Client) routesEventHandler(data []byte) error {
 }
 
 func (c *Client) waitModuleReady(ctx context.Context, requirements ModuleRequirements) error {
-	awaitEvents := make([]string, 0, len(requirements.RequiredModules)+1)
-	awaitEvents = append(awaitEvents, ConfigSendConfigWhenConnected)
+	awaitEvents := make(map[string]time.Duration, len(requirements.RequiredModules)+1)
+	awaitEvents[ConfigSendConfigWhenConnected] = 5 * time.Second
 	if requirements.RequireRoutes {
-		awaitEvents = append(awaitEvents, ConfigSendRoutesWhenConnected)
+		awaitEvents[ConfigSendRoutesWhenConnected] = time.Second
 	}
 	for _, module := range requirements.RequiredModules {
 		event := ModuleConnectedEvent(module)
-		awaitEvents = append(awaitEvents, event)
+		awaitEvents[event] = time.Second
 	}
 
-	for _, event := range awaitEvents {
-		err := c.cli.AwaitEvent(ctx, event, time.Second)
+	for event, timeout := range awaitEvents {
+		err := c.cli.AwaitEvent(ctx, event, timeout)
 		if err != nil {
 			return errors.WithMessagef(err, "await '%s' event", event)
 		}
