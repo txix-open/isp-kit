@@ -107,11 +107,6 @@ func (c *Client) runSession(ctx context.Context) error {
 	if err != nil {
 		return errors.WithMessage(err, "dial client wrapper")
 	}
-	defer func() {
-		if err != nil {
-			_ = c.cli.Close()
-		}
-	}()
 
 	_, err = c.cli.EmitJsonWithAck(ctx, ModuleSendConfigSchema, c.configData)
 	if err != nil {
@@ -154,10 +149,14 @@ func (c *Client) subscribeToEvents() {
 		})
 	}
 
-	c.cli.RegisterEvent(ConfigSendConfigWhenConnected, c.remoteConfigEventHandler)
-	c.cli.RegisterEvent(ConfigSendConfigChanged, c.remoteConfigEventHandler)
-	c.cli.RegisterEvent(ConfigSendRoutesChanged, c.routesEventHandler)
-	c.cli.RegisterEvent(ConfigSendRoutesWhenConnected, c.routesEventHandler)
+	if c.eventHandler.remoteConfigReceiver != nil {
+		c.cli.RegisterEvent(ConfigSendConfigChanged, c.remoteConfigEventHandler)
+		c.cli.RegisterEvent(ConfigSendConfigWhenConnected, c.remoteConfigEventHandler)
+	}
+	if c.eventHandler.routesReceiver != nil {
+		c.cli.RegisterEvent(ConfigSendRoutesChanged, c.routesEventHandler)
+		c.cli.RegisterEvent(ConfigSendRoutesWhenConnected, c.routesEventHandler)
+	}
 }
 
 func (c *Client) dialClientWrapper(ctx context.Context, host string) error {
@@ -200,9 +199,11 @@ func (c *Client) routesEventHandler(data []byte) error {
 
 func (c *Client) waitModuleReady(ctx context.Context, requirements ModuleRequirements) error {
 	awaitEvents := make(map[string]time.Duration, len(requirements.RequiredModules)+1)
-	awaitEvents[ConfigSendConfigWhenConnected] = 5 * time.Second
 	if requirements.RequireRoutes {
 		awaitEvents[ConfigSendRoutesWhenConnected] = time.Second
+	}
+	if c.eventHandler.remoteConfigReceiver != nil {
+		awaitEvents[ConfigSendConfigWhenConnected] = 5 * time.Second
 	}
 	for _, module := range requirements.RequiredModules {
 		event := ModuleConnectedEvent(module)
