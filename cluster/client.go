@@ -61,6 +61,9 @@ func (c *Client) Run(ctx context.Context, eventHandler *EventHandler) error {
 		if errors.Is(err, context.Canceled) {
 			return nil
 		}
+		if c.cli != nil {
+			c.cli.Close()
+		}
 
 		c.logger.Error(ctx, errors.WithMessage(err, "run config service session"))
 
