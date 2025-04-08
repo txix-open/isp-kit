@@ -90,6 +90,9 @@ func (c *Client) Healthcheck(ctx context.Context) error {
 func (c *Client) runSession(ctx context.Context, host string) error {
 	defer c.sessionIsActive.Store(false)
 
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	requiredModules := make([]string, 0)
 	for moduleName := range c.eventHandler.requiredModules {
 		requiredModules = append(requiredModules, moduleName)
@@ -101,7 +104,8 @@ func (c *Client) runSession(ctx context.Context, host string) error {
 
 	etpCli := etp.NewClient(etp.WithClientReadLimit(4 * 1024 * 1024))
 	c.cli = newClientWrapper(ctx, etpCli, c.logger)
-	c.subscribeToEvents()
+
+	disconnectCh := c.subscribeToEvents()
 
 	err := c.dialClientWrapper(ctx, host)
 	if err != nil {
@@ -128,15 +132,12 @@ func (c *Client) runSession(ctx context.Context, host string) error {
 	}
 
 	c.sessionIsActive.Store(true)
-	for {
-		err = c.waitAndPing(ctx)
-		if err != nil {
-			return err
-		}
-	}
+	go c.livenessProbeLoop(ctx)
+	err = <-disconnectCh
+	return err
 }
 
-func (c *Client) subscribeToEvents() {
+func (c *Client) subscribeToEvents() chan error {
 	for moduleName, upgrader := range c.eventHandler.requiredModules {
 		event := ModuleConnectedEvent(moduleName)
 		c.cli.RegisterEvent(event, func(data []byte) error {
@@ -157,6 +158,13 @@ func (c *Client) subscribeToEvents() {
 		c.cli.RegisterEvent(ConfigSendRoutesChanged, c.routesEventHandler)
 		c.cli.RegisterEvent(ConfigSendRoutesWhenConnected, c.routesEventHandler)
 	}
+
+	disconnectCh := make(chan error, 1)
+	c.cli.cli.OnDisconnect(func(conn *etp.Conn, err error) {
+		disconnectCh <- err
+	})
+
+	return disconnectCh
 }
 
 func (c *Client) dialClientWrapper(ctx context.Context, host string) error {
@@ -261,22 +269,21 @@ func (c *Client) applyRemoteConfig(ctx context.Context, config []byte) (err erro
 	}
 }
 
-func (c *Client) waitAndPing(ctx context.Context) error {
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-time.After(1 * time.Second):
+func (c *Client) livenessProbeLoop(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(5 * time.Second):
+		}
+
+		ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		err := c.cli.Ping(ctx)
+		cancel()
+		if err != nil {
+			c.logger.Warn(ctx, "ping config service", log.String("error", err.Error()))
+		}
 	}
-
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
-	defer cancel()
-
-	err := c.cli.Ping(ctx)
-	if err != nil {
-		return errors.WithMessage(err, "ping config service")
-	}
-
-	return err
 }
 
 func readRoutes(data []byte) (RoutingConfig, error) {
