@@ -2,6 +2,8 @@ package http_metrics
 
 import (
 	"context"
+	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -12,6 +14,10 @@ type clientEndpointContextKey struct{}
 
 var (
 	clientEndpointContextKeyValue = clientEndpointContextKey{}
+
+	ipPortRegexp   = regexp.MustCompile(`\b(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?::\d+)?\b`)
+	ipv6PortRegexp = regexp.MustCompile(`\[([0-9a-fA-F:]+)\]:(\d+)`)
+	urlPattern     = regexp.MustCompile(`(https?://\S+|ftp://\S+|file://\S+|[a-zA-Z0-9_-]+\.([a-zA-Z]{2,})+\S+)`)
 )
 
 func ClientEndpointToContext(ctx context.Context, endpoint string) context.Context {
@@ -29,6 +35,9 @@ type ClientStorage struct {
 	connEstablishment *prometheus.SummaryVec
 	requestWriting    *prometheus.SummaryVec
 	responseReading   *prometheus.SummaryVec
+
+	statusCounter *prometheus.CounterVec
+	errorCounter  *prometheus.CounterVec
 }
 
 func NewClientStorage(reg *metrics.Registry) *ClientStorage {
@@ -67,6 +76,18 @@ func NewClientStorage(reg *metrics.Registry) *ClientStorage {
 			Help:       "The latencies of response reading",
 			Objectives: metrics.DefaultObjectives,
 		}, []string{"endpoint"})),
+
+		statusCounter: metrics.GetOrRegister(reg, prometheus.NewCounterVec(prometheus.CounterOpts{
+			Subsystem: "http",
+			Name:      "client_status_code_count",
+			Help:      "Counter of HTTP status codes",
+		}, []string{"endpoint", "code"})),
+
+		errorCounter: metrics.GetOrRegister(reg, prometheus.NewCounterVec(prometheus.CounterOpts{
+			Subsystem: "http",
+			Name:      "client_error_count",
+			Help:      "Counter of HTTP client errors",
+		}, []string{"endpoint", "error"})),
 	}
 	return s
 }
@@ -89,4 +110,21 @@ func (s *ClientStorage) ObserveDnsLookup(endpoint string, duration time.Duration
 
 func (s *ClientStorage) ObserveResponseReading(endpoint string, duration time.Duration) {
 	s.responseReading.WithLabelValues(endpoint).Observe(float64(duration))
+}
+
+func (s *ClientStorage) CountStatusCode(endpoint string, code int) {
+	s.statusCounter.WithLabelValues(endpoint, strconv.Itoa(code)).Inc()
+}
+
+func (s *ClientStorage) CountError(endpoint string, err error) {
+	s.errorCounter.WithLabelValues(endpoint, trimError(err)).Inc()
+}
+
+func trimError(err error) string {
+	text := err.Error()
+	text = urlPattern.ReplaceAllString(text, "%URL%")
+	text = ipPortRegexp.ReplaceAllString(text, "xxx.xxx.xxx.xxx:xxxx")
+	text = ipv6PortRegexp.ReplaceAllString(text, "[xxx:xxx:xxx:xxx]:xxxx")
+
+	return text
 }
