@@ -138,6 +138,10 @@ func (w *clientWrapper) Dial(ctx context.Context, url string) error {
 	return w.cli.Dial(ctx, url)
 }
 
+func (w *clientWrapper) OnDisconnect(handler etp.DisconnectHandler) {
+	w.cli.OnDisconnect(handler)
+}
+
 func (w *clientWrapper) eventChan(event string) chan []byte {
 	ch := make(chan []byte, 1)
 	w.on(event, func(data []byte) {

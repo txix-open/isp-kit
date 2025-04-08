@@ -160,7 +160,7 @@ func (c *Client) subscribeToEvents() chan error {
 	}
 
 	disconnectCh := make(chan error, 1)
-	c.cli.cli.OnDisconnect(func(conn *etp.Conn, err error) {
+	c.cli.OnDisconnect(func(conn *etp.Conn, err error) {
 		disconnectCh <- err
 	})
 
