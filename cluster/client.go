@@ -214,7 +214,7 @@ func (c *Client) waitModuleReady(ctx context.Context, requirements ModuleRequire
 		awaitEvents[ConfigSendRoutesWhenConnected] = time.Second
 	}
 	if c.eventHandler.remoteConfigReceiver != nil {
-		awaitEvents[ConfigSendConfigWhenConnected] = 5 * time.Second
+		awaitEvents[ConfigSendConfigWhenConnected] = 5*time.Second + c.eventHandler.handleConfigTimeout
 	}
 	for _, module := range requirements.RequiredModules {
 		event := ModuleConnectedEvent(module)
