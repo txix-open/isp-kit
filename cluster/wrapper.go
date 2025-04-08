@@ -13,13 +13,17 @@ import (
 	"github.com/txix-open/isp-kit/log"
 )
 
+type eventFuture struct {
+	responseCh chan []byte
+	errorCh    chan error
+}
+
 type clientWrapper struct {
 	cli             *etp.Client
 	errorConnChan   chan []byte
 	configErrorChan chan []byte
 	ctx             context.Context
-	eventStates     sync.Map // map[eventName]chan struct{}
-	eventErrors     sync.Map //  map[eventName]chan error
+	eventFutures    sync.Map // map[eventName]eventFuture
 	logger          log.Logger
 }
 
@@ -78,23 +82,23 @@ func (w *clientWrapper) EmitWithAck(ctx context.Context, event string, data []by
 }
 
 func (w *clientWrapper) RegisterEvent(event string, handler func([]byte) error) {
-	state := make(chan struct{}, 1)
-	w.eventStates.Store(event, state)
-
-	errorCh := make(chan error, 1)
-	w.eventErrors.Store(event, errorCh)
+	future := eventFuture{
+		errorCh:    make(chan error, 1),
+		responseCh: make(chan []byte, 1),
+	}
+	w.eventFutures.Store(event, future)
 
 	w.on(event, func(data []byte) {
 		err := handler(data)
 		if err != nil {
-			sendNonBlocking(errorCh, err)
+			sendNonBlocking(future.errorCh, err)
 			w.logger.Error(w.ctx, "handle event",
 				log.String("event", event),
 				log.String("error", err.Error()),
 			)
 			return
 		}
-		sendNonBlocking(state, struct{}{})
+		sendNonBlocking(future.responseCh, data)
 	})
 }
 
@@ -102,17 +106,11 @@ func (w *clientWrapper) AwaitEvent(ctx context.Context, event string, timeout ti
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	val, ok := w.eventStates.Load(event)
+	futureVal, ok := w.eventFutures.Load(event)
 	if !ok {
-		return errors.Errorf("event %s state channel not registered", event)
+		return errors.Errorf("event %s not registered", event)
 	}
-	state := val.(chan struct{})
-
-	errVal, ok := w.eventErrors.Load(event)
-	if !ok {
-		return errors.Errorf("event %s error channel not registered", event)
-	}
-	errorCh := errVal.(chan error)
+	future := futureVal.(eventFuture)
 
 	select {
 	case <-ctx.Done():
@@ -121,9 +119,9 @@ func (w *clientWrapper) AwaitEvent(ctx context.Context, event string, timeout ti
 		return errors.New(string(data))
 	case data := <-w.configErrorChan:
 		return errors.New(string(data))
-	case err := <-errorCh:
+	case err := <-future.errorCh:
 		return err
-	case <-state:
+	case <-future.responseCh:
 		return nil
 	}
 }
