@@ -52,6 +52,14 @@ func Metrics(storage *http_metrics.ClientStorage) httpcli.Middleware {
 			resp, err := next.RoundTrip(ctx, request)
 
 			storage.ObserveDuration(endpoint, time.Since(start))
+
+			if resp != nil && resp.Raw != nil {
+				storage.CountStatusCode(endpoint, resp.StatusCode())
+			}
+			if err != nil {
+				storage.CountError(endpoint, err)
+			}
+
 			return resp, err
 		})
 	}
