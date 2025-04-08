@@ -49,7 +49,15 @@ func (c *Client) Run(ctx context.Context, eventHandler *EventHandler) error {
 			return nil
 		}
 
-		err := c.runSession(ctx)
+		host, err := c.lb.Next()
+		if err != nil {
+			return errors.WithMessage(err, "peek config service host")
+		}
+
+		sessionId := requestid.Next()
+		ctx = log.ToContext(ctx, log.String("sessionId", sessionId), log.String("configService", host))
+
+		err = c.runSession(ctx, host)
 		if errors.Is(err, context.Canceled) {
 			return nil
 		}
@@ -79,16 +87,8 @@ func (c *Client) Healthcheck(ctx context.Context) error {
 	return errors.New("session inactive")
 }
 
-func (c *Client) runSession(ctx context.Context) error {
+func (c *Client) runSession(ctx context.Context, host string) error {
 	defer c.sessionIsActive.Store(false)
-
-	host, err := c.lb.Next()
-	if err != nil {
-		return errors.WithMessage(err, "peek config service host")
-	}
-
-	sessionId := requestid.Next()
-	ctx = log.ToContext(ctx, log.String("configService", host), log.String("sessionId", sessionId))
 
 	requiredModules := make([]string, 0)
 	for moduleName := range c.eventHandler.requiredModules {
@@ -103,7 +103,7 @@ func (c *Client) runSession(ctx context.Context) error {
 	c.cli = newClientWrapper(ctx, etpCli, c.logger)
 	c.subscribeToEvents()
 
-	err = c.dialClientWrapper(ctx, host)
+	err := c.dialClientWrapper(ctx, host)
 	if err != nil {
 		return errors.WithMessage(err, "dial client wrapper")
 	}
