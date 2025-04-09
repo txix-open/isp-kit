@@ -13,6 +13,10 @@ import (
 	"github.com/txix-open/isp-kit/log"
 )
 
+const (
+	emitWithAckTimeout = 1 * time.Second
+)
+
 type eventFuture struct {
 	responseCh chan []byte
 	errorCh    chan error
@@ -68,7 +72,7 @@ func (w *clientWrapper) EmitWithAck(ctx context.Context, event string, data []by
 		log.ByteString("data", hideSecrets(event, data)),
 	)
 
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, emitWithAckTimeout)
 	defer cancel()
 
 	resp, err := w.cli.EmitWithAck(ctx, event, data)

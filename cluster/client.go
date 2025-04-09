@@ -20,7 +20,13 @@ import (
 const (
 	livenessProbeFrequency = 5 * time.Second
 	livenessProbeTimeout   = 3 * time.Second
-	etpClientReadLimit     = 4 * 1024 * 1024
+
+	awaitEventTimeout                   = 1 * time.Second
+	awaitConfigWhenConnectedBaseTimeout = 5 * time.Second
+
+	restartSessionWaitTime = 1 * time.Second
+
+	etpClientReadLimit = 4 * 1024 * 1024
 )
 
 type Client struct {
@@ -81,7 +87,7 @@ func (c *Client) Run(ctx context.Context, eventHandler *EventHandler) error {
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-time.After(1 * time.Second):
+		case <-time.After(restartSessionWaitTime):
 		}
 	}
 }
@@ -228,14 +234,14 @@ func (c *Client) routesEventHandler(data []byte) error {
 func (c *Client) waitModuleReady(ctx context.Context, cli *clientWrapper, requirements ModuleRequirements) error {
 	awaitEvents := make(map[string]time.Duration, len(requirements.RequiredModules)+1)
 	if requirements.RequireRoutes {
-		awaitEvents[ConfigSendRoutesWhenConnected] = time.Second
+		awaitEvents[ConfigSendRoutesWhenConnected] = awaitEventTimeout
 	}
 	if c.eventHandler.remoteConfigReceiver != nil {
-		awaitEvents[ConfigSendConfigWhenConnected] = 5*time.Second + c.eventHandler.handleConfigTimeout
+		awaitEvents[ConfigSendConfigWhenConnected] = awaitConfigWhenConnectedBaseTimeout + c.eventHandler.handleConfigTimeout
 	}
 	for _, module := range requirements.RequiredModules {
 		event := ModuleConnectedEvent(module)
-		awaitEvents[event] = time.Second
+		awaitEvents[event] = awaitEventTimeout
 	}
 
 	for event, timeout := range awaitEvents {
