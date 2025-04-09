@@ -64,8 +64,9 @@ func (c *Client) Run(ctx context.Context, eventHandler *EventHandler) error {
 		if c.cli != nil {
 			c.cli.Close()
 		}
-
-		c.logger.Error(ctx, errors.WithMessage(err, "run config service session"))
+		if err != nil {
+			c.logger.Error(ctx, "run config service session", log.String("error", err.Error()))
+		}
 
 		select {
 		case <-ctx.Done():
