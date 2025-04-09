@@ -5,6 +5,10 @@ import (
 	"time"
 )
 
+const (
+	defaultRemoteConfigReceiverTimeout = 5 * time.Second
+)
+
 type RemoteConfigReceiver interface {
 	ReceiveConfig(ctx context.Context, remoteConfig []byte) error
 }
@@ -31,7 +35,7 @@ func NewEventHandler() *EventHandler {
 }
 
 func (h *EventHandler) RemoteConfigReceiver(receiver RemoteConfigReceiver) *EventHandler {
-	return h.RemoteConfigReceiverWithTimeout(receiver, 5*time.Second)
+	return h.RemoteConfigReceiverWithTimeout(receiver, defaultRemoteConfigReceiverTimeout)
 }
 
 func (h *EventHandler) RemoteConfigReceiverWithTimeout(receiver RemoteConfigReceiver, timeout time.Duration) *EventHandler {

@@ -2,13 +2,31 @@ package cluster
 
 import (
 	"context"
+	"fmt"
+	"net"
+	"net/url"
 	"sync/atomic"
 	"time"
+
+	"github.com/txix-open/etp/v4"
+	"github.com/txix-open/isp-kit/json"
 
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/lb"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/requestid"
+)
+
+const (
+	livenessProbeFrequency = 5 * time.Second
+	livenessProbeTimeout   = 3 * time.Second
+
+	awaitEventTimeout                   = 1 * time.Second
+	awaitConfigWhenConnectedBaseTimeout = 5 * time.Second
+
+	restartSessionWaitTime = 1 * time.Second
+
+	etpClientReadLimit = 4 * 1024 * 1024
 )
 
 type Client struct {
@@ -20,7 +38,7 @@ type Client struct {
 	sessionIsActive *atomic.Bool
 	closed          *atomic.Bool
 
-	cli *clientWrapper
+	cli *atomic.Pointer[clientWrapper]
 }
 
 func NewClient(moduleInfo ModuleInfo, configData ConfigData, hosts []string, logger log.Logger) *Client {
@@ -30,6 +48,7 @@ func NewClient(moduleInfo ModuleInfo, configData ConfigData, hosts []string, log
 		lb:              lb.NewRoundRobin(hosts),
 		sessionIsActive: &atomic.Bool{},
 		closed:          &atomic.Bool{},
+		cli:             &atomic.Pointer[clientWrapper]{},
 		logger:          logger,
 	}
 }
@@ -43,25 +62,41 @@ func (c *Client) Run(ctx context.Context, eventHandler *EventHandler) error {
 			return nil
 		}
 
-		err := c.runSession(ctx)
+		host, err := c.lb.Next()
+		if err != nil {
+			return errors.WithMessage(err, "peek config service host")
+		}
+
+		sessionId := requestid.Next()
+		ctx = log.ToContext(ctx, log.String("sessionId", sessionId), log.String("configService", host))
+		c.logger.Info(ctx, "run config service session")
+
+		err = c.runSession(ctx, host)
 		if errors.Is(err, context.Canceled) {
 			return nil
 		}
-
-		c.logger.Error(ctx, errors.WithMessage(err, "run config service session"))
+		cli := c.cli.Load()
+		if cli != nil {
+			_ = cli.Close()
+		}
+		if err != nil && !etp.IsNormalClose(err) {
+			c.logger.Error(ctx, "run config service session", log.String("error", err.Error()))
+		}
+		c.logger.Info(ctx, "config service session stopped")
 
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-time.After(1 * time.Second):
+		case <-time.After(restartSessionWaitTime):
 		}
 	}
 }
 
 func (c *Client) Close() error {
 	c.closed.Store(true)
-	if c.cli != nil {
-		return c.cli.Close()
+	cli := c.cli.Load()
+	if cli != nil {
+		return cli.Close()
 	}
 	return nil
 }
@@ -73,18 +108,13 @@ func (c *Client) Healthcheck(ctx context.Context) error {
 	return errors.New("session inactive")
 }
 
-func (c *Client) runSession(ctx context.Context) error {
+func (c *Client) runSession(ctx context.Context, host string) error {
 	defer c.sessionIsActive.Store(false)
 
-	host, err := c.lb.Next()
-	if err != nil {
-		return errors.WithMessage(err, "peek config service host")
-	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
-	sessionId := requestid.Next()
-	ctx = log.ToContext(ctx, log.String("configService", host), log.String("sessionId", sessionId))
-
-	requiredModules := make([]string, 0)
+	requiredModules := make([]string, 0, len(c.eventHandler.requiredModules))
 	for moduleName := range c.eventHandler.requiredModules {
 		requiredModules = append(requiredModules, moduleName)
 	}
@@ -93,70 +123,156 @@ func (c *Client) runSession(ctx context.Context) error {
 		RequireRoutes:   c.eventHandler.routesReceiver != nil,
 	}
 
-	handshake := NewHandshake(c.moduleInfo, c.configData, requirements, c, c.logger)
-	c.cli, err = handshake.Do(ctx, host)
+	etpCli := etp.NewClient(etp.WithClientReadLimit(etpClientReadLimit))
+	cli := newClientWrapper(ctx, etpCli, c.logger)
+	c.cli.Store(cli)
+
+	disconnectCh := c.subscribeToEvents(cli)
+
+	err := c.dialClientWrapper(ctx, cli, host)
 	if err != nil {
-		return errors.WithMessage(err, "do handshake")
+		return errors.WithMessage(err, "dial client wrapper")
 	}
 
-	for moduleName := range c.eventHandler.requiredModules {
-		event := ModuleConnectedEvent(moduleName)
-		upgrader := c.eventHandler.requiredModules[moduleName]
-		c.cli.On(event, func(data []byte) {
-			hosts, err := readHosts(data)
-			if err != nil {
-				c.logger.Error(ctx, errors.WithMessage(err, "read hosts"), log.String("event", event))
-				return
-			}
-			upgrader.Upgrade(hosts)
-		})
+	_, err = cli.EmitJsonWithAck(ctx, ModuleSendConfigSchema, c.configData)
+	if err != nil {
+		return errors.WithMessage(err, "emit module config schema")
 	}
-	c.cli.On(ConfigSendConfigChanged, func(data []byte) {
-		c.logger.Info(ctx, "remote config applying...")
-		err := c.applyRemoteConfig(ctx, data)
-		if err != nil {
-			c.logger.Error(ctx, errors.WithMessage(err, "apply remote config"), log.String("event", ConfigSendConfigChanged))
-			return
-		}
-		c.logger.Info(ctx, "remote config successfully applied")
-	})
-	c.cli.On(ConfigSendRoutesChanged, func(data []byte) {
-		routes, err := readRoutes(data)
-		if err != nil {
-			c.logger.Error(ctx, errors.WithMessage(err, "read route"), log.String("event", ConfigSendRoutesChanged))
-			return
-		}
-		err = c.eventHandler.routesReceiver.ReceiveRoutes(ctx, routes)
-		if err != nil {
-			c.logger.Error(ctx, errors.WithMessage(err, "handle routes"), log.String("event", ConfigSendRoutesChanged))
-		}
-	})
+
+	_, err = cli.EmitJsonWithAck(ctx, ModuleSendRequirements, requirements)
+	if err != nil {
+		return errors.WithMessage(err, "emit module requirements")
+	}
+
+	err = c.waitModuleReady(ctx, cli, requirements)
+	if err != nil {
+		return errors.WithMessage(err, "wait module ready")
+	}
+	err = c.notifyModuleReady(ctx, cli, requirements)
+	if err != nil {
+		return errors.WithMessage(err, "notify module ready")
+	}
 
 	c.sessionIsActive.Store(true)
-
-	for {
-		err := c.waitAndPing(ctx)
-		if err != nil {
-			return err
-		}
-	}
+	go c.livenessProbeLoop(ctx)
+	err = <-disconnectCh
+	return err
 }
 
-func (c *Client) confirm(ctx context.Context, data HandshakeData) error {
-	for module, hosts := range data.initialModulesHosts {
-		upgrader := c.eventHandler.requiredModules[module]
-		upgrader.Upgrade(hosts)
-	}
-
-	if c.eventHandler.routesReceiver != nil {
-		err := c.eventHandler.routesReceiver.ReceiveRoutes(ctx, data.initialRoutes)
-		if err != nil {
-			return errors.WithMessagef(err, "receive routes")
-		}
+func (c *Client) subscribeToEvents(cli *clientWrapper) chan error {
+	for moduleName, upgrader := range c.eventHandler.requiredModules {
+		event := ModuleConnectedEvent(moduleName)
+		cli.RegisterEvent(event, func(data []byte) error {
+			hosts, err := readHosts(data)
+			if err != nil {
+				return errors.WithMessage(err, "read hosts")
+			}
+			upgrader.Upgrade(hosts)
+			return nil
+		})
 	}
 
 	if c.eventHandler.remoteConfigReceiver != nil {
-		return c.applyRemoteConfig(ctx, data.initialRemoteConfig)
+		cli.RegisterEvent(ConfigSendConfigChanged, c.remoteConfigEventHandler)
+		cli.RegisterEvent(ConfigSendConfigWhenConnected, c.remoteConfigEventHandler)
+	}
+	if c.eventHandler.routesReceiver != nil {
+		cli.RegisterEvent(ConfigSendRoutesChanged, c.routesEventHandler)
+		cli.RegisterEvent(ConfigSendRoutesWhenConnected, c.routesEventHandler)
+	}
+
+	disconnectCh := make(chan error, 1)
+	cli.OnDisconnect(func(conn *etp.Conn, err error) {
+		disconnectCh <- err
+	})
+
+	return disconnectCh
+}
+
+func (c *Client) dialClientWrapper(ctx context.Context, cli *clientWrapper, host string) error {
+	connUrl, err := url.Parse(fmt.Sprintf("ws://%s/isp-etp/", host))
+	if err != nil {
+		return errors.WithMessage(err, "parse conn url")
+	}
+	params := url.Values{}
+	params.Add("module_name", c.moduleInfo.ModuleName)
+	connUrl.RawQuery = params.Encode()
+
+	err = cli.Dial(ctx, connUrl.String())
+	if err != nil {
+		return errors.WithMessagef(err, "connect to config service %s", host)
+	}
+	return nil
+}
+
+func (c *Client) remoteConfigEventHandler(data []byte) error {
+	cli := c.cli.Load()
+
+	c.logger.Info(cli.ctx, "remote config applying...")
+	err := c.applyRemoteConfig(cli.ctx, data)
+	if err != nil {
+		return errors.WithMessage(err, "apply remote config")
+	}
+	c.logger.Info(cli.ctx, "remote config successfully applied")
+	return nil
+}
+
+func (c *Client) routesEventHandler(data []byte) error {
+	cli := c.cli.Load()
+
+	routes, err := readRoutes(data)
+	if err != nil {
+		return errors.WithMessage(err, "read route")
+	}
+	err = c.eventHandler.routesReceiver.ReceiveRoutes(cli.ctx, routes)
+	if err != nil {
+		return errors.WithMessage(err, "handle routes")
+	}
+	return nil
+}
+
+func (c *Client) waitModuleReady(ctx context.Context, cli *clientWrapper, requirements ModuleRequirements) error {
+	awaitEvents := make(map[string]time.Duration, len(requirements.RequiredModules)+1)
+	if requirements.RequireRoutes {
+		awaitEvents[ConfigSendRoutesWhenConnected] = awaitEventTimeout
+	}
+	if c.eventHandler.remoteConfigReceiver != nil {
+		awaitEvents[ConfigSendConfigWhenConnected] = awaitConfigWhenConnectedBaseTimeout + c.eventHandler.handleConfigTimeout
+	}
+	for _, module := range requirements.RequiredModules {
+		event := ModuleConnectedEvent(module)
+		awaitEvents[event] = awaitEventTimeout
+	}
+
+	for event, timeout := range awaitEvents {
+		err := cli.AwaitEvent(ctx, event, timeout)
+		if err != nil {
+			return errors.WithMessagef(err, "await '%s' event", event)
+		}
+	}
+	return nil
+}
+
+func (c *Client) notifyModuleReady(ctx context.Context, cli *clientWrapper, requirements ModuleRequirements) error {
+	moduleDependencies := make([]ModuleDependency, 0, len(requirements.RequiredModules))
+	for _, module := range requirements.RequiredModules {
+		dep := ModuleDependency{
+			Name:     module,
+			Required: true,
+		}
+		moduleDependencies = append(moduleDependencies, dep)
+	}
+	declaration := BackendDeclaration{
+		ModuleName:      c.moduleInfo.ModuleName,
+		Version:         c.moduleInfo.ModuleVersion,
+		LibVersion:      c.moduleInfo.LibVersion,
+		Endpoints:       c.moduleInfo.Endpoints,
+		RequiredModules: moduleDependencies,
+		Address:         c.moduleInfo.GrpcOuterAddress,
+	}
+	_, err := cli.EmitJsonWithAck(ctx, ModuleReady, declaration)
+	if err != nil {
+		return errors.WithMessage(err, "emit module ready")
 	}
 
 	return nil
@@ -179,20 +295,48 @@ func (c *Client) applyRemoteConfig(ctx context.Context, config []byte) (err erro
 	}
 }
 
-func (c *Client) waitAndPing(ctx context.Context) error {
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-time.After(1 * time.Second):
+func (c *Client) livenessProbeLoop(ctx context.Context) {
+	for {
+		cli := c.cli.Load()
+		if cli == nil {
+			return
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(livenessProbeFrequency):
+		}
+
+		ctx, cancel := context.WithTimeout(ctx, livenessProbeTimeout)
+		err := cli.Ping(ctx)
+		cancel()
+
+		if err != nil {
+			c.logger.Warn(ctx, "ping config service", log.String("error", err.Error()))
+		}
 	}
+}
 
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
-	defer cancel()
-
-	err := c.cli.Ping(ctx)
+func readRoutes(data []byte) (RoutingConfig, error) {
+	var routes RoutingConfig
+	err := json.Unmarshal(data, &routes)
 	if err != nil {
-		return errors.WithMessage(err, "ping config service")
+		return nil, errors.WithMessage(err, "unmarshal routes")
 	}
+	return routes, nil
+}
 
-	return err
+func readHosts(data []byte) ([]string, error) {
+	addresses := make([]AddressConfiguration, 0)
+	err := json.Unmarshal(data, &addresses)
+	if err != nil {
+		return nil, errors.WithMessagef(err, "unmarshal to address")
+	}
+	hosts := make([]string, 0, len(addresses))
+	for _, addr := range addresses {
+		host := net.JoinHostPort(addr.IP, addr.Port)
+		hosts = append(hosts, host)
+	}
+	return hosts, nil
 }
