@@ -275,6 +275,10 @@ func (c *Client) applyRemoteConfig(ctx context.Context, config []byte) (err erro
 
 func (c *Client) livenessProbeLoop(ctx context.Context) {
 	for {
+		if c.cli == nil {
+			return
+		}
+
 		select {
 		case <-ctx.Done():
 			return
