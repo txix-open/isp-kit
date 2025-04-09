@@ -20,6 +20,7 @@ import (
 const (
 	livenessProbeFrequency = 5 * time.Second
 	livenessProbeTimeout   = 3 * time.Second
+	etpClientReadLimit     = 4 * 1024 * 1024
 )
 
 type Client struct {
@@ -116,7 +117,7 @@ func (c *Client) runSession(ctx context.Context, host string) error {
 		RequireRoutes:   c.eventHandler.routesReceiver != nil,
 	}
 
-	etpCli := etp.NewClient(etp.WithClientReadLimit(4 * 1024 * 1024))
+	etpCli := etp.NewClient(etp.WithClientReadLimit(etpClientReadLimit))
 	cli := newClientWrapper(ctx, etpCli, c.logger)
 	c.cli.Store(cli)
 
