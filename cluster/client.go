@@ -17,6 +17,11 @@ import (
 	"github.com/txix-open/isp-kit/requestid"
 )
 
+const (
+	livenessProbeFrequency = 5 * time.Second
+	livenessProbeTimeout   = 3 * time.Second
+)
+
 type Client struct {
 	moduleInfo      ModuleInfo
 	configData      ConfigData
@@ -282,10 +287,10 @@ func (c *Client) livenessProbeLoop(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(5 * time.Second):
+		case <-time.After(livenessProbeFrequency):
 		}
 
-		ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		ctx, cancel := context.WithTimeout(ctx, livenessProbeTimeout)
 		err := c.cli.Ping(ctx)
 		cancel()
 		if err != nil {
