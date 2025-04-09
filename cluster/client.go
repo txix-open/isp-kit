@@ -75,6 +75,7 @@ func (c *Client) Run(ctx context.Context, eventHandler *EventHandler) error {
 		if err != nil && !etp.IsNormalClose(err) {
 			c.logger.Error(ctx, "run config service session", log.String("error", err.Error()))
 		}
+		c.logger.Info(ctx, "session stopped")
 
 		select {
 		case <-ctx.Done():
