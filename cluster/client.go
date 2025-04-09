@@ -72,7 +72,7 @@ func (c *Client) Run(ctx context.Context, eventHandler *EventHandler) error {
 		if cli != nil {
 			cli.Close()
 		}
-		if err != nil {
+		if err != nil && !etp.IsNormalClose(err) {
 			c.logger.Error(ctx, "run config service session", log.String("error", err.Error()))
 		}
 
