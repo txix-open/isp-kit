@@ -63,7 +63,7 @@ func (c *Client) Run(ctx context.Context, eventHandler *EventHandler) error {
 
 		sessionId := requestid.Next()
 		ctx = log.ToContext(ctx, log.String("sessionId", sessionId), log.String("configService", host))
-		c.logger.Info(ctx, "run session")
+		c.logger.Info(ctx, "run config service session")
 
 		err = c.runSession(ctx, host)
 		if errors.Is(err, context.Canceled) {
@@ -76,7 +76,7 @@ func (c *Client) Run(ctx context.Context, eventHandler *EventHandler) error {
 		if err != nil && !etp.IsNormalClose(err) {
 			c.logger.Error(ctx, "run config service session", log.String("error", err.Error()))
 		}
-		c.logger.Info(ctx, "session stopped")
+		c.logger.Info(ctx, "config service session stopped")
 
 		select {
 		case <-ctx.Done():
