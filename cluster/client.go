@@ -31,7 +31,7 @@ type Client struct {
 	sessionIsActive *atomic.Bool
 	closed          *atomic.Bool
 
-	cli *clientWrapper
+	cli *atomic.Pointer[clientWrapper]
 }
 
 func NewClient(moduleInfo ModuleInfo, configData ConfigData, hosts []string, logger log.Logger) *Client {
@@ -41,6 +41,7 @@ func NewClient(moduleInfo ModuleInfo, configData ConfigData, hosts []string, log
 		lb:              lb.NewRoundRobin(hosts),
 		sessionIsActive: &atomic.Bool{},
 		closed:          &atomic.Bool{},
+		cli:             &atomic.Pointer[clientWrapper]{},
 		logger:          logger,
 	}
 }
@@ -67,8 +68,9 @@ func (c *Client) Run(ctx context.Context, eventHandler *EventHandler) error {
 		if errors.Is(err, context.Canceled) {
 			return nil
 		}
-		if c.cli != nil {
-			c.cli.Close()
+		cli := c.cli.Load()
+		if cli != nil {
+			cli.Close()
 		}
 		if err != nil {
 			c.logger.Error(ctx, "run config service session", log.String("error", err.Error()))
@@ -84,8 +86,9 @@ func (c *Client) Run(ctx context.Context, eventHandler *EventHandler) error {
 
 func (c *Client) Close() error {
 	c.closed.Store(true)
-	if c.cli != nil {
-		return c.cli.Close()
+	cli := c.cli.Load()
+	if cli != nil {
+		return cli.Close()
 	}
 	return nil
 }
@@ -113,30 +116,31 @@ func (c *Client) runSession(ctx context.Context, host string) error {
 	}
 
 	etpCli := etp.NewClient(etp.WithClientReadLimit(4 * 1024 * 1024))
-	c.cli = newClientWrapper(ctx, etpCli, c.logger)
+	cli := newClientWrapper(ctx, etpCli, c.logger)
+	c.cli.Store(cli)
 
-	disconnectCh := c.subscribeToEvents()
+	disconnectCh := c.subscribeToEvents(cli)
 
-	err := c.dialClientWrapper(ctx, host)
+	err := c.dialClientWrapper(ctx, cli, host)
 	if err != nil {
 		return errors.WithMessage(err, "dial client wrapper")
 	}
 
-	_, err = c.cli.EmitJsonWithAck(ctx, ModuleSendConfigSchema, c.configData)
+	_, err = cli.EmitJsonWithAck(ctx, ModuleSendConfigSchema, c.configData)
 	if err != nil {
 		return errors.WithMessage(err, "emit module config schema")
 	}
 
-	_, err = c.cli.EmitJsonWithAck(ctx, ModuleSendRequirements, requirements)
+	_, err = cli.EmitJsonWithAck(ctx, ModuleSendRequirements, requirements)
 	if err != nil {
 		return errors.WithMessage(err, "emit module requirements")
 	}
 
-	err = c.waitModuleReady(ctx, requirements)
+	err = c.waitModuleReady(ctx, cli, requirements)
 	if err != nil {
 		return errors.WithMessage(err, "wait module ready")
 	}
-	err = c.notifyModuleReady(ctx, requirements)
+	err = c.notifyModuleReady(ctx, cli, requirements)
 	if err != nil {
 		return errors.WithMessage(err, "notify module ready")
 	}
@@ -147,10 +151,10 @@ func (c *Client) runSession(ctx context.Context, host string) error {
 	return err
 }
 
-func (c *Client) subscribeToEvents() chan error {
+func (c *Client) subscribeToEvents(cli *clientWrapper) chan error {
 	for moduleName, upgrader := range c.eventHandler.requiredModules {
 		event := ModuleConnectedEvent(moduleName)
-		c.cli.RegisterEvent(event, func(data []byte) error {
+		cli.RegisterEvent(event, func(data []byte) error {
 			hosts, err := readHosts(data)
 			if err != nil {
 				return errors.WithMessage(err, "read hosts")
@@ -161,23 +165,23 @@ func (c *Client) subscribeToEvents() chan error {
 	}
 
 	if c.eventHandler.remoteConfigReceiver != nil {
-		c.cli.RegisterEvent(ConfigSendConfigChanged, c.remoteConfigEventHandler)
-		c.cli.RegisterEvent(ConfigSendConfigWhenConnected, c.remoteConfigEventHandler)
+		cli.RegisterEvent(ConfigSendConfigChanged, c.remoteConfigEventHandler)
+		cli.RegisterEvent(ConfigSendConfigWhenConnected, c.remoteConfigEventHandler)
 	}
 	if c.eventHandler.routesReceiver != nil {
-		c.cli.RegisterEvent(ConfigSendRoutesChanged, c.routesEventHandler)
-		c.cli.RegisterEvent(ConfigSendRoutesWhenConnected, c.routesEventHandler)
+		cli.RegisterEvent(ConfigSendRoutesChanged, c.routesEventHandler)
+		cli.RegisterEvent(ConfigSendRoutesWhenConnected, c.routesEventHandler)
 	}
 
 	disconnectCh := make(chan error, 1)
-	c.cli.OnDisconnect(func(conn *etp.Conn, err error) {
+	cli.OnDisconnect(func(conn *etp.Conn, err error) {
 		disconnectCh <- err
 	})
 
 	return disconnectCh
 }
 
-func (c *Client) dialClientWrapper(ctx context.Context, host string) error {
+func (c *Client) dialClientWrapper(ctx context.Context, cli *clientWrapper, host string) error {
 	connUrl, err := url.Parse(fmt.Sprintf("ws://%s/isp-etp/", host))
 	if err != nil {
 		return errors.WithMessage(err, "parse conn url")
@@ -186,7 +190,7 @@ func (c *Client) dialClientWrapper(ctx context.Context, host string) error {
 	params.Add("module_name", c.moduleInfo.ModuleName)
 	connUrl.RawQuery = params.Encode()
 
-	err = c.cli.Dial(ctx, connUrl.String())
+	err = cli.Dial(ctx, connUrl.String())
 	if err != nil {
 		return errors.WithMessagef(err, "connect to config service %s", host)
 	}
@@ -194,28 +198,32 @@ func (c *Client) dialClientWrapper(ctx context.Context, host string) error {
 }
 
 func (c *Client) remoteConfigEventHandler(data []byte) error {
-	c.logger.Info(c.cli.ctx, "remote config applying...")
-	err := c.applyRemoteConfig(c.cli.ctx, data)
+	cli := c.cli.Load()
+
+	c.logger.Info(cli.ctx, "remote config applying...")
+	err := c.applyRemoteConfig(cli.ctx, data)
 	if err != nil {
 		return errors.WithMessage(err, "apply remote config")
 	}
-	c.logger.Info(c.cli.ctx, "remote config successfully applied")
+	c.logger.Info(cli.ctx, "remote config successfully applied")
 	return nil
 }
 
 func (c *Client) routesEventHandler(data []byte) error {
+	cli := c.cli.Load()
+
 	routes, err := readRoutes(data)
 	if err != nil {
 		return errors.WithMessage(err, "read route")
 	}
-	err = c.eventHandler.routesReceiver.ReceiveRoutes(c.cli.ctx, routes)
+	err = c.eventHandler.routesReceiver.ReceiveRoutes(cli.ctx, routes)
 	if err != nil {
 		return errors.WithMessage(err, "handle routes")
 	}
 	return nil
 }
 
-func (c *Client) waitModuleReady(ctx context.Context, requirements ModuleRequirements) error {
+func (c *Client) waitModuleReady(ctx context.Context, cli *clientWrapper, requirements ModuleRequirements) error {
 	awaitEvents := make(map[string]time.Duration, len(requirements.RequiredModules)+1)
 	if requirements.RequireRoutes {
 		awaitEvents[ConfigSendRoutesWhenConnected] = time.Second
@@ -229,7 +237,7 @@ func (c *Client) waitModuleReady(ctx context.Context, requirements ModuleRequire
 	}
 
 	for event, timeout := range awaitEvents {
-		err := c.cli.AwaitEvent(ctx, event, timeout)
+		err := cli.AwaitEvent(ctx, event, timeout)
 		if err != nil {
 			return errors.WithMessagef(err, "await '%s' event", event)
 		}
@@ -237,7 +245,7 @@ func (c *Client) waitModuleReady(ctx context.Context, requirements ModuleRequire
 	return nil
 }
 
-func (c *Client) notifyModuleReady(ctx context.Context, requirements ModuleRequirements) error {
+func (c *Client) notifyModuleReady(ctx context.Context, cli *clientWrapper, requirements ModuleRequirements) error {
 	moduleDependencies := make([]ModuleDependency, 0)
 	for _, module := range requirements.RequiredModules {
 		dep := ModuleDependency{
@@ -254,7 +262,7 @@ func (c *Client) notifyModuleReady(ctx context.Context, requirements ModuleRequi
 		RequiredModules: moduleDependencies,
 		Address:         c.moduleInfo.GrpcOuterAddress,
 	}
-	_, err := c.cli.EmitJsonWithAck(ctx, ModuleReady, declaration)
+	_, err := cli.EmitJsonWithAck(ctx, ModuleReady, declaration)
 	if err != nil {
 		return errors.WithMessage(err, "emit module ready")
 	}
@@ -281,7 +289,8 @@ func (c *Client) applyRemoteConfig(ctx context.Context, config []byte) (err erro
 
 func (c *Client) livenessProbeLoop(ctx context.Context) {
 	for {
-		if c.cli == nil {
+		cli := c.cli.Load()
+		if cli == nil {
 			return
 		}
 
@@ -292,8 +301,9 @@ func (c *Client) livenessProbeLoop(ctx context.Context) {
 		}
 
 		ctx, cancel := context.WithTimeout(ctx, livenessProbeTimeout)
-		err := c.cli.Ping(ctx)
+		err := cli.Ping(ctx)
 		cancel()
+
 		if err != nil {
 			c.logger.Warn(ctx, "ping config service", log.String("error", err.Error()))
 		}
