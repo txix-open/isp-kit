@@ -61,6 +61,7 @@ func (c *Client) Run(ctx context.Context, eventHandler *EventHandler) error {
 
 		sessionId := requestid.Next()
 		ctx = log.ToContext(ctx, log.String("sessionId", sessionId), log.String("configService", host))
+		c.logger.Info(ctx, "run session")
 
 		err = c.runSession(ctx, host)
 		if errors.Is(err, context.Canceled) {
