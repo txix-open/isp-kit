@@ -114,7 +114,7 @@ func (c *Client) runSession(ctx context.Context, host string) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	requiredModules := make([]string, 0)
+	requiredModules := make([]string, 0, len(c.eventHandler.requiredModules))
 	for moduleName := range c.eventHandler.requiredModules {
 		requiredModules = append(requiredModules, moduleName)
 	}
@@ -254,7 +254,7 @@ func (c *Client) waitModuleReady(ctx context.Context, cli *clientWrapper, requir
 }
 
 func (c *Client) notifyModuleReady(ctx context.Context, cli *clientWrapper, requirements ModuleRequirements) error {
-	moduleDependencies := make([]ModuleDependency, 0)
+	moduleDependencies := make([]ModuleDependency, 0, len(requirements.RequiredModules))
 	for _, module := range requirements.RequiredModules {
 		dep := ModuleDependency{
 			Name:     module,
@@ -333,7 +333,7 @@ func readHosts(data []byte) ([]string, error) {
 	if err != nil {
 		return nil, errors.WithMessagef(err, "unmarshal to address")
 	}
-	hosts := make([]string, 0)
+	hosts := make([]string, 0, len(addresses))
 	for _, addr := range addresses {
 		host := net.JoinHostPort(addr.IP, addr.Port)
 		hosts = append(hosts, host)
