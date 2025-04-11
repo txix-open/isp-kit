@@ -27,6 +27,7 @@ type PublisherConfig struct {
 	Auth                       *Auth    `schema:"Параметры аутентификации"`
 	TLS                        *TLS     `schema:"Данные для установки TLS-соединения"`
 	DialTimeoutMs              *int     `schema:"Таймаут установки соединения, по умолчанию 5 секунд"`
+	PublisherMetricId          *string  `schema:"Идентификатор паблишера для метрик"`
 }
 
 func (p PublisherConfig) GetWriteTimeout() time.Duration {
@@ -97,6 +98,10 @@ func (p PublisherConfig) createTransport(mechanismType string) (*kafka.Transport
 		SASL:        saslMechanism,
 	}
 
+	if p.PublisherMetricId != nil {
+		transport.ClientID = *p.PublisherMetricId
+	}
+
 	if p.TLS != nil {
 		rawCert, err := base64.StdEncoding.DecodeString(p.TLS.Certificate)
 		if err != nil {
@@ -155,6 +160,7 @@ func (p PublisherConfig) DefaultPublisher(
 	pub := publisher.New(
 		&writer,
 		p.Topic,
+		sendMetricPeriod,
 		publisher.WithMiddlewares(middlewares...),
 	)
 

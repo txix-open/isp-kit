@@ -3,9 +3,12 @@ package publisher
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/segmentio/kafka-go"
+	"github.com/txix-open/isp-kit/kafkax/stats"
+	"github.com/txix-open/isp-kit/metrics"
 	"go.uber.org/atomic"
 )
 
@@ -28,18 +31,24 @@ type Publisher struct {
 	address     string
 	middlewares []Middleware
 
-	roundTripper RoundTripper
-	lock         sync.Locker
-	alive        *atomic.Bool
+	roundTripper   RoundTripper
+	lock           sync.Locker
+	alive          *atomic.Bool
+	metricTimer    *time.Ticker
+	stopMetricChan chan struct{}
+	metricStorage  MetricStorage
 }
 
-func New(writer *kafka.Writer, topic string, opts ...Option) *Publisher {
+func New(writer *kafka.Writer, topic string, sendMetricPeriod time.Duration, opts ...Option) *Publisher {
 	p := &Publisher{
-		Writer:  writer,
-		topic:   topic,
-		address: writer.Addr.String(),
-		alive:   atomic.NewBool(true),
-		lock:    &sync.Mutex{},
+		Writer:         writer,
+		topic:          topic,
+		address:        writer.Addr.String(),
+		alive:          atomic.NewBool(true),
+		lock:           &sync.Mutex{},
+		metricTimer:    time.NewTicker(sendMetricPeriod),
+		stopMetricChan: make(chan struct{}),
+		metricStorage:  stats.NewPublisherStorage(metrics.DefaultRegistry),
 	}
 
 	for _, opt := range opts {
@@ -52,6 +61,7 @@ func New(writer *kafka.Writer, topic string, opts ...Option) *Publisher {
 	}
 	p.roundTripper = roundTripper
 
+	go p.runMetricSender()
 	return p
 }
 
@@ -75,7 +85,28 @@ func (p *Publisher) publish(ctx context.Context, msgs ...kafka.Message) error {
 	return nil
 }
 
+func (p *Publisher) runMetricSender() {
+	for {
+		select {
+		case _, isOpen := <-p.stopMetricChan:
+			if !isOpen {
+				return
+			}
+
+			return
+		case <-p.metricTimer.C:
+			p.sendMetrics(p.Writer.Stats())
+		}
+	}
+}
+
 func (p *Publisher) Close() error {
+	defer func() {
+		p.stopMetricChan <- struct{}{}
+		close(p.stopMetricChan)
+	}()
+
+	p.metricTimer.Stop()
 	err := p.Writer.Close()
 	if err != nil {
 		return errors.WithMessage(err, "close writer")

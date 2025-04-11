@@ -8,6 +8,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/segmentio/kafka-go"
+	"github.com/txix-open/isp-kit/kafkax/stats"
+	"github.com/txix-open/isp-kit/metrics"
 	"go.uber.org/atomic"
 )
 
@@ -30,25 +32,32 @@ type Consumer struct {
 	concurrency int
 	handler     Handler
 	observer    Observer
-	deliveryWg  *sync.WaitGroup
-	workersWg   *sync.WaitGroup
-	deliveries  chan Delivery
-	alive       *atomic.Bool
+
+	deliveryWg     *sync.WaitGroup
+	workersWg      *sync.WaitGroup
+	deliveries     chan Delivery
+	alive          *atomic.Bool
+	metricTimer    *time.Ticker
+	stopMetricChan chan struct{}
+	metricStorage  MetricStorage
 }
 
-func New(reader *kafka.Reader, handler Handler, concurrency int, opts ...Option) *Consumer {
+func New(reader *kafka.Reader, handler Handler, concurrency int, sendMetricPeriod time.Duration, opts ...Option) *Consumer {
 	if concurrency <= 0 {
 		concurrency = 1
 	}
 
 	c := &Consumer{
-		reader:      reader,
-		concurrency: concurrency,
-		handler:     handler,
-		deliveryWg:  &sync.WaitGroup{},
-		workersWg:   &sync.WaitGroup{},
-		deliveries:  make(chan Delivery),
-		alive:       atomic.NewBool(true),
+		reader:         reader,
+		concurrency:    concurrency,
+		handler:        handler,
+		deliveryWg:     &sync.WaitGroup{},
+		workersWg:      &sync.WaitGroup{},
+		deliveries:     make(chan Delivery),
+		alive:          atomic.NewBool(true),
+		metricTimer:    time.NewTicker(sendMetricPeriod),
+		stopMetricChan: make(chan struct{}),
+		metricStorage:  stats.NewConsumerStorage(metrics.DefaultRegistry),
 	}
 
 	for _, opt := range opts {
@@ -60,6 +69,7 @@ func New(reader *kafka.Reader, handler Handler, concurrency int, opts ...Option)
 	}
 	c.handler = handler
 
+	go c.runMetricSender()
 	return c
 }
 
@@ -117,6 +127,21 @@ func (c *Consumer) handleMessage(ctx context.Context, delivery *Delivery) {
 	c.handler.Handle(ctx, delivery)
 }
 
+func (c *Consumer) runMetricSender() {
+	for {
+		select {
+		case _, isOpen := <-c.stopMetricChan:
+			if !isOpen {
+				return
+			}
+
+			return
+		case <-c.metricTimer.C:
+			c.sendMetrics(c.reader.Stats())
+		}
+	}
+}
+
 func (c *Consumer) Close() error {
 	defer func() {
 		c.deliveryWg.Wait()
@@ -124,10 +149,14 @@ func (c *Consumer) Close() error {
 		c.workersWg.Wait()
 		c.alive.Store(false)
 
+		c.stopMetricChan <- struct{}{}
+		close(c.stopMetricChan)
+
 		c.observer.CloseDone()
 	}()
 	c.observer.CloseStart()
 
+	c.metricTimer.Stop()
 	err := c.reader.Close()
 	if err != nil {
 		return errors.WithMessage(err, "close kafka.reader")
