@@ -3,12 +3,9 @@ package publisher
 import (
 	"context"
 	"sync"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/segmentio/kafka-go"
-	"github.com/txix-open/isp-kit/kafkax/stats"
-	"github.com/txix-open/isp-kit/metrics"
 	"go.uber.org/atomic"
 )
 
@@ -31,24 +28,20 @@ type Publisher struct {
 	address     string
 	middlewares []Middleware
 
-	roundTripper   RoundTripper
-	lock           sync.Locker
-	alive          *atomic.Bool
-	metricTimer    *time.Ticker
-	stopMetricChan chan struct{}
-	metricStorage  MetricStorage
+	roundTripper RoundTripper
+	lock         sync.Locker
+	alive        *atomic.Bool
+	metrics      Metrics
 }
 
-func New(writer *kafka.Writer, topic string, sendMetricPeriod time.Duration, opts ...Option) *Publisher {
+func New(writer *kafka.Writer, topic string, metrics Metrics, opts ...Option) *Publisher {
 	p := &Publisher{
-		Writer:         writer,
-		topic:          topic,
-		address:        writer.Addr.String(),
-		alive:          atomic.NewBool(true),
-		lock:           &sync.Mutex{},
-		metricTimer:    time.NewTicker(sendMetricPeriod),
-		stopMetricChan: make(chan struct{}),
-		metricStorage:  stats.NewPublisherStorage(metrics.DefaultRegistry),
+		Writer:  writer,
+		topic:   topic,
+		address: writer.Addr.String(),
+		alive:   atomic.NewBool(true),
+		lock:    &sync.Mutex{},
+		metrics: metrics,
 	}
 
 	for _, opt := range opts {
@@ -61,7 +54,10 @@ func New(writer *kafka.Writer, topic string, sendMetricPeriod time.Duration, opt
 	}
 	p.roundTripper = roundTripper
 
-	go p.runMetricSender()
+	if p.metrics.IsSend() {
+		go p.runMetricSender()
+	}
+
 	return p
 }
 
@@ -88,25 +84,24 @@ func (p *Publisher) publish(ctx context.Context, msgs ...kafka.Message) error {
 func (p *Publisher) runMetricSender() {
 	for {
 		select {
-		case _, isOpen := <-p.stopMetricChan:
+		case _, isOpen := <-p.metrics.closeChan:
 			if !isOpen {
 				return
 			}
 
 			return
-		case <-p.metricTimer.C:
-			p.sendMetrics(p.Writer.Stats())
+		case <-p.metrics.timer.C:
+			p.metrics.Send(p.Writer.Stats())
 		}
 	}
 }
 
 func (p *Publisher) Close() error {
 	defer func() {
-		p.stopMetricChan <- struct{}{}
-		close(p.stopMetricChan)
+		p.metrics.Close()
 	}()
 
-	p.metricTimer.Stop()
+	p.metrics.Stop()
 	err := p.Writer.Close()
 	if err != nil {
 		return errors.WithMessage(err, "close writer")

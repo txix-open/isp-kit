@@ -24,7 +24,7 @@ type PublisherConfig struct {
 	Auth                       *Auth    `schema:"Параметры аутентификации"`
 	TLS                        *TLS     `schema:"Данные для установки TLS-соединения"`
 	DialTimeoutMs              *int     `schema:"Таймаут установки соединения, по умолчанию 5 секунд"`
-	PublisherMetricId          *string  `schema:"Идентификатор паблишера для метрик"`
+	PublisherMetricId          *string  `schema:"Идентификатор паблишера в метриках, при отсутствии метрики не отправляются"`
 }
 
 func (p PublisherConfig) GetWriteTimeout() time.Duration {
@@ -130,10 +130,15 @@ func (p PublisherConfig) DefaultPublisher(
 	}
 	middlewares = append(middlewares, restMiddlewares...)
 
+	isSendMetrics := false
+	if p.PublisherMetricId != nil {
+		isSendMetrics = true
+	}
+
 	pub := publisher.New(
 		&writer,
 		p.Topic,
-		sendMetricPeriod,
+		publisher.NewMetrics(isSendMetrics, sendMetricPeriod),
 		publisher.WithMiddlewares(middlewares...),
 	)
 
