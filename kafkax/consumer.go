@@ -21,6 +21,7 @@ type ConsumerConfig struct {
 	Auth              *Auth    `schema:"Параметры аутентификации"`
 	TLS               *TLS     `schema:"Данные для установки TLS-соединения"`
 	DialTimeoutMs     *int     `schema:"Таймаут установки соединения, по умолчанию 5 секунд"`
+	ConsumerMetricId  *string  `schema:"Идентификатор консьюмера для метрик"`
 }
 
 func (c ConsumerConfig) GetMaxBatchSizeMb() int {
@@ -107,6 +108,7 @@ func (c ConsumerConfig) DefaultConsumer(
 		reader,
 		handler,
 		c.Concurrency,
+		sendMetricPeriod,
 		consumer.WithObserver(consumer.NewLogObserver(logCtx, logger)),
 		consumer.WithMiddlewares(middlewares...),
 	)
