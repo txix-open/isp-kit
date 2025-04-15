@@ -35,10 +35,10 @@ type Consumer struct {
 	workersWg  *sync.WaitGroup
 	deliveries chan Delivery
 	alive      *atomic.Bool
-	metrics    Metrics
+	metrics    *Metrics
 }
 
-func New(reader *kafka.Reader, handler Handler, concurrency int, metrics Metrics, opts ...Option) *Consumer {
+func New(reader *kafka.Reader, handler Handler, concurrency int, metrics *Metrics, opts ...Option) *Consumer {
 	if concurrency <= 0 {
 		concurrency = 1
 	}
@@ -62,10 +62,6 @@ func New(reader *kafka.Reader, handler Handler, concurrency int, metrics Metrics
 		handler = c.middlewares[i](handler)
 	}
 	c.handler = handler
-
-	if c.metrics.IsSend() {
-		go c.runMetricSender()
-	}
 
 	return c
 }
@@ -108,6 +104,10 @@ func (c *Consumer) run(ctx context.Context) {
 func (c *Consumer) runWorker(ctx context.Context) {
 	defer c.workersWg.Done()
 
+	if c.metrics != nil {
+		go c.metrics.Run()
+	}
+
 	for {
 		select {
 		case delivery, isOpen := <-c.deliveries:
@@ -124,21 +124,6 @@ func (c *Consumer) handleMessage(ctx context.Context, delivery *Delivery) {
 	c.handler.Handle(ctx, delivery)
 }
 
-func (c *Consumer) runMetricSender() {
-	for {
-		select {
-		case _, isOpen := <-c.metrics.closeChan:
-			if !isOpen {
-				return
-			}
-
-			return
-		case <-c.metrics.timer.C:
-			c.metrics.Send(c.reader.Stats())
-		}
-	}
-}
-
 func (c *Consumer) Close() error {
 	defer func() {
 		c.deliveryWg.Wait()
@@ -146,12 +131,12 @@ func (c *Consumer) Close() error {
 		c.workersWg.Wait()
 		c.alive.Store(false)
 
-		c.metrics.Close()
+		if c.metrics != nil {
+			c.metrics.Close()
+		}
 		c.observer.CloseDone()
 	}()
 	c.observer.CloseStart()
-
-	c.metrics.Stop()
 	err := c.reader.Close()
 	if err != nil {
 		return errors.WithMessage(err, "close kafka.reader")

@@ -9,70 +9,65 @@ import (
 )
 
 type MetricStorage interface {
-	ObservePublisherWrites(publisherId string, writes int64)
-	ObservePublisherMessages(publisherId string, messages int64)
-	ObservePublisherMessageBytes(publisherId string, messageBytes int64)
-	ObservePublisherErrors(publisherId string, errors int64)
-	ObservePublisherRetries(publisherId string, retries int64)
+	ObservePublisherWrites(writes int64)
+	ObservePublisherMessages(messages int64)
+	ObservePublisherMessageBytes(messageBytes int64)
+	ObservePublisherErrors(errors int64)
+	ObservePublisherRetries(retries int64)
 
-	ObserveConsumerBatchTime(publisherId string, batchTime kafka.DurationStats)
-	ObserveConsumerBatchQueueTime(publisherId string, batchQueueTime kafka.DurationStats)
-	ObserveConsumerWriteTime(publisherId string, writeTime kafka.DurationStats)
-	ObserveConsumerWaitTime(publisherId string, waitTime kafka.DurationStats)
-	ObserveConsumerBatchSize(publisherId string, batchSize kafka.SummaryStats)
-	ObserveConsumerBatchBytes(publisherId string, batchBytes kafka.SummaryStats)
+	ObserveConsumerBatchTime(batchTime kafka.DurationStats)
+	ObserveConsumerBatchQueueTime(batchQueueTime kafka.DurationStats)
+	ObserveConsumerWriteTime(writeTime kafka.DurationStats)
+	ObserveConsumerWaitTime(waitTime kafka.DurationStats)
+	ObserveConsumerBatchSize(batchSize kafka.SummaryStats)
+	ObserveConsumerBatchBytes(batchBytes kafka.SummaryStats)
 }
 
 type Metrics struct {
-	isSend    bool
 	timer     *time.Ticker
+	writer    *kafka.Writer
 	storage   MetricStorage
 	closeChan chan struct{}
 }
 
-func NewMetrics(isSend bool, sendMetricPeriod time.Duration) Metrics {
-	m := Metrics{
-		isSend:    isSend,
+func NewMetrics(sendMetricPeriod time.Duration, writer *kafka.Writer, publisherId string) *Metrics {
+	return &Metrics{
 		closeChan: make(chan struct{}),
+		writer:    writer,
+		timer:     time.NewTicker(sendMetricPeriod),
+		storage:   stats.NewPublisherStorage(metrics.DefaultRegistry, publisherId),
 	}
-
-	if isSend {
-		m.timer = time.NewTicker(sendMetricPeriod)
-		m.storage = stats.NewPublisherStorage(metrics.DefaultRegistry)
-	}
-
-	return m
-}
-
-func (m *Metrics) IsSend() bool {
-	return m.isSend
 }
 
 func (m *Metrics) Send(stats kafka.WriterStats) {
-	m.storage.ObservePublisherWrites(stats.ClientID, stats.Writes)
-	m.storage.ObservePublisherMessages(stats.ClientID, stats.Messages)
-	m.storage.ObservePublisherMessageBytes(stats.ClientID, stats.Bytes)
-	m.storage.ObservePublisherErrors(stats.ClientID, stats.Errors)
-	m.storage.ObservePublisherRetries(stats.ClientID, stats.Retries)
+	m.storage.ObservePublisherWrites(stats.Writes)
+	m.storage.ObservePublisherMessages(stats.Messages)
+	m.storage.ObservePublisherMessageBytes(stats.Bytes)
+	m.storage.ObservePublisherErrors(stats.Errors)
+	m.storage.ObservePublisherRetries(stats.Retries)
 
-	m.storage.ObserveConsumerBatchTime(stats.ClientID, stats.BatchTime)
-	m.storage.ObserveConsumerBatchQueueTime(stats.ClientID, stats.BatchQueueTime)
-	m.storage.ObserveConsumerWriteTime(stats.ClientID, stats.WriteTime)
-	m.storage.ObserveConsumerWaitTime(stats.ClientID, stats.WaitTime)
-	m.storage.ObserveConsumerBatchSize(stats.ClientID, stats.BatchSize)
-	m.storage.ObserveConsumerBatchBytes(stats.ClientID, stats.BatchBytes)
+	m.storage.ObserveConsumerBatchTime(stats.BatchTime)
+	m.storage.ObserveConsumerBatchQueueTime(stats.BatchQueueTime)
+	m.storage.ObserveConsumerWriteTime(stats.WriteTime)
+	m.storage.ObserveConsumerWaitTime(stats.WaitTime)
+	m.storage.ObserveConsumerBatchSize(stats.BatchSize)
+	m.storage.ObserveConsumerBatchBytes(stats.BatchBytes)
 }
 
-func (m *Metrics) Stop() {
-	if m.isSend {
-		m.timer.Stop()
+func (m *Metrics) Run() {
+	defer m.Send(m.writer.Stats())
+	for {
+		select {
+		case <-m.closeChan:
+			return
+		case <-m.timer.C:
+			m.Send(m.writer.Stats())
+		}
 	}
 }
 
 func (m *Metrics) Close() {
-	if m.isSend {
-		m.closeChan <- struct{}{}
-	}
-
+	m.timer.Stop()
+	m.closeChan <- struct{}{}
 	close(m.closeChan)
 }
