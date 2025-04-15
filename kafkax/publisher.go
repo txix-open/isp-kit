@@ -2,14 +2,11 @@ package kafkax
 
 import (
 	"context"
-	"crypto/tls"
-	"encoding/base64"
 	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/kafka-go/sasl"
 	"github.com/txix-open/isp-kit/kafkax/publisher"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/metrics"
@@ -77,40 +74,20 @@ func (p PublisherConfig) GetDialTimeout() time.Duration {
 }
 
 func (p PublisherConfig) createTransport(mechanismType string) (*kafka.Transport, error) {
-	var saslMechanism sasl.Mechanism
+	saslMechanism, err := setupSASLMechanism(mechanismType, p.Auth)
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to setup sasl mechanism")
+	}
 
-	switch mechanismType {
-	case AuthTypePlain:
-		saslMechanism = PlainAuth(p.Auth)
-	case AuthTypeSCRAM:
-		var err error
-		saslMechanism, err = ScramAuth(p.Auth)
-		if err != nil {
-			return nil, errors.WithMessage(err, "get scram mechanism")
-		}
-	default:
-		return nil, errors.Errorf("unexpected sasl mechanism: %s", mechanismType)
+	tls, err := setupTLS(p.TLS)
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to setup tls")
 	}
 
 	transport := &kafka.Transport{
 		DialTimeout: p.GetDialTimeout(),
 		SASL:        saslMechanism,
-	}
-
-	if p.TLS != nil {
-		rawCert, err := base64.StdEncoding.DecodeString(p.TLS.Certificate)
-		if err != nil {
-			return nil, errors.WithMessage(err, "decode base64 tls certificate")
-		}
-
-		transport.TLS = &tls.Config{
-			Certificates: []tls.Certificate{
-				{
-					Certificate: [][]byte{rawCert},
-					PrivateKey:  p.TLS.PrivateKey,
-				},
-			},
-		}
+		TLS:         tls,
 	}
 
 	return transport, nil

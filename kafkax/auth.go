@@ -1,6 +1,8 @@
 package kafkax
 
 import (
+	"crypto/tls"
+	"encoding/base64"
 	"github.com/pkg/errors"
 	"github.com/segmentio/kafka-go/sasl"
 	"github.com/segmentio/kafka-go/sasl/plain"
@@ -62,4 +64,43 @@ func ScramAuth(auth *Auth) (sasl.Mechanism, error) {
 	}
 
 	return mechanism, nil
+}
+
+func setupSASLMechanism(mechanismType string, auth *Auth) (sasl.Mechanism, error) {
+	var saslMechanism sasl.Mechanism
+
+	switch mechanismType {
+	case AuthTypePlain:
+		saslMechanism = PlainAuth(auth)
+	case AuthTypeSCRAM:
+		var err error
+		saslMechanism, err = ScramAuth(auth)
+		if err != nil {
+			return nil, errors.WithMessage(err, "get scram auth mechanism")
+		}
+	default:
+		return nil, errors.Errorf("unexpected sasl mechanism: %s", mechanismType)
+	}
+
+	return saslMechanism, nil
+}
+
+func setupTLS(cfg *TLS) (*tls.Config, error) {
+	if cfg == nil {
+		return nil, nil
+	}
+
+	rawCert, err := base64.StdEncoding.DecodeString(cfg.Certificate)
+	if err != nil {
+		return nil, errors.WithMessage(err, "decode base64 tls certificate")
+	}
+
+	return &tls.Config{
+		Certificates: []tls.Certificate{
+			{
+				Certificate: [][]byte{rawCert},
+				PrivateKey:  cfg.PrivateKey,
+			},
+		},
+	}, nil
 }

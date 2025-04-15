@@ -2,14 +2,11 @@ package kafkax
 
 import (
 	"context"
-	"crypto/tls"
-	"encoding/base64"
 	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/kafka-go/sasl"
 	"github.com/txix-open/isp-kit/kafkax/consumer"
 	"github.com/txix-open/isp-kit/log"
 )
@@ -50,41 +47,21 @@ func (c ConsumerConfig) GetDialTimeout() time.Duration {
 }
 
 func (c ConsumerConfig) createDialer(mechanismType string) (*kafka.Dialer, error) {
-	var saslMechanism sasl.Mechanism
+	saslMechanism, err := setupSASLMechanism(mechanismType, c.Auth)
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to setup sasl mechanism")
+	}
 
-	switch mechanismType {
-	case AuthTypePlain:
-		saslMechanism = PlainAuth(c.Auth)
-	case AuthTypeSCRAM:
-		var err error
-		saslMechanism, err = ScramAuth(c.Auth)
-		if err != nil {
-			return nil, errors.WithMessage(err, "get scram auth mechanism")
-		}
-	default:
-		return nil, errors.Errorf("unexpected sasl mechanism: %s", mechanismType)
+	tls, err := setupTLS(c.TLS)
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to setup tls")
 	}
 
 	dialer := &kafka.Dialer{
 		DualStack:     true,
 		Timeout:       c.GetDialTimeout(),
 		SASLMechanism: saslMechanism,
-	}
-
-	if c.TLS != nil {
-		rawCert, err := base64.StdEncoding.DecodeString(c.TLS.Certificate)
-		if err != nil {
-			return nil, errors.WithMessage(err, "decode base64 tls certificate")
-		}
-
-		dialer.TLS = &tls.Config{
-			Certificates: []tls.Certificate{
-				{
-					Certificate: [][]byte{rawCert},
-					PrivateKey:  c.TLS.PrivateKey,
-				},
-			},
-		}
+		TLS:           tls,
 	}
 
 	return dialer, nil
