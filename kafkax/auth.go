@@ -96,6 +96,7 @@ func setupTLS(cfg *TLS) (*tls.Config, error) {
 	}
 
 	return &tls.Config{
+		//MinVersion: tls.VersionTLS12,
 		Certificates: []tls.Certificate{
 			{
 				Certificate: [][]byte{rawCert},
