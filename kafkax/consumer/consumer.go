@@ -30,13 +30,15 @@ type Consumer struct {
 	concurrency int
 	handler     Handler
 	observer    Observer
-	deliveryWg  *sync.WaitGroup
-	workersWg   *sync.WaitGroup
-	deliveries  chan Delivery
-	alive       *atomic.Bool
+
+	deliveryWg *sync.WaitGroup
+	workersWg  *sync.WaitGroup
+	deliveries chan Delivery
+	alive      *atomic.Bool
+	metrics    *Metrics
 }
 
-func New(reader *kafka.Reader, handler Handler, concurrency int, opts ...Option) *Consumer {
+func New(reader *kafka.Reader, handler Handler, concurrency int, metrics *Metrics, opts ...Option) *Consumer {
 	if concurrency <= 0 {
 		concurrency = 1
 	}
@@ -49,6 +51,7 @@ func New(reader *kafka.Reader, handler Handler, concurrency int, opts ...Option)
 		workersWg:   &sync.WaitGroup{},
 		deliveries:  make(chan Delivery),
 		alive:       atomic.NewBool(true),
+		metrics:     metrics,
 	}
 
 	for _, opt := range opts {
@@ -101,6 +104,10 @@ func (c *Consumer) run(ctx context.Context) {
 func (c *Consumer) runWorker(ctx context.Context) {
 	defer c.workersWg.Done()
 
+	if c.metrics != nil {
+		go c.metrics.Run()
+	}
+
 	for {
 		select {
 		case delivery, isOpen := <-c.deliveries:
@@ -124,10 +131,12 @@ func (c *Consumer) Close() error {
 		c.workersWg.Wait()
 		c.alive.Store(false)
 
+		if c.metrics != nil {
+			c.metrics.Close()
+		}
 		c.observer.CloseDone()
 	}()
 	c.observer.CloseStart()
-
 	err := c.reader.Close()
 	if err != nil {
 		return errors.WithMessage(err, "close kafka.reader")

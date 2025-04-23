@@ -31,15 +31,17 @@ type Publisher struct {
 	roundTripper RoundTripper
 	lock         sync.Locker
 	alive        *atomic.Bool
+	metrics      *Metrics
 }
 
-func New(writer *kafka.Writer, topic string, opts ...Option) *Publisher {
+func New(writer *kafka.Writer, topic string, metrics *Metrics, opts ...Option) *Publisher {
 	p := &Publisher{
 		Writer:  writer,
 		topic:   topic,
 		address: writer.Addr.String(),
 		alive:   atomic.NewBool(true),
 		lock:    &sync.Mutex{},
+		metrics: metrics,
 	}
 
 	for _, opt := range opts {
@@ -51,6 +53,10 @@ func New(writer *kafka.Writer, topic string, opts ...Option) *Publisher {
 		roundTripper = p.middlewares[i](roundTripper)
 	}
 	p.roundTripper = roundTripper
+
+	if p.metrics != nil {
+		go p.metrics.Run()
+	}
 
 	return p
 }
@@ -76,6 +82,11 @@ func (p *Publisher) publish(ctx context.Context, msgs ...kafka.Message) error {
 }
 
 func (p *Publisher) Close() error {
+	defer func() {
+		if p.metrics != nil {
+			p.metrics.Close()
+		}
+	}()
 	err := p.Writer.Close()
 	if err != nil {
 		return errors.WithMessage(err, "close writer")
