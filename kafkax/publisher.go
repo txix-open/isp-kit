@@ -3,12 +3,14 @@ package kafkax
 import (
 	"context"
 	"fmt"
+	"time"
+
+	"github.com/pkg/errors"
 	"github.com/segmentio/kafka-go"
 	"github.com/txix-open/isp-kit/kafkax/publisher"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/metrics"
 	"github.com/txix-open/isp-kit/metrics/kafka_metrics"
-	"time"
 )
 
 type PublisherConfig struct {
@@ -20,7 +22,9 @@ type PublisherConfig struct {
 	WriteTimeoutSec            *int     `schema:"Таймаут отправки сообщений, по умолчанию 10 секунд"`
 	RequiredAckLevel           int      `schema:"Количество подтверждений реплик разделов для получения ответа на запрос отправки сообщения"`
 	Auth                       *Auth    `schema:"Параметры аутентификации"`
+	TLS                        *TLS     `schema:"Данные для установки TLS-соединения"`
 	DialTimeoutMs              *int     `schema:"Таймаут установки соединения, по умолчанию 5 секунд"`
+	MetricPublisherId          *string  `schema:"Идентификатор паблишера в метриках, при отсутствии метрики не отправляются"`
 }
 
 func (p PublisherConfig) GetWriteTimeout() time.Duration {
@@ -70,11 +74,43 @@ func (p PublisherConfig) GetDialTimeout() time.Duration {
 	return time.Duration(*p.DialTimeoutMs) * time.Millisecond
 }
 
+func (p PublisherConfig) createTransport(mechanismType string) (*kafka.Transport, error) {
+	saslMechanism, err := setupSASLMechanism(mechanismType, p.Auth)
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to setup sasl mechanism")
+	}
+
+	tls, err := setupTLS(p.TLS)
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to setup tls")
+	}
+
+	transport := &kafka.Transport{
+		DialTimeout: p.GetDialTimeout(),
+		SASL:        saslMechanism,
+		TLS:         tls,
+	}
+
+	return transport, nil
+}
+
 func (p PublisherConfig) DefaultPublisher(
 	logCtx context.Context,
 	logger log.Logger,
 	restMiddlewares ...publisher.Middleware,
 ) *publisher.Publisher {
+	var authMechanism string
+	if p.Auth.Mechanism == nil {
+		authMechanism = AuthTypePlain
+	} else {
+		authMechanism = *p.Auth.Mechanism
+	}
+
+	transport, err := p.createTransport(authMechanism)
+	if err != nil {
+		logger.Error(logCtx, errors.WithMessage(err, "create kafka publisher transport"))
+	}
+
 	writer := kafka.Writer{
 		Addr:         kafka.TCP(p.Addresses...),
 		WriteTimeout: p.GetWriteTimeout(),
@@ -82,10 +118,7 @@ func (p PublisherConfig) DefaultPublisher(
 		BatchBytes:   p.GetMaxMessageSizePerPartition() * bytesInMb,
 		BatchSize:    p.GetBatchSizePerPartition(),
 		BatchTimeout: p.GetBatchTimeoutPerPartition(),
-		Transport: &kafka.Transport{
-			DialTimeout: p.GetDialTimeout(),
-			SASL:        PlainAuth(p.Auth),
-		},
+		Transport:    transport,
 		ErrorLogger: kafka.LoggerFunc(func(s string, i ...interface{}) {
 			logger.Error(logCtx, "kafka publisher: "+fmt.Sprintf(s, i...))
 		}),
@@ -97,9 +130,16 @@ func (p PublisherConfig) DefaultPublisher(
 	}
 	middlewares = append(middlewares, restMiddlewares...)
 
+	var metrics *publisher.Metrics
+
+	if p.MetricPublisherId != nil {
+		metrics = publisher.NewMetrics(sendMetricPeriod, &writer, *p.MetricPublisherId)
+	}
+
 	pub := publisher.New(
 		&writer,
 		p.Topic,
+		metrics,
 		publisher.WithMiddlewares(middlewares...),
 	)
 
