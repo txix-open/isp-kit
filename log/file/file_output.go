@@ -14,6 +14,7 @@ const (
 	lumberjackSchema = "lumberjack"
 )
 
+// nolint:gochecknoinits
 func init() {
 	err := zap.RegisterSink(lumberjackSchema, func(u *url.URL) (zap.Sink, error) {
 		r, err := fileOutputConfigFromUrl(u)
