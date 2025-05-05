@@ -1,6 +1,8 @@
 run:
   allow-parallel-runners: true
 issues:
+  exclude-dirs:
+    - ^observability/tracing/http/semconvutil$ # нельзя модифицировать
   exclude-rules:
     - path: lb
       linters: 

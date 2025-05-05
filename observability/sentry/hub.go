@@ -21,6 +21,7 @@ type SdkHub struct {
 	hub *sentry.Hub
 }
 
+// nolint:ireturn
 func NewHubFromConfiguration(config Config) (Hub, error) {
 	if !config.Enable {
 		return NewNoopHub(), nil
