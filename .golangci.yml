@@ -1,5 +1,10 @@
 run:
   allow-parallel-runners: true
+issues:
+  exclude-rules:
+    - path: lb
+      linters: 
+        - gosec # нету необходимости менять math/rand на crypto/rand
 linters:
   enable-all: true
   disable:
