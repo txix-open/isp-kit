@@ -15,6 +15,8 @@ func (n noneValidation) ValidateToError(value any) error {
 }
 
 func TestConfig_Upgrade(t *testing.T) {
+	t.Parallel()
+
 	require := require.New(t)
 
 	override := `{"a": {"a": 1}}`
@@ -64,6 +66,8 @@ func TestConfig_Upgrade(t *testing.T) {
 }
 
 func TestConfig_Delim(t *testing.T) {
+	t.Parallel()
+
 	require := require.New(t)
 	override := []byte(`{"map.key.1": "overridden.value"}`)
 	config := rc.New(noneValidation{}, override)
