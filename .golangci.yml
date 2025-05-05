@@ -1,25 +1,5 @@
 run:
   allow-parallel-runners: true
-issues:
-  exclude-rules:
-    - path: db # не имеет смысла оборачивать ошибки в обёртке
-      linters:
-        - wrapcheck
-    - path: dbrx # не имеет смысла оборачивать ошибки в обёртке
-      linters:
-        - wrapcheck
-    - path: cluster # не имеет смысла оборачивать ошибки в обёртке
-      linters:
-        - wrapcheck
-    - path: grpc # не имеет смысла оборачивать ошибки в обёртке
-      linters:
-        - wrapcheck
-    - path: http # не имеет смысла оборачивать ошибки в обёртке
-      linters:
-        - wrapcheck
-    - path: json # не имеет смысла оборачивать ошибки в обёртке
-      linters:
-        - wrapcheck
 linters:
   enable-all: true
   disable:
@@ -41,6 +21,7 @@ linters:
     - perfsprint #мнимая производительность в угоду читаемости
     - tenv #устарел
     - containedctx
+    - wrapcheck #не имеет смысла для модулей обёрток,в либе очень много таких модулей
 linters-settings:
   funlen:
     lines: 80
