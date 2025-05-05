@@ -21,6 +21,8 @@ var (
 	ErrClientIsNotInitialized = errors.New("client is not initialized")
 )
 
+const healthcheckTimeout = 500 * time.Millisecond
+
 type Client struct {
 	options []dbx.Option
 	prevCfg *atomic.Value
@@ -134,7 +136,7 @@ func (c *Client) Healthcheck(ctx context.Context) error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
+	ctx, cancel := context.WithTimeout(ctx, healthcheckTimeout)
 	defer cancel()
 	_, err = cli.Exec(ctx, "SELECT 1")
 	if err != nil {

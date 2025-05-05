@@ -1,7 +1,6 @@
 package dbrx_test
 
 import (
-	"context"
 	"github.com/txix-open/isp-kit/dbrx"
 	"testing"
 
@@ -15,6 +14,8 @@ import (
 
 // to see how it works try to modify dbx.NewMetrics struct's methods
 func TestDb_WithMetrics(t *testing.T) {
+	t.Parallel()
+
 	test, require := test2.New(t)
 	option := dbx.WithQueryTracer(
 		sql_metrics.NewTracer(metrics.DefaultRegistry),
@@ -22,7 +23,7 @@ func TestDb_WithMetrics(t *testing.T) {
 		sql_tracing.NewConfig().QueryTracer(),
 	)
 	cli := dbt.New(test, option)
-	ctx := context.Background()
+	ctx := t.Context()
 	ctx = sql_metrics.OperationLabelToContext(ctx, "test.label")
 
 	var res int
@@ -32,9 +33,11 @@ func TestDb_WithMetrics(t *testing.T) {
 }
 
 func TestDb_WithoutMetrics(t *testing.T) {
+	t.Parallel()
+
 	test, require := test2.New(t)
 	cli := dbt.New(test)
-	ctx := context.Background()
+	ctx := t.Context()
 	ctx = sql_metrics.OperationLabelToContext(ctx, "test.label")
 
 	var res int
@@ -44,9 +47,10 @@ func TestDb_WithoutMetrics(t *testing.T) {
 }
 
 func TestDb_WithMetrics_WithoutLabel(t *testing.T) {
+	t.Parallel()
 	test, require := test2.New(t)
 	cli := dbt.New(test, dbx.WithQueryTracer(sql_metrics.NewTracer(metrics.DefaultRegistry)))
-	ctx := context.Background()
+	ctx := t.Context()
 
 	var res int
 	err := cli.SelectRow(ctx, &res, "select 1")
@@ -55,20 +59,22 @@ func TestDb_WithMetrics_WithoutLabel(t *testing.T) {
 }
 
 func TestCompareConfig(t *testing.T) {
+	t.Parallel()
+
 	test, require := test2.New(t)
 
 	config1 := dbt.Config(test)
 	config1.Params = map[string]string{}
 	cli := dbrx.New(test.Logger())
 
-	err := cli.Upgrade(context.Background(), config1)
+	err := cli.Upgrade(t.Context(), config1)
 	require.NoError(err)
 	db1, err := cli.DB()
 	require.NoError(err)
 
 	config2 := dbt.Config(test)
 	config2.Params = map[string]string{}
-	err = cli.Upgrade(context.Background(), config2)
+	err = cli.Upgrade(t.Context(), config2)
 	require.NoError(err)
 	db2, err := cli.DB()
 	require.NoError(err)
@@ -78,7 +84,7 @@ func TestCompareConfig(t *testing.T) {
 	test, require = test2.New(t)
 	config3 := dbt.Config(test)
 	config3.Params = map[string]string{}
-	err = cli.Upgrade(context.Background(), config3)
+	err = cli.Upgrade(t.Context(), config3)
 	require.NoError(err)
 	db3, err := cli.DB()
 	require.NoError(err)

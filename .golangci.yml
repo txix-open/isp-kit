@@ -5,6 +5,9 @@ issues:
     - path: db # не имеет смысла оборачивать ошибки в обёртке
       linters:
         - wrapcheck
+    - path: dbrx # не имеет смысла оборачивать ошибки в обёртке
+      linters:
+        - wrapcheck
     - path: cluster # не имеет смысла оборачивать ошибки в обёртке
       linters:
         - wrapcheck
