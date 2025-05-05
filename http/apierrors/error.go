@@ -13,10 +13,11 @@ const (
 	ErrCodeInternal = 900
 )
 
+// nolint:tagliatelle
 type Error struct {
 	ErrorCode    int
 	ErrorMessage string
-	Details      map[string]interface{} `json:",omitempty"`
+	Details      map[string]any `json:",omitempty"`
 
 	httpStatusCode int
 	cause          error

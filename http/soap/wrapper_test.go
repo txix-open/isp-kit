@@ -25,6 +25,8 @@ type EntryItem struct {
 }
 
 func TestNamespace(t *testing.T) {
+	t.Parallel()
+
 	require := require.New(t)
 	body := `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:con="http://xmlns.example.com/sudir/connector">
     <soapenv:Header/>
@@ -49,8 +51,7 @@ func TestNamespace(t *testing.T) {
 		Header(soap.ActionHeader, "Endpoint").
 		Header("content-type", soap.ContentType).
 		RequestBody([]byte(body)).
-		Do(context.Background())
+		Do(t.Context())
 	require.NoError(err)
 	require.True(resp.IsSuccess())
-
 }

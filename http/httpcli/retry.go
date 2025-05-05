@@ -17,6 +17,7 @@ type retryOptions struct {
 	retrier   Retryer
 }
 
+// nolint:gochecknoglobals
 var (
 	noRetries = &retryOptions{
 		condition: func(err error, response *Response) error {
@@ -33,6 +34,7 @@ func (n noRetryer) Do(_ context.Context, f func() error) error {
 	return f()
 }
 
+// nolint:ireturn
 func NoRetries() (RetryCondition, Retryer) {
 	return noRetries.condition, noRetries.retrier
 }
@@ -43,7 +45,7 @@ func IfErrorOr5XXStatus() RetryCondition {
 			return err
 		}
 		if response.Raw.StatusCode >= http.StatusInternalServerError && response.Raw.StatusCode <= 599 {
-			return fmt.Errorf("status code %d", response.Raw.StatusCode)
+			return fmt.Errorf("status code %d", response.Raw.StatusCode) // nolint:err113
 		}
 		return nil
 	}

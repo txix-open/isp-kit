@@ -6,6 +6,8 @@ import (
 	"net/http"
 )
 
+const defaultBufferSize = 1024
+
 type Buffer struct {
 	http.ResponseWriter
 	requestBuffer  *bytes.Buffer
@@ -15,8 +17,8 @@ type Buffer struct {
 
 func New() *Buffer {
 	return &Buffer{
-		requestBuffer:  bytes.NewBuffer(make([]byte, 1024)),
-		responseBuffer: bytes.NewBuffer(make([]byte, 1024)),
+		requestBuffer:  bytes.NewBuffer(make([]byte, defaultBufferSize)),
+		responseBuffer: bytes.NewBuffer(make([]byte, defaultBufferSize)),
 	}
 }
 

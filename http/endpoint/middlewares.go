@@ -18,6 +18,7 @@ import (
 
 const (
 	defaultMaxRequestBodySize = 64 * 1024 * 1024
+	panicStackLength          = 4 << 10
 )
 
 type LogMiddleware http2.Middleware
@@ -44,9 +45,9 @@ func Recovery() http2.Middleware {
 				if ok {
 					err = recovered
 				} else {
-					err = fmt.Errorf("%v", recovered)
+					err = fmt.Errorf("%v", recovered) // nolint:err113,errorlint
 				}
-				stack := make([]byte, 4<<10)
+				stack := make([]byte, panicStackLength)
 				length := runtime.Stack(stack, false)
 				err = errors.Errorf("[PANIC RECOVER] %v %s\n", err, stack[:length])
 			}()
@@ -81,7 +82,7 @@ func ErrorHandler(logger log.Logger) http2.Middleware {
 				return err
 			}
 
-			//hide error details to prevent potential security leaks
+			// hide error details to prevent potential security leaks
 			err = apierrors.NewInternalServiceError(err).WriteError(w)
 
 			return err

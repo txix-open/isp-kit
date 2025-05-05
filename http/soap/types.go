@@ -46,8 +46,9 @@ func (b *Body) UnmarshalXML(d *xml.Decoder, _ xml.StartElement) error {
 
 Loop:
 	for {
-		if token, err = d.Token(); err != nil {
-			return err
+		token, err = d.Token()
+		if err != nil {
+			return err // nolint:wrapcheck
 		}
 
 		if token == nil {
@@ -56,9 +57,10 @@ Loop:
 
 		switch se := token.(type) {
 		case xml.StartElement:
-			if consumed {
+			switch {
+			case consumed:
 				return xml.UnmarshalError("Found multiple elements inside SOAP body; not wrapped-document/literal WS-I compliant")
-			} else if se.Name.Space == "http://schemas.xmlsoap.org/soap/envelope/" && se.Name.Local == "Fault" {
+			case se.Name.Space == "http://schemas.xmlsoap.org/soap/envelope/" && se.Name.Local == "Fault":
 				b.Content = nil
 
 				b.faultOccurred = true
@@ -68,7 +70,7 @@ Loop:
 				}
 
 				consumed = true
-			} else {
+			default:
 				if err = d.DecodeElement(b.Content, &se); err != nil {
 					return err
 				}
@@ -83,6 +85,7 @@ Loop:
 	return nil
 }
 
+// nolint:errname
 type Fault struct {
 	XMLName xml.Name `xml:"http://schemas.xmlsoap.org/soap/envelope/ Fault"`
 

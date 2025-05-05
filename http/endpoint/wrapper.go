@@ -82,5 +82,4 @@ func (m Wrapper) WithMiddlewares(middlewares ...http2.Middleware) Wrapper {
 		Middlewares:   append(m.Middlewares, middlewares...),
 		Logger:        m.Logger,
 	}
-
 }

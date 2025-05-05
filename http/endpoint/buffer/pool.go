@@ -5,6 +5,7 @@ import (
 	"sync"
 )
 
+// nolint:gochecknoglobals
 var pool = sync.Pool{
 	New: func() any {
 		return New()
