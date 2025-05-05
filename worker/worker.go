@@ -33,7 +33,7 @@ func New(job Job, opts ...Option) *Worker {
 }
 
 func (w *Worker) Run(ctx context.Context) {
-	for i := 0; i < w.concurrency; i++ {
+	for range w.concurrency {
 		w.wg.Add(1)
 		go w.run(ctx)
 	}
@@ -57,7 +57,6 @@ func (w *Worker) run(ctx context.Context) {
 		case <-w.stop:
 			return
 		case <-time.After(w.interval):
-
 		}
 	}
 }
