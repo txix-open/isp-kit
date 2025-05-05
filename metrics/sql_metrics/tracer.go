@@ -48,7 +48,7 @@ func (m QueryDurationMetrics) TraceQueryEnd(ctx context.Context, conn *pgx.Conn,
 	}
 	label := OperationLabelFromContext(ctx)
 
-	duration := time.Since(startedAt.(time.Time))
+	duration := time.Since(startedAt.(time.Time)) // nolint:forcetypeassert
 	m.duration.WithLabelValues(label).Observe(metrics.Milliseconds(duration))
 }
 

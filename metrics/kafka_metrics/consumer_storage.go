@@ -31,7 +31,7 @@ func NewConsumerStorage(reg *metrics.Registry) *ConsumerStorage {
 		commitCount: metrics.GetOrRegister(reg, prometheus.NewCounterVec(prometheus.CounterOpts{
 			Subsystem: "kafka",
 			Name:      "consume_commit_count",
-			Help:      "Count of commited messages",
+			Help:      "Count of committed messages",
 		}, []string{"consumerGroup", "topic"})),
 		retryCount: metrics.GetOrRegister(reg, prometheus.NewCounterVec(prometheus.CounterOpts{
 			Subsystem: "kafka",

@@ -5,6 +5,9 @@ issues:
     - path: lb
       linters: 
         - gosec # нету необходимости менять math/rand на crypto/rand
+    - path: metrics
+      linters: 
+        - promlinter # свой стиль наименования метрик
 linters:
   enable-all: true
   disable:

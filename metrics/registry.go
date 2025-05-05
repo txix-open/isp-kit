@@ -33,6 +33,7 @@ func NewRegistry() *Registry {
 	return r
 }
 
+// nolint:ireturn
 func (r *Registry) GetOrRegister(metric Metric) Metric {
 	r.lock.Lock()
 	defer r.lock.Unlock()
@@ -61,9 +62,9 @@ func (r *Registry) MetricsDescriptionHandler() http.Handler {
 		writer.Header().Set("content-type", "text/plain")
 
 		for _, metric := range r.list {
-			c := make(chan *prometheus.Desc, 512)
+			c := make(chan *prometheus.Desc, 512) // nolint:mnd
 			metric.Describe(c)
-			for i := 0; i < len(c); i++ {
+			for range len(c) {
 				desc := <-c
 				_, _ = fmt.Fprintf(writer, "%s, type: %T\n", desc, metric)
 			}
@@ -71,6 +72,7 @@ func (r *Registry) MetricsDescriptionHandler() http.Handler {
 	}), 1*time.Second, "timeout")
 }
 
+// nolint:ireturn,forcetypeassert
 func GetOrRegister[M Metric](registry *Registry, metric M) M {
 	m := registry.GetOrRegister(metric)
 	return m.(M)
