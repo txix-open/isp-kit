@@ -112,6 +112,7 @@ func normalizeKey(key string) string {
 	return strings.ToLower(key)
 }
 
+// nolint:ireturn
 func get[T any](config map[string]string, key string, valueMapper func(value string) (T, error)) (T, error) {
 	var ret T
 	value, ok := config[normalizeKey(key)]
