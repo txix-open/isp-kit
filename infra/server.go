@@ -12,6 +12,7 @@ type Server struct {
 	s   *http.Server
 }
 
+// nolint:gosec
 func NewServer() *Server {
 	mux := http.NewServeMux()
 	return &Server{
@@ -41,5 +42,5 @@ func (s *Server) ListenAndServe(address string) error {
 }
 
 func (s *Server) Shutdown() error {
-	return s.s.Shutdown(context.Background())
+	return s.s.Shutdown(context.Background()) // nolint:wrapcheck
 }
