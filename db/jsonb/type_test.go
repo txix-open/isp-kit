@@ -20,6 +20,8 @@ type someData struct {
 }
 
 func TestType(t *testing.T) {
+	t.Parallel()
+
 	test, assert := test.New(t)
 	db := dbt.New(test)
 	createTable := `
@@ -35,7 +37,7 @@ create table data (
 	db.Must().Exec("insert into data values ($1, $2)", expected.Id, expected.Data)
 	actual := record{}
 	db.Must().SelectRow(&actual, "select * from data where id = $1", 1)
-	actual.Data = bytes.ReplaceAll(actual.Data, []byte(" "), []byte("")) //pg add extra spaces
+	actual.Data = bytes.ReplaceAll(actual.Data, []byte(" "), []byte("")) // pg add extra spaces
 	assert.EqualValues(expected, actual)
 
 	expected = record{Id: 2, Data: nil}
