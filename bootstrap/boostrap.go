@@ -32,6 +32,18 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+const postShutdownWait = 500 * time.Millisecond
+
+const (
+	defaultLogFileMaxSizeMb  = 512
+	defaultLogFileMaxBackups = 4
+	defaultLogFileCompress   = true
+
+	defaultEnableLogSampling       = false
+	defaultMaxLogSamplingPerSecond = 1000
+	defaulLogtSamplingPassEvery    = 100
+)
+
 type Bootstrap struct {
 	App                 *app.Application
 	ClusterCli          *cluster.Client
@@ -86,6 +98,7 @@ func New(moduleVersion string, remoteConfig any, endpoints []cluster.EndpointDes
 	return boot
 }
 
+// nolint:funlen
 func bootstrap(
 	isDev bool,
 	application *app.Application,
@@ -220,7 +233,7 @@ func bootstrap(
 func (b *Bootstrap) Fatal(err error) {
 	b.SentryHub.CatchError(b.App.Context(), err, log.FatalLevel)
 	b.App.Close()
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(postShutdownWait)
 	b.App.Logger().Fatal(context.Background(), err)
 }
 
@@ -228,7 +241,7 @@ func parseConfigServiceHosts(cfg ConfigServiceAddr) ([]string, error) {
 	hosts := strings.Split(cfg.IP, ";")
 	ports := strings.Split(cfg.Port, ";")
 	if len(hosts) != len(ports) {
-		return nil, errors.New("len(hosts) != len(ports)")
+		return nil, errors.New("len(hosts) != len(ports)") // nolint:wrapcheck
 	}
 	arr := make([]string, 0)
 	for i, host := range hosts {
@@ -240,11 +253,11 @@ func parseConfigServiceHosts(cfg ConfigServiceAddr) ([]string, error) {
 func resolveHost(target string) (string, error) {
 	conn, err := net.Dial("udp", target)
 	if err != nil {
-		return "", err
+		return "", errors.WithMessage(err, "net dial udp")
 	}
 	defer conn.Close()
 
-	return conn.LocalAddr().(*net.UDPAddr).IP.To4().String(), nil
+	return conn.LocalAddr().(*net.UDPAddr).IP.To4().String(), nil // nolint:forcetypeassert
 }
 
 func readDefaultRemoteConfig(isDev bool, cfg LocalConfig) (json2.RawMessage, error) {
@@ -382,10 +395,10 @@ func appConfig(isDev bool) (*app.Config, error) {
 		if !isDev && logFilePath != "" {
 			fileOutput := file.Output{
 				File:       logFilePath,
-				MaxSizeMb:  cfg.Optional().Int("LOGFILE.MAXSIZEMB", 512),
+				MaxSizeMb:  cfg.Optional().Int("LOGFILE.MAXSIZEMB", defaultLogFileMaxSizeMb),
 				MaxDays:    0,
-				MaxBackups: cfg.Optional().Int("LOGFILE.MAXBACKUPS", 4),
-				Compress:   cfg.Optional().Bool("LOGFILE.COMPRESS", true),
+				MaxBackups: cfg.Optional().Int("LOGFILE.MAXBACKUPS", defaultLogFileMaxBackups),
+				Compress:   cfg.Optional().Bool("LOGFILE.COMPRESS", defaultLogFileCompress),
 			}
 			outputPaths = append(outputPaths, file.ConfigToUrl(fileOutput).String())
 		}
@@ -393,11 +406,11 @@ func appConfig(isDev bool) (*app.Config, error) {
 		logCounter := app_metrics.NewLogCounter(metrics.DefaultRegistry)
 
 		var sampling *log.SamplingConfig
-		isEnableSampling := cfg.Optional().Bool("LOGS.SAMPLING.ENABLE", false)
+		isEnableSampling := cfg.Optional().Bool("LOGS.SAMPLING.ENABLE", defaultEnableLogSampling)
 		if !isDev && isEnableSampling {
 			sampling = &log.SamplingConfig{
-				Initial:    cfg.Optional().Int("LOGS.SAMPLING.MAXPERSECOND", 1000),
-				Thereafter: cfg.Optional().Int("LOGS.SAMPLING.PASSEVERY", 100),
+				Initial:    cfg.Optional().Int("LOGS.SAMPLING.MAXPERSECOND", defaultMaxLogSamplingPerSecond),
+				Thereafter: cfg.Optional().Int("LOGS.SAMPLING.PASSEVERY", defaulLogtSamplingPassEvery),
 				Hook:       logCounter.DroppedLogCounter(),
 			}
 		}
