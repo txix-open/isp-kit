@@ -67,6 +67,8 @@ const ConfigData = `
 `
 
 func TestHideSecrets(t *testing.T) {
+	t.Parallel()
+
 	require := require.New(t)
 	configData := []byte(ConfigData)
 	expectData := []byte(ExpectData)
