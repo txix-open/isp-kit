@@ -1,3 +1,4 @@
+// nolint:forcetypeassert,gosec
 package grpc_test
 
 import (
@@ -25,6 +26,7 @@ type Data struct {
 	Value string
 }
 
+// nolint:gochecknoglobals
 var (
 	handler = func(ctx context.Context, req Data) *Data {
 		return &Data{Value: req.Value}

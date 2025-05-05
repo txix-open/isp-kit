@@ -18,6 +18,9 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const panicStackLength = 4 << 10
+
+// nolint:nonamedreturns
 func Recovery() grpc.Middleware {
 	return func(next grpc.HandlerFunc) grpc.HandlerFunc {
 		return func(ctx context.Context, message *isp.Message) (msg *isp.Message, err error) {
@@ -31,9 +34,9 @@ func Recovery() grpc.Middleware {
 				if ok {
 					err = recovered
 				} else {
-					err = fmt.Errorf("%v", recovered)
+					err = fmt.Errorf("%v", recovered) // nolint:err113,errorlint
 				}
-				stack := make([]byte, 4<<10)
+				stack := make([]byte, panicStackLength)
 				length := runtime.Stack(stack, false)
 				err = errors.Errorf("[PANIC RECOVER] %v %s\n", err, stack[:length])
 			}()
@@ -52,7 +55,7 @@ func ErrorHandler(logger log.Logger) grpc.Middleware {
 
 			logFunc := logutil.LogLevelFuncForError(err, logger)
 			logContext := sentry2.EnrichEvent(ctx, func(event *sentry.Event) {
-				event.Request = sentryRequest(ctx, message)
+				event.Request = sentryRequest(ctx)
 			})
 			logFunc(logContext, err)
 
@@ -61,13 +64,13 @@ func ErrorHandler(logger log.Logger) grpc.Middleware {
 				return result, grpcErr.GrpcStatusError()
 			}
 
-			//deprecated approach
+			// deprecated approach
 			_, ok := status.FromError(err)
 			if ok {
 				return result, err
 			}
 
-			//hide error details to prevent potential security leaks
+			// hide error details to prevent potential security leaks
 			return result, status.Error(codes.Internal, "internal service error")
 		}
 	}
@@ -96,7 +99,7 @@ func RequestId() grpc.Middleware {
 	}
 }
 
-func sentryRequest(ctx context.Context, msg *isp.Message) *sentry.Request {
+func sentryRequest(ctx context.Context) *sentry.Request {
 	md, _ := metadata.FromIncomingContext(ctx)
 	endpoint, _ := grpc.StringFromMd(grpc.ProxyMethodNameHeader, md)
 	applicationId, _ := grpc.StringFromMd(grpc.ApplicationIdHeader, md)

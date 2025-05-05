@@ -40,12 +40,12 @@ func NewCaller(
 	var reqBodyType reflect.Type
 	params := make([]param, 0)
 
-	for i := 0; i < paramsCount; i++ {
+	for i := range paramsCount {
 		p := rt.In(i)
 		paramType := p.String()
 		mapper, ok := paramMappers[paramType]
 
-		if !ok { //maybe it's a request body
+		if !ok { // maybe it's a request body
 			if reqBodyIndex != -1 {
 				return nil, errors.Errorf("param mapper not found for type %s", paramType)
 			}
@@ -92,7 +92,7 @@ func (h *Caller) Handle(ctx context.Context, message *isp.Message) (*isp.Message
 
 	var result any
 	var err error
-	for i := 0; i < len(returned); i++ {
+	for i := range returned {
 		v := returned[i]
 		if e, ok := v.Interface().(error); ok && err == nil {
 			err = e

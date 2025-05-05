@@ -11,6 +11,9 @@ issues:
     - path: cluster # не имеет смысла оборачивать ошибки в обёртке
       linters:
         - wrapcheck
+    - path: grpc # не имеет смысла оборачивать ошибки в обёртке
+      linters:
+        - wrapcheck
 linters:
   enable-all: true
   disable:
