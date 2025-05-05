@@ -11,6 +11,11 @@ import (
 	"github.com/txix-open/isp-kit/log"
 )
 
+const (
+	defaultDialTimeout    = 5 * time.Second
+	defaultMaxBatchSizeMb = 64
+)
+
 type ConsumerConfig struct {
 	Addresses         []string `validate:"required" schema:"Список адресов брокеров для чтения сообщений"`
 	Topic             string   `validate:"required" schema:"Топик"`
@@ -26,7 +31,7 @@ type ConsumerConfig struct {
 
 func (c ConsumerConfig) GetMaxBatchSizeMb() int {
 	if c.MaxBatchSizeMb <= 0 {
-		return 64
+		return defaultMaxBatchSizeMb
 	}
 
 	return c.MaxBatchSizeMb
@@ -42,7 +47,7 @@ func (c ConsumerConfig) GetCommitInterval() time.Duration {
 
 func (c ConsumerConfig) GetDialTimeout() time.Duration {
 	if c.DialTimeoutMs == nil {
-		return 5 * time.Second
+		return defaultDialTimeout
 	}
 	return time.Duration(*c.DialTimeoutMs) * time.Millisecond
 }

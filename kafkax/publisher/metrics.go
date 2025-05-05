@@ -8,6 +8,7 @@ import (
 	"github.com/txix-open/isp-kit/metrics"
 )
 
+// nolint:interfacebloat
 type MetricStorage interface {
 	ObservePublisherWrites(writes int64)
 	ObservePublisherMessages(messages int64)

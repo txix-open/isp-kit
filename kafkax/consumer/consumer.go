@@ -72,7 +72,7 @@ func (c *Consumer) Run(ctx context.Context) {
 }
 
 func (c *Consumer) run(ctx context.Context) {
-	for i := 0; i < c.concurrency; i++ {
+	for range c.concurrency {
 		c.workersWg.Add(1)
 		go c.runWorker(ctx)
 	}
@@ -111,7 +111,7 @@ func (c *Consumer) runWorker(ctx context.Context) {
 	for {
 		select {
 		case delivery, isOpen := <-c.deliveries:
-			if !isOpen { //normal close
+			if !isOpen { // normal close
 				return
 			}
 			c.deliveryWg.Add(1)
