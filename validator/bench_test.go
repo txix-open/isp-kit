@@ -59,8 +59,9 @@ type wrapper struct {
 	V any
 }
 
+// nolint:nonamedreturns
 func validateAsaskevich(v any) (ok bool, details map[string]string) {
-	ok, err := govalidator.ValidateStruct(wrapper{v}) //hack
+	ok, err := govalidator.ValidateStruct(wrapper{v}) // hack
 	if ok || err == nil {
 		return true, nil
 	}
@@ -70,16 +71,16 @@ func validateAsaskevich(v any) (ok bool, details map[string]string) {
 		return false, map[string]string{"#validator": err.Error()}
 	}
 	return false, details
-
 }
 
+// nolint:errorlint,err113
 func collectDetails(err error, result map[string]string) error {
 	switch e := err.(type) {
 	case govalidator.Error:
 		errName := e.Name
 		if len(e.Path) > 0 {
 			errName = strings.Join(append(e.Path, e.Name), ".")
-			errName = errName[2:] //remove V.
+			errName = errName[2:] // remove V.
 		}
 		result[errName] = e.Err.Error()
 	case govalidator.Errors:
