@@ -63,7 +63,7 @@ func PublisherMetrics(storage PublisherMetricStorage) publisher.Middleware {
 				storage.IncPublishError(exchange, routingKey)
 			}
 			storage.ObservePublishDuration(exchange, routingKey, time.Since(start))
-			return err
+			return err // nolint:wrapcheck
 		})
 	}
 }

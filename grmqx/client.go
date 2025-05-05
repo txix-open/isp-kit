@@ -104,7 +104,7 @@ func (c *Client) upgrade(ctx context.Context, config Config, justServe bool) err
 	} else {
 		err := cli.Run(ctx)
 		if err != nil {
-			return err
+			return err // nolint:wrapcheck
 		}
 	}
 
