@@ -41,7 +41,7 @@ func New(config Config) (*Consumer, error) {
 }
 
 func (c *Consumer) Run() error {
-	for i := 0; i < c.Concurrency; i++ {
+	for range c.Concurrency {
 		c.workersWg.Add(1)
 		go c.runWorker()
 	}
