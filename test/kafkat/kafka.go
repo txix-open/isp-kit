@@ -100,7 +100,7 @@ func (k *Kafka) ReadMessage(topic string, offset int64) kafka.Message {
 	_, err = l.Seek(offset, io.SeekStart)
 	k.test.Assert().NoError(err)
 
-	msg, err := l.ReadMessage(64 * 1024 * 1024)
+	msg, err := l.ReadMessage(64 * 1024 * 1024) // nolint:mnd
 	k.test.Assert().NoError(err)
 
 	err = l.Close()
@@ -126,7 +126,6 @@ func (k *Kafka) CreateDefaultTopic(topic string) {
 func (k *Kafka) deleteTopics() {
 	err := k.manager.DeleteTopics(k.topics...)
 	k.test.Assert().NoError(err)
-
 }
 
 func (k *Kafka) PublisherConfig(topic string) kafkax.PublisherConfig {

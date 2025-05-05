@@ -14,6 +14,7 @@ type resp struct {
 }
 
 func Test(t *testing.T) {
+	t.Parallel()
 	test, assert := test.New(t)
 	mock := httpt.NewMock(test)
 	mock.POST("/endpoint1", func() resp {
@@ -25,18 +26,18 @@ func Test(t *testing.T) {
 	client := mock.Client()
 
 	resp1 := resp{}
-	r, err := client.Post("/endpoint1").JsonResponseBody(&resp1).Do(context.Background())
+	r, err := client.Post("/endpoint1").JsonResponseBody(&resp1).Do(t.Context())
 	assert.NoError(err)
 	assert.EqualValues(http.StatusOK, r.StatusCode())
 	assert.EqualValues(resp{Ok: true}, resp1)
 
 	resp2 := resp{}
-	r, err = client.Get("/endpoint2").JsonResponseBody(&resp2).Do(context.Background())
+	r, err = client.Get("/endpoint2").JsonResponseBody(&resp2).Do(t.Context())
 	assert.NoError(err)
 	assert.EqualValues(http.StatusOK, r.StatusCode())
 	assert.EqualValues(resp{Ok: false}, resp2)
 
-	r, err = client.Get("endpoint2").Do(context.Background())
+	r, err = client.Get("endpoint2").Do(t.Context())
 	assert.NoError(err)
 	assert.EqualValues(http.StatusOK, r.StatusCode())
 }

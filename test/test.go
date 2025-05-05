@@ -10,6 +10,8 @@ import (
 	"github.com/txix-open/isp-kit/log"
 )
 
+const testIdLength = 4
+
 type Test struct {
 	id         string
 	cfg        *config.Config
@@ -19,6 +21,8 @@ type Test struct {
 }
 
 func New(t *testing.T) (*Test, *require.Assertions) {
+	t.Helper()
+
 	assert := require.New(t)
 	cfg, err := config.New()
 	assert.NoError(err)
@@ -26,7 +30,7 @@ func New(t *testing.T) (*Test, *require.Assertions) {
 	logger, err := log.New(log.WithDevelopmentMode(), log.WithLevel(log.DebugLevel))
 	assert.NoError(err)
 
-	idBytes := make([]byte, 4)
+	idBytes := make([]byte, testIdLength)
 	_, err = rand.Read(idBytes)
 	assert.NoError(err)
 	return &Test{
@@ -42,6 +46,7 @@ func (t *Test) Config() *config.Config {
 	return t.cfg
 }
 
+// nolint:ireturn
 func (t *Test) Logger() log.Logger {
 	return t.logger
 }

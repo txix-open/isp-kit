@@ -34,9 +34,9 @@ func Test(t *testing.T) {
 	cli.Upgrade(consumer)
 
 	pub := stompx.DefaultPublisher(publisherCfg, stompx.PublisherLog(logger, true))
-	group, ctx := errgroup.WithContext(context.Background())
+	group, ctx := errgroup.WithContext(t.Context())
 	group.SetLimit(8)
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		group.Go(func() error {
 			err := pub.Publish(ctx, publisher.PlainText([]byte("hello")))
 			return err
