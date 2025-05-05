@@ -17,6 +17,9 @@ issues:
     - path: http # не имеет смысла оборачивать ошибки в обёртке
       linters:
         - wrapcheck
+    - path: json # не имеет смысла оборачивать ошибки в обёртке
+      linters:
+        - wrapcheck
 linters:
   enable-all: true
   disable:
