@@ -15,6 +15,7 @@ type MetricStorage interface {
 	IncInternalErrorCount()
 }
 
+// nolint:ireturn
 func WithDurationMeasure(storage MetricStorage, handler bgjob.Handler) bgjob.Handler {
 	return bgjob.HandlerFunc(func(ctx context.Context, job bgjob.Job) bgjob.Result {
 		start := time.Now()
