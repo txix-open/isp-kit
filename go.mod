@@ -29,7 +29,7 @@ require (
 	github.com/txix-open/bellows v1.2.0
 	github.com/txix-open/bgjob v1.5.0
 	github.com/txix-open/etp/v4 v4.0.1
-	github.com/txix-open/grmq v1.7.0
+	github.com/txix-open/grmq v1.8.0
 	github.com/txix-open/jsonschema v1.2.0
 	github.com/txix-open/validator/v10 v10.0.0-20240401163703-e83541b40f99
 	github.com/xeipuuv/gojsonschema v1.2.0

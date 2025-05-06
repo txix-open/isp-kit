@@ -66,3 +66,15 @@ func (l LogObserver) PublishingFlow(publisher *publisher.Publisher, flow bool) {
 		log.Bool("running", flow),
 	)
 }
+
+func (l LogObserver) ConnectionBlocked(reason string) {
+	l.logger.Error(
+		l.ctx,
+		"rmq client: connection blocked",
+		log.String("reason", reason),
+	)
+}
+
+func (l LogObserver) ConnectionUnblocked() {
+	l.logger.Info(l.ctx, "rmq client: connection unblocked")
+}
