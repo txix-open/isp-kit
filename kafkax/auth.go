@@ -2,7 +2,7 @@ package kafkax
 
 import (
 	"crypto/tls"
-	"encoding/base64"
+	"crypto/x509"
 	"github.com/pkg/errors"
 	"github.com/segmentio/kafka-go/sasl"
 	"github.com/segmentio/kafka-go/sasl/plain"
@@ -24,8 +24,10 @@ type Auth struct {
 }
 
 type TLS struct {
-	Certificate string `schema:"Сертификат для подключения"`
-	PrivateKey  string `schema:"Закрытый ключ"`
+	RootCA             *string `schema:"Корневой сертификат"`
+	PrivateKey         *string `schema:"Закрытый ключ"`
+	Certificate        *string `schema:"Сертификат клиента"`
+	InsecureSkipVerify bool    `schema:"Пропуск проверки сертификатов"`
 }
 
 func PlainAuth(auth *Auth) sasl.Mechanism {
@@ -90,18 +92,23 @@ func setupTLS(cfg *TLS) (*tls.Config, error) {
 		return nil, nil
 	}
 
-	rawCert, err := base64.StdEncoding.DecodeString(cfg.Certificate)
-	if err != nil {
-		return nil, errors.WithMessage(err, "decode base64 tls certificate")
+	caCertPool := x509.NewCertPool()
+	if cfg.RootCA != nil {
+		caCertPool.AppendCertsFromPEM([]byte(*cfg.RootCA))
+	}
+
+	var certificates []tls.Certificate
+	if cfg.Certificate != nil && cfg.PrivateKey != nil {
+		cert := tls.Certificate{
+			Certificate: [][]byte{[]byte(*cfg.Certificate)},
+			PrivateKey:  *cfg.PrivateKey,
+		}
+		certificates = append(certificates, cert)
 	}
 
 	return &tls.Config{
-		//MinVersion: tls.VersionTLS12,
-		Certificates: []tls.Certificate{
-			{
-				Certificate: [][]byte{rawCert},
-				PrivateKey:  cfg.PrivateKey,
-			},
-		},
+		InsecureSkipVerify: cfg.InsecureSkipVerify,
+		RootCAs:            caCertPool,
+		Certificates:       certificates,
 	}, nil
 }
