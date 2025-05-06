@@ -1,8 +1,10 @@
+// nolint:ireturn,lll,unparam,gosec
 package kafkax
 
 import (
 	"crypto/tls"
-	"encoding/base64"
+	"crypto/x509"
+
 	"github.com/pkg/errors"
 	"github.com/segmentio/kafka-go/sasl"
 	"github.com/segmentio/kafka-go/sasl/plain"
@@ -16,7 +18,6 @@ const (
 	ScramTypeSHA512 = "SHA512"
 )
 
-// nolint:lll
 type Auth struct {
 	Mechanism *string `validate:"oneof=SASL/PLAIN SASL/SCRAM" schema:"Механизм аутентификации может принимать значения 'SASL/PLAIN' или 'SASL/SCRAM'"`
 	ScramType *string `validate:"oneof=SHA256 SHA512" schema:"Алгоритм используемый в механизме SASL/SCRAM, может принимать значения 'SHA256' или 'SHA512'"`
@@ -25,11 +26,12 @@ type Auth struct {
 }
 
 type TLS struct {
-	Certificate string `schema:"Сертификат для подключения"`
-	PrivateKey  string `schema:"Закрытый ключ"`
+	RootCA             *string `schema:"Корневой сертификат"`
+	PrivateKey         *string `schema:"Закрытый ключ"`
+	Certificate        *string `schema:"Сертификат клиента"`
+	InsecureSkipVerify bool    `schema:"Пропуск проверки сертификатов"`
 }
 
-// nolint:ireturn
 func PlainAuth(auth *Auth) sasl.Mechanism {
 	if auth == nil {
 		return nil
@@ -41,7 +43,6 @@ func PlainAuth(auth *Auth) sasl.Mechanism {
 	}
 }
 
-// nolint:ireturn
 func ScramAuth(auth *Auth) (sasl.Mechanism, error) {
 	if auth == nil {
 		return nil, nil // nolint:nilnil
@@ -69,7 +70,6 @@ func ScramAuth(auth *Auth) (sasl.Mechanism, error) {
 	return mechanism, nil
 }
 
-// nolint:ireturn
 func setupSASLMechanism(mechanismType string, auth *Auth) (sasl.Mechanism, error) {
 	var saslMechanism sasl.Mechanism
 
@@ -94,19 +94,23 @@ func setupTLS(cfg *TLS) (*tls.Config, error) {
 		return nil, nil // nolint:nilnil
 	}
 
-	rawCert, err := base64.StdEncoding.DecodeString(cfg.Certificate)
-	if err != nil {
-		return nil, errors.WithMessage(err, "decode base64 tls certificate")
+	caCertPool := x509.NewCertPool()
+	if cfg.RootCA != nil {
+		caCertPool.AppendCertsFromPEM([]byte(*cfg.RootCA))
 	}
 
-	// nolint:gosec
+	var certificates []tls.Certificate
+	if cfg.Certificate != nil && cfg.PrivateKey != nil {
+		cert := tls.Certificate{
+			Certificate: [][]byte{[]byte(*cfg.Certificate)},
+			PrivateKey:  *cfg.PrivateKey,
+		}
+		certificates = append(certificates, cert)
+	}
+
 	return &tls.Config{
-		//MinVersion: tls.VersionTLS12,
-		Certificates: []tls.Certificate{
-			{
-				Certificate: [][]byte{rawCert},
-				PrivateKey:  cfg.PrivateKey,
-			},
-		},
+		InsecureSkipVerify: cfg.InsecureSkipVerify,
+		RootCAs:            caCertPool,
+		Certificates:       certificates,
 	}, nil
 }
