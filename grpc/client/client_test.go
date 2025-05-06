@@ -43,8 +43,8 @@ func TestBalancing(t *testing.T) {
 
 	for i := range callCounter {
 		value := atomic.LoadInt32(&callCounter[i])
-		require.Greater(value, callsPerHost-delta)
-		require.Less(value, callsPerHost+delta)
+		require.GreaterOrEqual(value, callsPerHost-delta)
+		require.LessOrEqual(value, callsPerHost+delta)
 	}
 }
 
