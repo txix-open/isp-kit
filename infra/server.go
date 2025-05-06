@@ -42,5 +42,5 @@ func (s *Server) ListenAndServe(address string) error {
 }
 
 func (s *Server) Shutdown() error {
-	return s.s.Shutdown(context.Background()) // nolint:wrapcheck
+	return s.s.Shutdown(context.Background())
 }

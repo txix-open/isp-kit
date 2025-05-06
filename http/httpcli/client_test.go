@@ -1,4 +1,4 @@
-// nolint:gosec,wrapcheck
+// nolint:gosec
 package httpcli_test
 
 import (

@@ -48,7 +48,7 @@ Loop:
 	for {
 		token, err = d.Token()
 		if err != nil {
-			return err // nolint:wrapcheck
+			return err
 		}
 
 		if token == nil {

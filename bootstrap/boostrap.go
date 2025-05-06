@@ -241,7 +241,7 @@ func parseConfigServiceHosts(cfg ConfigServiceAddr) ([]string, error) {
 	hosts := strings.Split(cfg.IP, ";")
 	ports := strings.Split(cfg.Port, ";")
 	if len(hosts) != len(ports) {
-		return nil, errors.New("len(hosts) != len(ports)") // nolint:wrapcheck
+		return nil, errors.New("len(hosts) != len(ports)")
 	}
 	arr := make([]string, 0)
 	for i, host := range hosts {

@@ -70,7 +70,7 @@ func (c *Client) Enqueue(ctx context.Context, req bgjob.EnqueueRequest) error {
 	if err != nil {
 		return errors.WithMessage(err, "get db")
 	}
-	return bgjob.Enqueue(ctx, db, req) // nolint:wrapcheck
+	return bgjob.Enqueue(ctx, db, req)
 }
 
 func (c *Client) BulkEnqueue(ctx context.Context, list []bgjob.EnqueueRequest) error {
@@ -78,7 +78,7 @@ func (c *Client) BulkEnqueue(ctx context.Context, list []bgjob.EnqueueRequest) e
 	if err != nil {
 		return errors.WithMessage(err, "get db")
 	}
-	return bgjob.BulkEnqueue(ctx, db, list) // nolint:wrapcheck
+	return bgjob.BulkEnqueue(ctx, db, list)
 }
 
 func (c *Client) Close() {

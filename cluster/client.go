@@ -278,7 +278,6 @@ func (c *Client) notifyModuleReady(ctx context.Context, cli *clientWrapper, requ
 	return nil
 }
 
-// nolint:wrapcheck
 func (c *Client) applyRemoteConfig(ctx context.Context, config []byte) error {
 	ctx, cancel := context.WithTimeout(ctx, c.eventHandler.handleConfigTimeout)
 	defer cancel()
