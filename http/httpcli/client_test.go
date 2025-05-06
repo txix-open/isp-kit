@@ -56,7 +56,7 @@ func TestRequestBuilder_Header(t *testing.T) {
 		assert.EqualValues(t, "123", r.Header.Get("X-Header"))
 		writer.WriteHeader(http.StatusOK)
 	})).URL
-	resp, err := httpcli.New().Get(url).Header("x-header", "123").Do(t.Context())
+	resp, err := httpcli.New().Get(url).Header("X-Header", "123").Do(t.Context())
 	require.NoError(err)
 	require.True(resp.IsSuccess())
 }
@@ -70,7 +70,7 @@ func TestRequestBuilder_Cookie(t *testing.T) {
 			var actual *http.Cookie
 			for i := range r.Cookies() {
 				cookie := r.Cookies()[i]
-				if cookie.Name == "x-cookie" {
+				if cookie.Name == "X-Cookie" {
 					actual = cookie
 				}
 			}
@@ -80,7 +80,7 @@ func TestRequestBuilder_Cookie(t *testing.T) {
 	)).URL
 	resp, err := httpcli.New().
 		Get(url).
-		Cookie(&http.Cookie{Name: "x-cookie", Value: "123"}).
+		Cookie(&http.Cookie{Name: "X-Cookie", Value: "123"}).
 		Do(t.Context())
 	require.NoError(err)
 	require.True(resp.IsSuccess())

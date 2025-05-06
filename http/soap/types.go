@@ -100,7 +100,7 @@ func (f Fault) Error() string {
 }
 
 func (f Fault) WriteError(w http.ResponseWriter) error {
-	w.Header().Set("content-type", ContentType)
+	w.Header().Set("Content-Type", ContentType)
 	w.WriteHeader(http.StatusInternalServerError)
 	env := Envelope{Body: Body{Fault: &f}}
 	err := xml.NewEncoder(w).Encode(env)

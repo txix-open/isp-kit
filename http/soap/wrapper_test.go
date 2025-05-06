@@ -49,7 +49,7 @@ func TestNamespace(t *testing.T) {
 	srv := httptest.NewServer(httpHandler)
 	resp, err := httpcli.New().Post(srv.URL).
 		Header(soap.ActionHeader, "Endpoint").
-		Header("content-type", soap.ContentType).
+		Header("Content-Type", soap.ContentType).
 		RequestBody([]byte(body)).
 		Do(t.Context())
 	require.NoError(err)
