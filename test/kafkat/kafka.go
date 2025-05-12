@@ -1,4 +1,3 @@
-// nolint:gomnd
 package kafkat
 
 import (
@@ -50,7 +49,7 @@ func NewKafka(t *test.Test) *Kafka {
 				Password: password,
 			}),
 		},
-		ErrorLogger: kafka.LoggerFunc(func(s string, i ...interface{}) {
+		ErrorLogger: kafka.LoggerFunc(func(s string, i ...any) {
 			t.Logger().Error(context.Background(), "kafka publisher: "+fmt.Sprintf(s, i...))
 		}),
 	}
