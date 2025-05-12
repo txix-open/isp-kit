@@ -1,4 +1,3 @@
-// nolint:mnd
 package kafkax
 
 import (
@@ -12,6 +11,17 @@ import (
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/metrics"
 	"github.com/txix-open/isp-kit/metrics/kafka_metrics"
+)
+
+const (
+	defaultWriteTimeoutSec       = 10
+	defaultMaxMsgSizeMb          = 64
+	defaultBatchSizePerPartition = 10
+	defaultBatchTimeoutMs        = 500
+	defaultDialTimeoutSec        = 5
+
+	validRequiredAckMin = -1
+	validRequiredAckMax = 1
 )
 
 type PublisherConfig struct {
@@ -30,47 +40,42 @@ type PublisherConfig struct {
 
 func (p PublisherConfig) GetWriteTimeout() time.Duration {
 	if p.WriteTimeoutSec == nil {
-		return 10 * time.Second
+		return time.Duration(defaultWriteTimeoutSec) * time.Second
 	}
-
 	return time.Duration(*p.WriteTimeoutSec) * time.Second
 }
 
 func (p PublisherConfig) GetRequiredAckLevel() kafka.RequiredAcks {
-	if p.RequiredAckLevel <= 1 && p.RequiredAckLevel >= -1 {
+	if p.RequiredAckLevel >= validRequiredAckMin && p.RequiredAckLevel <= validRequiredAckMax {
 		return kafka.RequiredAcks(p.RequiredAckLevel)
 	}
-
 	return kafka.RequireNone
 }
 
 func (p PublisherConfig) GetMaxMessageSizePerPartition() int64 {
 	if p.MaxMsgSizeMbPerPartition <= 0 {
-		return 64
+		return defaultMaxMsgSizeMb
 	}
-
 	return p.MaxMsgSizeMbPerPartition
 }
 
 func (p PublisherConfig) GetBatchSizePerPartition() int {
 	if p.BatchSizePerPartition <= 0 {
-		return 10
+		return defaultBatchSizePerPartition
 	}
-
 	return p.BatchSizePerPartition
 }
 
 func (p PublisherConfig) GetBatchTimeoutPerPartition() time.Duration {
 	if p.BatchTimeoutPerPartitionMs == nil {
-		return 500 * time.Millisecond
+		return time.Duration(defaultBatchTimeoutMs) * time.Millisecond
 	}
-
 	return time.Duration(*p.BatchTimeoutPerPartitionMs) * time.Millisecond
 }
 
 func (p PublisherConfig) GetDialTimeout() time.Duration {
 	if p.DialTimeoutMs == nil {
-		return 5 * time.Second
+		return time.Duration(defaultDialTimeoutSec) * time.Second
 	}
 	return time.Duration(*p.DialTimeoutMs) * time.Millisecond
 }
@@ -120,7 +125,7 @@ func (p PublisherConfig) DefaultPublisher(
 		BatchSize:    p.GetBatchSizePerPartition(),
 		BatchTimeout: p.GetBatchTimeoutPerPartition(),
 		Transport:    transport,
-		ErrorLogger: kafka.LoggerFunc(func(s string, i ...interface{}) {
+		ErrorLogger: kafka.LoggerFunc(func(s string, i ...any) {
 			logger.Error(logCtx, "kafka publisher: "+fmt.Sprintf(s, i...))
 		}),
 	}
