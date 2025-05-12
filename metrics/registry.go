@@ -1,3 +1,4 @@
+// nolint:ireturn
 package metrics
 
 import (
@@ -38,7 +39,6 @@ func NewRegistry() *Registry {
 	return r
 }
 
-// nolint:ireturn
 func (r *Registry) GetOrRegister(metric Metric) Metric {
 	r.lock.Lock()
 	defer r.lock.Unlock()
@@ -83,8 +83,7 @@ func (r *Registry) metricsDescriptionHandler(writer http.ResponseWriter, request
 	}
 }
 
-// nolint:ireturn,forcetypeassert
 func GetOrRegister[M Metric](registry *Registry, metric M) M {
 	m := registry.GetOrRegister(metric)
-	return m.(M)
+	return m.(M) // nolint:forcetypeassert
 }
