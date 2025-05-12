@@ -12,7 +12,9 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-const defaultTimeout = 15 * time.Second
+const (
+	defaultTimeout = 15 * time.Second
+)
 
 type Builder struct {
 	Endpoint      string

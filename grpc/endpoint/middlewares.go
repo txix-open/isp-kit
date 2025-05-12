@@ -18,7 +18,9 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const panicStackLength = 4 << 10
+const (
+	panicStackLength = 4 << 10
+)
 
 // nolint:nonamedreturns
 func Recovery() grpc.Middleware {

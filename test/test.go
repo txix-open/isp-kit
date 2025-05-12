@@ -10,7 +10,9 @@ import (
 	"github.com/txix-open/isp-kit/log"
 )
 
-const testIdLength = 4
+const (
+	testIdLength = 4
+)
 
 type Test struct {
 	id         string

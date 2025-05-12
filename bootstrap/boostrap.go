@@ -32,9 +32,9 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-const postShutdownWait = 500 * time.Millisecond
-
 const (
+	postShutdownWait = 500 * time.Millisecond
+
 	defaultLogFileMaxSizeMb  = 512
 	defaultLogFileMaxBackups = 4
 	defaultLogFileCompress   = true

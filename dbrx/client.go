@@ -21,7 +21,9 @@ var (
 	ErrClientIsNotInitialized = errors.New("client is not initialized")
 )
 
-const healthcheckTimeout = 500 * time.Millisecond
+const (
+	healthcheckTimeout = 500 * time.Millisecond
+)
 
 type Client struct {
 	options []dbx.Option

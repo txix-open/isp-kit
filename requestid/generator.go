@@ -5,7 +5,9 @@ import (
 	"encoding/hex"
 )
 
-const requestIdLength = 16
+const (
+	requestIdLength = 16
+)
 
 func Next() string {
 	value := make([]byte, requestIdLength)

@@ -6,7 +6,9 @@ import (
 	"net/http"
 )
 
-const defaultBufferSize = 1024
+const (
+	defaultBufferSize = 1024
+)
 
 type Buffer struct {
 	http.ResponseWriter

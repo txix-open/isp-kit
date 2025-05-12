@@ -5,7 +5,9 @@ import (
 	"time"
 )
 
-const defaultTimeout = 15 * time.Second
+const (
+	defaultTimeout = 15 * time.Second
+)
 
 type GlobalRequestConfig struct {
 	Timeout   time.Duration
