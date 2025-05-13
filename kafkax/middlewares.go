@@ -85,6 +85,20 @@ func PublisherRequestId() publisher.Middleware {
 	}
 }
 
+type Retrier interface {
+	Do(ctx context.Context, f func() error) error
+}
+
+func PublisherRetry(retrier Retrier) publisher.Middleware {
+	return func(next publisher.RoundTripper) publisher.RoundTripper {
+		return publisher.RoundTripperFunc(func(ctx context.Context, msgs ...kafka.Message) error {
+			return retrier.Do(ctx, func() error {
+				return next.Publish(ctx, msgs...)
+			})
+		})
+	}
+}
+
 func ConsumerLog(logger log.Logger, logBody bool) consumer.Middleware {
 	return func(next consumer.Handler) consumer.Handler {
 		return consumer.HandlerFunc(func(ctx context.Context, delivery *consumer.Delivery) {
