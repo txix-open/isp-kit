@@ -57,26 +57,6 @@ func (c *Consumer) Run() error {
 	}
 }
 
-func (c *Consumer) runWorker() {
-	defer c.workersWg.Done()
-
-	for {
-		msg, err := c.sub.Read()
-		if errors.Is(err, stomp.ErrCompletedSubscription) {
-			return
-		}
-		if err != nil {
-			c.Observer.Error(c, err)
-			c.unexpectedErr <- err
-			return
-		}
-
-		c.deliveryWg.Add(1)
-		delivery := NewDelivery(c.deliveryWg, c.conn, msg)
-		c.handler.Handle(context.Background(), delivery)
-	}
-}
-
 func (c *Consumer) Close() error {
 	defer func() {
 		c.Observer.CloseDone(c)
@@ -99,4 +79,24 @@ func (c *Consumer) Close() error {
 	}
 
 	return nil
+}
+
+func (c *Consumer) runWorker() {
+	defer c.workersWg.Done()
+
+	for {
+		msg, err := c.sub.Read()
+		if errors.Is(err, stomp.ErrCompletedSubscription) {
+			return
+		}
+		if err != nil {
+			c.Observer.Error(c, err)
+			c.unexpectedErr <- err
+			return
+		}
+
+		c.deliveryWg.Add(1)
+		delivery := NewDelivery(c.deliveryWg, c.conn, msg)
+		c.handler.Handle(context.Background(), delivery)
+	}
 }

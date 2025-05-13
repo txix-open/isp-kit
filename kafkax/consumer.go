@@ -52,27 +52,6 @@ func (c ConsumerConfig) GetDialTimeout() time.Duration {
 	return time.Duration(*c.DialTimeoutMs) * time.Millisecond
 }
 
-func (c ConsumerConfig) createDialer(mechanismType string) (*kafka.Dialer, error) {
-	saslMechanism, err := setupSASLMechanism(mechanismType, c.Auth)
-	if err != nil {
-		return nil, errors.WithMessage(err, "failed to setup sasl mechanism")
-	}
-
-	tls, err := setupTLS(c.TLS)
-	if err != nil {
-		return nil, errors.WithMessage(err, "failed to setup tls")
-	}
-
-	dialer := &kafka.Dialer{
-		DualStack:     true,
-		Timeout:       c.GetDialTimeout(),
-		SASLMechanism: saslMechanism,
-		TLS:           tls,
-	}
-
-	return dialer, nil
-}
-
 func (c ConsumerConfig) DefaultConsumer(
 	logCtx context.Context,
 	logger log.Logger,
@@ -125,4 +104,25 @@ func (c ConsumerConfig) DefaultConsumer(
 	)
 
 	return *cons
+}
+
+func (c ConsumerConfig) createDialer(mechanismType string) (*kafka.Dialer, error) {
+	saslMechanism, err := setupSASLMechanism(mechanismType, c.Auth)
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to setup sasl mechanism")
+	}
+
+	tls, err := setupTLS(c.TLS)
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to setup tls")
+	}
+
+	dialer := &kafka.Dialer{
+		DualStack:     true,
+		Timeout:       c.GetDialTimeout(),
+		SASLMechanism: saslMechanism,
+		TLS:           tls,
+	}
+
+	return dialer, nil
 }

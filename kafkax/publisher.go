@@ -80,26 +80,6 @@ func (p PublisherConfig) GetDialTimeout() time.Duration {
 	return time.Duration(*p.DialTimeoutMs) * time.Millisecond
 }
 
-func (p PublisherConfig) createTransport(mechanismType string) (*kafka.Transport, error) {
-	saslMechanism, err := setupSASLMechanism(mechanismType, p.Auth)
-	if err != nil {
-		return nil, errors.WithMessage(err, "failed to setup sasl mechanism")
-	}
-
-	tls, err := setupTLS(p.TLS)
-	if err != nil {
-		return nil, errors.WithMessage(err, "failed to setup tls")
-	}
-
-	transport := &kafka.Transport{
-		DialTimeout: p.GetDialTimeout(),
-		SASL:        saslMechanism,
-		TLS:         tls,
-	}
-
-	return transport, nil
-}
-
 func (p PublisherConfig) DefaultPublisher(
 	logCtx context.Context,
 	logger log.Logger,
@@ -150,4 +130,24 @@ func (p PublisherConfig) DefaultPublisher(
 	)
 
 	return pub
+}
+
+func (p PublisherConfig) createTransport(mechanismType string) (*kafka.Transport, error) {
+	saslMechanism, err := setupSASLMechanism(mechanismType, p.Auth)
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to setup sasl mechanism")
+	}
+
+	tls, err := setupTLS(p.TLS)
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to setup tls")
+	}
+
+	transport := &kafka.Transport{
+		DialTimeout: p.GetDialTimeout(),
+		SASL:        saslMechanism,
+		TLS:         tls,
+	}
+
+	return transport, nil
 }

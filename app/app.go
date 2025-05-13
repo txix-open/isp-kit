@@ -8,6 +8,7 @@ import (
 	"github.com/txix-open/isp-kit/log"
 )
 
+// nolint:containedctx
 type Application struct {
 	ctx    context.Context
 	cfg    *config.Config

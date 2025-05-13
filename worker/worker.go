@@ -39,6 +39,11 @@ func (w *Worker) Run(ctx context.Context) {
 	}
 }
 
+func (w *Worker) Shutdown() {
+	close(w.stop)
+	w.wg.Wait()
+}
+
 func (w *Worker) run(ctx context.Context) {
 	defer w.wg.Done()
 
@@ -59,9 +64,4 @@ func (w *Worker) run(ctx context.Context) {
 		case <-time.After(w.interval):
 		}
 	}
-}
-
-func (w *Worker) Shutdown() {
-	close(w.stop)
-	w.wg.Wait()
 }

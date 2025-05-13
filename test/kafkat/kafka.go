@@ -122,11 +122,6 @@ func (k *Kafka) CreateDefaultTopic(topic string) {
 	k.topics = append(k.topics, topic)
 }
 
-func (k *Kafka) deleteTopics() {
-	err := k.manager.DeleteTopics(k.topics...)
-	k.test.Assert().NoError(err)
-}
-
 func (k *Kafka) PublisherConfig(topic string) kafkax.PublisherConfig {
 	return kafkax.PublisherConfig{
 		Addresses:             []string{k.address},
@@ -150,4 +145,9 @@ func (k *Kafka) ConsumerConfig(topic, groupId string) kafkax.ConsumerConfig {
 			Password: k.password,
 		},
 	}
+}
+
+func (k *Kafka) deleteTopics() {
+	err := k.manager.DeleteTopics(k.topics...)
+	k.test.Assert().NoError(err)
 }

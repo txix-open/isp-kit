@@ -7,6 +7,7 @@ import (
 	"github.com/txix-open/isp-kit/json"
 )
 
+// nolint:gosmopolitan
 func TestFormat(t *testing.T) {
 	t.Parallel()
 

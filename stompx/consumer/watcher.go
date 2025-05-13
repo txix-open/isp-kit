@@ -50,6 +50,13 @@ func (w *Watcher) Serve(ctx context.Context) {
 	go w.run(ctx, firstSessionErr)
 }
 
+// Shutdown
+// Perform graceful shutdown
+func (w *Watcher) Shutdown() {
+	close(w.close)
+	<-w.shutdownDone
+}
+
 func (w *Watcher) run(ctx context.Context, firstSessionErr chan error) {
 	defer func() {
 		close(w.shutdownDone)
@@ -106,13 +113,6 @@ func (w *Watcher) runSession(firstSessionErr chan error) (err error) {
 	case <-w.close:
 		return nil
 	}
-}
-
-// Shutdown
-// Perform graceful shutdown
-func (w *Watcher) Shutdown() {
-	close(w.close)
-	<-w.shutdownDone
 }
 
 func (w *Watcher) reportFirstSessionError(firstSessionErr chan error, err error) {

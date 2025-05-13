@@ -22,6 +22,7 @@ type eventFuture struct {
 	errorCh    chan error
 }
 
+// nolint:containedctx
 type clientWrapper struct {
 	cli             *etp.Client
 	errorConnChan   chan []byte
