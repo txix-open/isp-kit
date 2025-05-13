@@ -21,10 +21,11 @@ type example struct {
 }
 
 func TestDefault(t *testing.T) {
+	t.Parallel()
 	test, require := test.New(t)
 
 	expectedId := requestid.Next()
-	ctx := requestid.ToContext(context.Background(), expectedId)
+	ctx := requestid.ToContext(t.Context(), expectedId)
 	ctx = log.ToContext(ctx, log.String(requestid.LogKey, expectedId))
 
 	invokeNumber := 0
@@ -58,10 +59,11 @@ func TestDefault(t *testing.T) {
 }
 
 func TestLogHeaders(t *testing.T) {
+	t.Parallel()
 	testEnv, require := test.New(t)
 
 	expectedId := requestid.Next()
-	ctx := requestid.ToContext(context.Background(), expectedId)
+	ctx := requestid.ToContext(t.Context(), expectedId)
 	ctx = log.ToContext(ctx, log.String(requestid.LogKey, expectedId))
 
 	url := httpt.NewMock(testEnv).POST("/api/save", func(ctx context.Context, req example) (*example, error) {

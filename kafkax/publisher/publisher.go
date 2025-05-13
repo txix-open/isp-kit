@@ -70,17 +70,6 @@ func (p *Publisher) Publish(ctx context.Context, msgs ...kafka.Message) error {
 	return p.roundTripper.Publish(ctx, msgs...)
 }
 
-func (p *Publisher) publish(ctx context.Context, msgs ...kafka.Message) error {
-	err := p.Writer.WriteMessages(ctx, msgs...)
-	if err != nil {
-		p.alive.Store(false)
-		return errors.WithMessage(err, "write messages")
-	}
-	p.alive.Store(true)
-
-	return nil
-}
-
 func (p *Publisher) Close() error {
 	defer func() {
 		if p.metrics != nil {
@@ -100,4 +89,15 @@ func (p *Publisher) Healthcheck(_ context.Context) error {
 		return nil
 	}
 	return errors.New("kafka publisher: not healthy " + p.Writer.Topic)
+}
+
+func (p *Publisher) publish(ctx context.Context, msgs ...kafka.Message) error {
+	err := p.Writer.WriteMessages(ctx, msgs...)
+	if err != nil {
+		p.alive.Store(false)
+		return errors.WithMessage(err, "write messages")
+	}
+	p.alive.Store(true)
+
+	return nil
 }

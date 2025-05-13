@@ -5,6 +5,10 @@ import (
 	"time"
 )
 
+const (
+	defaultTimeout = 15 * time.Second
+)
+
 type GlobalRequestConfig struct {
 	Timeout   time.Duration
 	BaseUrl   string
@@ -15,7 +19,7 @@ type GlobalRequestConfig struct {
 
 func NewGlobalRequestConfig() *GlobalRequestConfig {
 	return &GlobalRequestConfig{
-		Timeout: 15 * time.Second,
+		Timeout: defaultTimeout,
 	}
 }
 

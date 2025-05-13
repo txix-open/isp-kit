@@ -50,6 +50,13 @@ func (w *Watcher) Serve(ctx context.Context) {
 	go w.run(ctx, firstSessionErr)
 }
 
+// Shutdown
+// Perform graceful shutdown
+func (w *Watcher) Shutdown() {
+	close(w.close)
+	<-w.shutdownDone
+}
+
 func (w *Watcher) run(ctx context.Context, firstSessionErr chan error) {
 	defer func() {
 		close(w.shutdownDone)
@@ -57,7 +64,7 @@ func (w *Watcher) run(ctx context.Context, firstSessionErr chan error) {
 
 	for {
 		err := w.runSession(firstSessionErr)
-		if err == nil { //normal close
+		if err == nil { // normal close
 			return
 		}
 
@@ -67,20 +74,20 @@ func (w *Watcher) run(ctx context.Context, firstSessionErr chan error) {
 		w.config.Observer.Error(consumer, err)
 
 		if !w.mustReconnect.Load() {
-			return //prevent goroutine leak for Run if error occurred
+			return // prevent goroutine leak for Run if error occurred
 		}
 
 		select {
 		case <-ctx.Done():
 			return
 		case <-w.close:
-			return //shutdown called
+			return // shutdown called
 		case <-time.After(w.config.ReconnectTimeout):
-
 		}
 	}
 }
 
+// nolint:nonamedreturns
 func (w *Watcher) runSession(firstSessionErr chan error) (err error) {
 	defer func() {
 		if err != nil {
@@ -94,7 +101,7 @@ func (w *Watcher) runSession(firstSessionErr chan error) (err error) {
 	}
 	defer c.Close()
 
-	w.reportFirstSessionError(firstSessionErr, nil) //to unblock Run
+	w.reportFirstSessionError(firstSessionErr, nil) // to unblock Run
 
 	errCh := make(chan error, 1)
 	go func() {
@@ -106,13 +113,6 @@ func (w *Watcher) runSession(firstSessionErr chan error) (err error) {
 	case <-w.close:
 		return nil
 	}
-}
-
-// Shutdown
-// Perform graceful shutdown
-func (w *Watcher) Shutdown() {
-	close(w.close)
-	<-w.shutdownDone
 }
 
 func (w *Watcher) reportFirstSessionError(firstSessionErr chan error, err error) {

@@ -1,4 +1,3 @@
-// nolint:gomnd
 package kafkat
 
 import (
@@ -50,7 +49,7 @@ func NewKafka(t *test.Test) *Kafka {
 				Password: password,
 			}),
 		},
-		ErrorLogger: kafka.LoggerFunc(func(s string, i ...interface{}) {
+		ErrorLogger: kafka.LoggerFunc(func(s string, i ...any) {
 			t.Logger().Error(context.Background(), "kafka publisher: "+fmt.Sprintf(s, i...))
 		}),
 	}
@@ -100,7 +99,7 @@ func (k *Kafka) ReadMessage(topic string, offset int64) kafka.Message {
 	_, err = l.Seek(offset, io.SeekStart)
 	k.test.Assert().NoError(err)
 
-	msg, err := l.ReadMessage(64 * 1024 * 1024)
+	msg, err := l.ReadMessage(64 * 1024 * 1024) // nolint:mnd
 	k.test.Assert().NoError(err)
 
 	err = l.Close()
@@ -121,12 +120,6 @@ func (k *Kafka) CreateDefaultTopic(topic string) {
 	})
 	k.test.Assert().NoError(err)
 	k.topics = append(k.topics, topic)
-}
-
-func (k *Kafka) deleteTopics() {
-	err := k.manager.DeleteTopics(k.topics...)
-	k.test.Assert().NoError(err)
-
 }
 
 func (k *Kafka) PublisherConfig(topic string) kafkax.PublisherConfig {
@@ -152,4 +145,9 @@ func (k *Kafka) ConsumerConfig(topic, groupId string) kafkax.ConsumerConfig {
 			Password: k.password,
 		},
 	}
+}
+
+func (k *Kafka) deleteTopics() {
+	err := k.manager.DeleteTopics(k.topics...)
+	k.test.Assert().NoError(err)
 }

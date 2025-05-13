@@ -14,6 +14,7 @@ type SomeStruct struct {
 }
 
 func Test(t *testing.T) {
+	t.Parallel()
 	require := require.New(t)
 
 	intValue := fake.It[int]()

@@ -9,6 +9,7 @@ import (
 	"github.com/txix-open/isp-kit/log"
 )
 
+// nolint:containedctx
 type LogObserver struct {
 	grmq.NoopObserver
 	ctx    context.Context

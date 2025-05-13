@@ -13,6 +13,7 @@ import (
 	"github.com/txix-open/isp-kit/log"
 )
 
+// nolint:gochecknoglobals
 var (
 	defaultLogBodyContentTypes = []string{
 		"application/json",

@@ -13,7 +13,7 @@ type ResponseMapper struct {
 }
 
 func (j ResponseMapper) Map(ctx context.Context, result any, w http.ResponseWriter) error {
-	w.Header().Set("content-type", ContentType)
+	w.Header().Set("Content-Type", ContentType)
 
 	reqId := requestid.FromContext(ctx)
 	if reqId != "" {

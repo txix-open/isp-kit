@@ -18,6 +18,7 @@ type Response struct {
 
 type ReadingResponseMetricHook struct{}
 
+// nolint:gochecknoglobals
 var (
 	ReadingResponseMetricHookKey = ReadingResponseMetricHook{}
 )
@@ -36,7 +37,7 @@ func (r *Response) Body() ([]byte, error) {
 
 	defer func() {
 		if r.cancel != nil {
-			r.cancel() //associated context is no longer needed
+			r.cancel() // associated context is no longer needed
 			r.cancel = nil
 		}
 	}()

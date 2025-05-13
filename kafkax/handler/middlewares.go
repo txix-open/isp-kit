@@ -52,7 +52,7 @@ func Log(logger log.Logger) Middleware {
 			case result.Commit:
 				logger.Debug(
 					ctx,
-					"kafka client: message will be commited",
+					"kafka client: message will be committed",
 					log.String("topic", topic),
 					log.Int("partition", partition),
 					log.Int64("offset", offset),

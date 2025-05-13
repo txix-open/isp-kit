@@ -13,8 +13,14 @@ import (
 	"github.com/txix-open/isp-kit/db"
 )
 
+// nolint:gochecknoglobals
 var (
 	defaultMaxOpenConn = runtime.NumCPU() * 10
+)
+
+const (
+	minIdleConns       = 2
+	connMaxIdleTimeout = 90 * time.Second
 )
 
 type MigrationRunner interface {
@@ -50,13 +56,10 @@ func Open(ctx context.Context, config Config, opts ...Option) (*Client, error) {
 	if config.MaxOpenConn > 0 {
 		maxOpenConn = config.MaxOpenConn
 	}
-	maxIdleConns := maxOpenConn / 2
-	if maxIdleConns < 2 {
-		maxIdleConns = 2
-	}
+	maxIdleConns := max(maxOpenConn/minIdleConns, minIdleConns)
 	dbCli.SetMaxOpenConns(maxOpenConn)
 	dbCli.SetMaxIdleConns(maxIdleConns)
-	dbCli.SetConnMaxIdleTime(90 * time.Second)
+	dbCli.SetConnMaxIdleTime(connMaxIdleTimeout)
 
 	if cli.migrationRunner != nil {
 		err = cli.migrationRunner.Run(ctx, dbCli.DB.DB)

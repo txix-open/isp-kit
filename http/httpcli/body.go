@@ -18,7 +18,7 @@ type jsonRequest struct {
 }
 
 func (j jsonRequest) Write(req *http.Request, w io.Writer) error {
-	req.Header.Set("content-type", "application/json")
+	req.Header.Set("Content-Type", "application/json")
 	return json.EncodeInto(w, j.value)
 }
 
@@ -36,7 +36,7 @@ type formRequest struct {
 }
 
 func (f formRequest) Write(req *http.Request, w io.Writer) error {
-	req.Header.Set("content-type", "application/x-www-form-urlencoded")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	data := url.Values(f.data).Encode()
 	_, err := w.Write([]byte(data))
 	return err

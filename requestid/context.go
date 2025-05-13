@@ -11,6 +11,7 @@ const (
 
 type contextKey struct{}
 
+// nolint:gochecknoglobals
 var (
 	contextKeyValue = contextKey{}
 )

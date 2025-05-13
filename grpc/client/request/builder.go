@@ -12,6 +12,10 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+const (
+	defaultTimeout = 15 * time.Second
+)
+
 type Builder struct {
 	Endpoint      string
 	MD            metadata.MD
@@ -27,7 +31,7 @@ func NewBuilder(roundTripper RoundTripper, endpoint string) *Builder {
 		Endpoint:     endpoint,
 		MD:           metadata.New(make(map[string]string)),
 		roundTripper: roundTripper,
-		timeout:      15 * time.Second,
+		timeout:      defaultTimeout,
 	}
 }
 

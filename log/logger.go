@@ -77,8 +77,8 @@ func (a *Adapter) Debug(ctx context.Context, message any, fields ...Field) {
 func (a *Adapter) Log(ctx context.Context, level Level, message any, fields ...Field) {
 	entry := a.logger.Check(level, castString(message))
 	if entry != nil {
-		arr := append(fields, ContextLogValues(ctx)...)
-		entry.Write(arr...)
+		fields = append(fields, ContextLogValues(ctx)...)
+		entry.Write(fields...)
 	}
 }
 
@@ -101,7 +101,7 @@ func (a *Adapter) Config() Config {
 func StdLoggerWithLevel(adapter Logger, level Level, withFields ...Field) *log.Logger {
 	kitAdapter, ok := adapter.(*Adapter)
 	if !ok {
-		panic(fmt.Errorf("adapter must be a [%T], got [%T]", &Adapter{}, adapter))
+		panic(fmt.Errorf("adapter must be a [%T], got [%T]", &Adapter{}, adapter)) // nolint:err113
 	}
 	logger := kitAdapter.logger.With(withFields...)
 	stdLogger, err := zap.NewStdLogAt(logger, level)

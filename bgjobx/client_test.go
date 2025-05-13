@@ -14,6 +14,8 @@ import (
 )
 
 func TestClient(t *testing.T) {
+	t.Parallel()
+
 	test, assert := test.New(t)
 	testDb := dbt.New(test, dbx.WithMigrationRunner("./migration", test.Logger()))
 	cli := bgjobx.NewClient(testDb, test.Logger())
@@ -29,10 +31,10 @@ func TestClient(t *testing.T) {
 		}),
 		PollInterval: 500 * time.Millisecond,
 	}
-	err := cli.Upgrade(context.Background(), []bgjobx.WorkerConfig{worker})
+	err := cli.Upgrade(t.Context(), []bgjobx.WorkerConfig{worker})
 	assert.NoError(err)
 
-	err = cli.Enqueue(context.Background(), bgjob.EnqueueRequest{
+	err = cli.Enqueue(t.Context(), bgjob.EnqueueRequest{
 		Queue: "test",
 		Type:  "type",
 	})

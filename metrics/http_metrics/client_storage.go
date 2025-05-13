@@ -12,6 +12,7 @@ import (
 
 type clientEndpointContextKey struct{}
 
+// nolint:lll,gochecknoglobals
 var (
 	clientEndpointContextKeyValue = clientEndpointContextKey{}
 

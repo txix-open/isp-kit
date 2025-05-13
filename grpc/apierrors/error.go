@@ -15,10 +15,11 @@ const (
 	ErrCodeInternal = 900
 )
 
+// nolint:tagliatelle
 type Error struct {
 	ErrorCode    int
 	ErrorMessage string
-	Details      map[string]interface{} `json:",omitempty"`
+	Details      map[string]any `json:",omitempty"`
 
 	grpcStatusCode codes.Code
 	cause          error
@@ -91,12 +92,13 @@ func FromError(err error) *Error {
 	}
 
 	for _, detail := range s.Details() {
-		switch typedDetail := detail.(type) {
-		case *isp.Message:
+		typedDetail, ok := detail.(*isp.Message)
+		if ok {
 			errData := Error{}
 			err := json.Unmarshal(typedDetail.GetBytesBody(), &errData)
+			// not an error
 			if err != nil {
-				return nil
+				return nil // nolint:nilerr
 			}
 			if errData.ErrorCode == 0 {
 				return nil

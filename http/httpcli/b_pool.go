@@ -5,6 +5,7 @@ import (
 	"sync"
 )
 
+// nolint:gochecknoglobals,mnd
 var (
 	bpool = sync.Pool{New: func() any {
 		return bytes.NewBuffer(make([]byte, 1024))
@@ -12,7 +13,7 @@ var (
 )
 
 func acquireBuffer() *bytes.Buffer {
-	buf := bpool.Get().(*bytes.Buffer)
+	buf := bpool.Get().(*bytes.Buffer) // nolint:forcetypeassert
 	buf.Reset()
 	return buf
 }

@@ -6,11 +6,13 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/txix-open/isp-kit/http/httpclix"
 )
 
 func TestClientBalancer_NoHosts(t *testing.T) {
+	t.Parallel()
 	require := require.New(t)
 	err := httpclix.NewClientBalancer(nil).
 		Get("/some/endpoint").
@@ -20,15 +22,17 @@ func TestClientBalancer_NoHosts(t *testing.T) {
 }
 
 func TestClientBalancer(t *testing.T) {
+	t.Parallel()
 	var (
 		require      = require.New(t)
+		assert       = assert.New(t)
 		hostCount    = 5
 		hosts        = make([]string, hostCount)
 		callCounters = make([]atomic.Int32, hostCount)
 	)
 	for i := range hostCount {
 		hosts[i] = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			require.EqualValues(r.URL.Path, "/some/endpoint")
+			assert.EqualValues("/some/endpoint", r.URL.Path)
 			callCounters[i].Add(1)
 		})).URL
 	}
@@ -72,18 +76,20 @@ func TestClientBalancer(t *testing.T) {
 }
 
 func TestClientBalancer_GlobalConfigBaseUrl(t *testing.T) {
+	t.Parallel()
 	var (
 		require     = require.New(t)
+		assert      = assert.New(t)
 		callCounter atomic.Int32
 	)
 
 	baseUrl := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.EqualValues(r.URL.Path, "/some/endpoint")
+		assert.EqualValues("/some/endpoint", r.URL.Path)
 		callCounter.Add(1)
 	})).URL
 
 	hostToIgnore := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.EqualValues(r.URL.Path, "/some/endpoint")
+		assert.EqualValues("/some/endpoint", r.URL.Path)
 		callCounter.Add(-1)
 	})).URL
 

@@ -71,8 +71,36 @@ func (c *Consumer) Run(ctx context.Context) {
 	go c.run(ctx)
 }
 
+func (c *Consumer) Close() error {
+	defer func() {
+		c.deliveryWg.Wait()
+		close(c.deliveries)
+		c.workersWg.Wait()
+		c.alive.Store(false)
+
+		if c.metrics != nil {
+			c.metrics.Close()
+		}
+		c.observer.CloseDone()
+	}()
+	c.observer.CloseStart()
+	err := c.reader.Close()
+	if err != nil {
+		return errors.WithMessage(err, "close kafka.reader")
+	}
+
+	return nil
+}
+
+func (c *Consumer) Healthcheck(ctx context.Context) error {
+	if c.alive.Load() {
+		return nil
+	}
+	return errors.New("could not fetch messages")
+}
+
 func (c *Consumer) run(ctx context.Context) {
-	for i := 0; i < c.concurrency; i++ {
+	for range c.concurrency {
 		c.workersWg.Add(1)
 		go c.runWorker(ctx)
 	}
@@ -111,7 +139,7 @@ func (c *Consumer) runWorker(ctx context.Context) {
 	for {
 		select {
 		case delivery, isOpen := <-c.deliveries:
-			if !isOpen { //normal close
+			if !isOpen { // normal close
 				return
 			}
 			c.deliveryWg.Add(1)
@@ -122,32 +150,4 @@ func (c *Consumer) runWorker(ctx context.Context) {
 
 func (c *Consumer) handleMessage(ctx context.Context, delivery *Delivery) {
 	c.handler.Handle(ctx, delivery)
-}
-
-func (c *Consumer) Close() error {
-	defer func() {
-		c.deliveryWg.Wait()
-		close(c.deliveries)
-		c.workersWg.Wait()
-		c.alive.Store(false)
-
-		if c.metrics != nil {
-			c.metrics.Close()
-		}
-		c.observer.CloseDone()
-	}()
-	c.observer.CloseStart()
-	err := c.reader.Close()
-	if err != nil {
-		return errors.WithMessage(err, "close kafka.reader")
-	}
-
-	return nil
-}
-
-func (c *Consumer) Healthcheck(ctx context.Context) error {
-	if c.alive.Load() {
-		return nil
-	}
-	return errors.New("could not fetch messages")
 }

@@ -8,6 +8,7 @@ import (
 
 type tracers []pgx.QueryTracer
 
+// nolint:fatcontext
 func (t tracers) TraceQueryStart(ctx context.Context, conn *pgx.Conn, data pgx.TraceQueryStartData) context.Context {
 	for _, tracer := range t {
 		ctx = tracer.TraceQueryStart(ctx, conn, data)

@@ -32,6 +32,15 @@ func (g *ConsumerGroup) UpgradeAndServe(ctx context.Context, consumers ...consum
 	_ = g.upgrade(ctx, true, consumers...)
 }
 
+func (g *ConsumerGroup) Close() error {
+	g.locker.Lock()
+	defer g.locker.Unlock()
+
+	g.close()
+
+	return nil
+}
+
 func (g *ConsumerGroup) upgrade(ctx context.Context, justServe bool, consumers ...consumer.Config) error {
 	g.locker.Lock()
 	defer g.locker.Unlock()
@@ -64,15 +73,6 @@ func (g *ConsumerGroup) upgrade(ctx context.Context, justServe bool, consumers .
 
 	g.logger.Debug(ctx, "stomp client: initialization done")
 	g.prevCfg = consumers
-
-	return nil
-}
-
-func (g *ConsumerGroup) Close() error {
-	g.locker.Lock()
-	defer g.locker.Unlock()
-
-	g.close()
 
 	return nil
 }

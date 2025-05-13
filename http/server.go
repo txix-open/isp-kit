@@ -40,6 +40,7 @@ type Server struct {
 	service *service
 }
 
+// nolint:mnd
 func NewServer(logger log.Logger, opts ...ServerOption) *Server {
 	s := &Server{
 		server: &http.Server{

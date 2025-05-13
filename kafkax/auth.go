@@ -16,6 +16,7 @@ const (
 	ScramTypeSHA512 = "SHA512"
 )
 
+// nolint:lll
 type Auth struct {
 	Mechanism *string `validate:"oneof=SASL/PLAIN SASL/SCRAM" schema:"Механизм аутентификации может принимать значения 'SASL/PLAIN' или 'SASL/SCRAM'"`
 	ScramType *string `validate:"oneof=SHA256 SHA512" schema:"Алгоритм используемый в механизме SASL/SCRAM, может принимать значения 'SHA256' или 'SHA512'"`
@@ -28,6 +29,7 @@ type TLS struct {
 	PrivateKey  string `schema:"Закрытый ключ"`
 }
 
+// nolint:ireturn
 func PlainAuth(auth *Auth) sasl.Mechanism {
 	if auth == nil {
 		return nil
@@ -39,9 +41,10 @@ func PlainAuth(auth *Auth) sasl.Mechanism {
 	}
 }
 
+// nolint:ireturn
 func ScramAuth(auth *Auth) (sasl.Mechanism, error) {
 	if auth == nil {
-		return nil, nil
+		return nil, nil // nolint:nilnil
 	}
 
 	if auth.ScramType == nil {
@@ -66,6 +69,7 @@ func ScramAuth(auth *Auth) (sasl.Mechanism, error) {
 	return mechanism, nil
 }
 
+// nolint:ireturn
 func setupSASLMechanism(mechanismType string, auth *Auth) (sasl.Mechanism, error) {
 	var saslMechanism sasl.Mechanism
 
@@ -87,7 +91,7 @@ func setupSASLMechanism(mechanismType string, auth *Auth) (sasl.Mechanism, error
 
 func setupTLS(cfg *TLS) (*tls.Config, error) {
 	if cfg == nil {
-		return nil, nil
+		return nil, nil // nolint:nilnil
 	}
 
 	rawCert, err := base64.StdEncoding.DecodeString(cfg.Certificate)
@@ -95,6 +99,7 @@ func setupTLS(cfg *TLS) (*tls.Config, error) {
 		return nil, errors.WithMessage(err, "decode base64 tls certificate")
 	}
 
+	// nolint:gosec
 	return &tls.Config{
 		//MinVersion: tls.VersionTLS12,
 		Certificates: []tls.Certificate{

@@ -14,6 +14,7 @@ type customSchema struct {
 	mapSchema map[string]CustomGenerator
 }
 
+// nolint:gochecknoglobals
 var CustomGenerators = &customSchema{
 	mapSchema: make(map[string]CustomGenerator),
 }

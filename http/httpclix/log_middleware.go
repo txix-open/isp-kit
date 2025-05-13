@@ -41,6 +41,7 @@ func LogHeaders(requestHeaders bool, responseHeaders bool) LogOption {
 
 type logConfigContextKey struct{}
 
+// nolint:gochecknoglobals
 var (
 	defaultLogConfig = logConfig{
 		LogRequestBody:  true,
@@ -103,7 +104,7 @@ func Log(logger log.Logger) httpcli.Middleware {
 			}
 
 			if err != nil {
-				errorFields := append(responseFields,
+				responseFields = append(responseFields,
 					log.Any("error", err),
 					log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()),
 				)
@@ -111,7 +112,7 @@ func Log(logger log.Logger) httpcli.Middleware {
 				logger.Debug(
 					ctx,
 					"http client: response with error",
-					errorFields...,
+					responseFields...,
 				)
 				return resp, err
 			}

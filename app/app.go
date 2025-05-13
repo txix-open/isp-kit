@@ -8,6 +8,7 @@ import (
 	"github.com/txix-open/isp-kit/log"
 )
 
+// nolint:containedctx
 type Application struct {
 	ctx    context.Context
 	cfg    *config.Config
@@ -102,7 +103,7 @@ func (a *Application) Shutdown() {
 }
 
 func (a *Application) Close() {
-	for i := 0; i < len(a.closers); i++ {
+	for i := range a.closers {
 		closer := a.closers[i]
 		err := closer.Close()
 		if err != nil {

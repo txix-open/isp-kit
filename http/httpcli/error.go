@@ -5,6 +5,7 @@ import (
 	"net/url"
 )
 
+// nolint:errname
 type ErrorResponse struct {
 	Url        *url.URL
 	StatusCode int

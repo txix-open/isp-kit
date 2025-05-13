@@ -22,6 +22,7 @@ type eventFuture struct {
 	errorCh    chan error
 }
 
+// nolint:containedctx
 type clientWrapper struct {
 	cli             *etp.Client
 	errorConnChan   chan []byte
@@ -82,7 +83,7 @@ func (w *clientWrapper) EmitWithAck(ctx context.Context, event string, data []by
 	}
 
 	w.logger.Info(ctx, "event acknowledged", log.ByteString("response", resp))
-	return resp, err
+	return resp, nil
 }
 
 func (w *clientWrapper) RegisterEvent(event string, handler func([]byte) error) {
@@ -114,7 +115,7 @@ func (w *clientWrapper) AwaitEvent(ctx context.Context, event string, timeout ti
 	if !ok {
 		return errors.Errorf("event %s not registered", event)
 	}
-	future := futureVal.(eventFuture)
+	future := futureVal.(eventFuture) // nolint:forcetypeassert
 
 	select {
 	case <-ctx.Done():

@@ -66,6 +66,7 @@ func CreateFormFile(
 	return w.CreatePart(h)
 }
 
+// nolint:gochecknoglobals
 var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
 
 func escapeQuotes(s string) string {

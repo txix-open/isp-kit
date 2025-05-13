@@ -1,3 +1,4 @@
+// nolint:goconst,mnd
 package schema
 
 import (
@@ -36,6 +37,7 @@ func GetNameAndRequiredFlag(field reflect.StructField) (string, bool) {
 	return name, false
 }
 
+// nolint:nestif
 func SetProperties(field reflect.StructField, s *jsonschema.Schema) {
 	schema, ok := field.Tag.Lookup(tagSchema)
 	if ok {
@@ -151,6 +153,7 @@ func parseTagIntoMap(tag string) tagOptionsMap {
 	return optionsMap
 }
 
+// nolint:nestif
 func GetFieldName(fieldType reflect.StructField) (string, bool) {
 	original := fieldType.Name
 	transform := true

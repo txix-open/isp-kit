@@ -8,6 +8,7 @@ import (
 
 type contextEnrichmentKey struct{}
 
+// nolint:gochecknoglobals
 var (
 	contextKeyValue = contextEnrichmentKey{}
 )

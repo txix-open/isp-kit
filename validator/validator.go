@@ -35,8 +35,9 @@ type wrapper struct {
 	V any
 }
 
+// nolint:nonamedreturns
 func (a Adapter) Validate(v any) (ok bool, details map[string]string) {
-	err := a.validator.Struct(wrapper{v}) //hack
+	err := a.validator.Struct(wrapper{v}) // hack
 	if err == nil {
 		return true, nil
 	}
@@ -47,6 +48,7 @@ func (a Adapter) Validate(v any) (ok bool, details map[string]string) {
 	return false, details
 }
 
+// nolint:err113
 func (a Adapter) ValidateToError(v any) error {
 	ok, details := a.Validate(v)
 	if ok {

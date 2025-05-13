@@ -41,6 +41,7 @@ type ConsumerStorage struct {
 	queueCapacityCount prometheus.Gauge
 }
 
+// nolint:funlen,promlinter
 func NewConsumerStorage(reg *metrics.Registry, consumerId string) *ConsumerStorage {
 	s := &ConsumerStorage{
 		dialCount: metrics.GetOrRegister(reg, prometheus.NewGaugeVec(prometheus.GaugeOpts{

@@ -38,6 +38,7 @@ type PublisherStorage struct {
 	maxBatchBytesCount prometheus.Gauge
 }
 
+// nolint:funlen,promlinter
 func NewPublisherStorage(reg *metrics.Registry, publisherId string) *PublisherStorage {
 	s := &PublisherStorage{
 		writeCount: metrics.GetOrRegister(reg, prometheus.NewGaugeVec(prometheus.GaugeOpts{

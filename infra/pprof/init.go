@@ -6,9 +6,9 @@ import (
 	"net/http/pprof"
 )
 
-//go tool pprof -http=0.0.0.0:6061 http://localhost:10000/internal/debug/pprof/allocs
-//go tool pprof -http=0.0.0.0:6061 http://localhost:10000/internal/debug/pprof/profile?seconds=10
-//go tool pprof http://localhost:10000/internal/debug/pprof/profile?seconds=10 > profile.out
+// go tool pprof -http=0.0.0.0:6061 http://localhost:10000/internal/debug/pprof/allocs
+// go tool pprof -http=0.0.0.0:6061 http://localhost:10000/internal/debug/pprof/profile?seconds=10
+// go tool pprof http://localhost:10000/internal/debug/pprof/profile?seconds=10 > profile.out
 
 type Muxer interface {
 	Handle(patter string, handler http.Handler)

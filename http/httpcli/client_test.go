@@ -1,3 +1,4 @@
+// nolint:gosec
 package httpcli_test
 
 import (
@@ -16,6 +17,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/txix-open/isp-kit/http/httpcli"
 	"github.com/txix-open/isp-kit/json"
@@ -28,11 +30,15 @@ type example struct {
 }
 
 func TestRequestBuilder_DoWithoutResponse(t *testing.T) {
+	t.Parallel()
+
 	require := require.New(t)
-	url := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
-		http.Error(writer, "some error", http.StatusBadRequest)
-	})).URL
-	err := httpcli.New().Get(url).StatusCodeToError().DoWithoutResponse(context.Background())
+	url := httptest.NewServer(http.HandlerFunc(
+		func(writer http.ResponseWriter, r *http.Request) {
+			http.Error(writer, "some error", http.StatusBadRequest)
+		},
+	)).URL
+	err := httpcli.New().Get(url).StatusCodeToError().DoWithoutResponse(t.Context())
 	require.Error(err)
 	httpErr := httpcli.ErrorResponse{}
 	ok := errors.As(err, &httpErr)
@@ -43,104 +49,127 @@ func TestRequestBuilder_DoWithoutResponse(t *testing.T) {
 }
 
 func TestRequestBuilder_Header(t *testing.T) {
+	t.Parallel()
+
 	require := require.New(t)
 	url := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
-		require.EqualValues("123", r.Header.Get("x-header"))
+		assert.EqualValues(t, "123", r.Header.Get("X-Header"))
 		writer.WriteHeader(http.StatusOK)
 	})).URL
-	resp, err := httpcli.New().Get(url).Header("x-header", "123").Do(context.Background())
+	resp, err := httpcli.New().Get(url).Header("X-Header", "123").Do(t.Context())
 	require.NoError(err)
 	require.True(resp.IsSuccess())
 }
 
 func TestRequestBuilder_Cookie(t *testing.T) {
+	t.Parallel()
+
 	require := require.New(t)
-	url := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
-		var actual *http.Cookie
-		for i := range r.Cookies() {
-			cookie := r.Cookies()[i]
-			if cookie.Name == "x-cookie" {
-				actual = cookie
+	url := httptest.NewServer(http.HandlerFunc(
+		func(writer http.ResponseWriter, r *http.Request) {
+			var actual *http.Cookie
+			for i := range r.Cookies() {
+				cookie := r.Cookies()[i]
+				if cookie.Name == "X-Cookie" {
+					actual = cookie
+				}
 			}
-		}
-		require.EqualValues("123", actual.Value)
-		writer.WriteHeader(http.StatusOK)
-	})).URL
+			assert.EqualValues(t, "123", actual.Value)
+			writer.WriteHeader(http.StatusOK)
+		},
+	)).URL
 	resp, err := httpcli.New().
 		Get(url).
-		Cookie(&http.Cookie{Name: "x-cookie", Value: "123"}).
-		Do(context.Background())
+		Cookie(&http.Cookie{Name: "X-Cookie", Value: "123"}).
+		Do(t.Context())
 	require.NoError(err)
 	require.True(resp.IsSuccess())
 }
 
 func TestRequestBuilder_FormDataRequestBody(t *testing.T) {
+	t.Parallel()
+
 	require := require.New(t)
+	assert := assert.New(t)
 	expected := map[string][]string{
 		"1":    {"1", "2", "3"},
 		"test": {"value"},
 	}
-	url := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
-		err := r.ParseForm()
-		require.NoError(err)
-		require.EqualValues(expected, r.PostForm)
-		writer.WriteHeader(http.StatusOK)
-	})).URL
-	resp, err := httpcli.New().Post(url).FormDataRequestBody(expected).Do(context.Background())
+	url := httptest.NewServer(http.HandlerFunc(
+		func(writer http.ResponseWriter, r *http.Request) {
+			err := r.ParseForm()
+			assert.NoError(err)
+			assert.EqualValues(expected, r.PostForm)
+			writer.WriteHeader(http.StatusOK)
+		},
+	)).URL
+	resp, err := httpcli.New().Post(url).FormDataRequestBody(expected).Do(t.Context())
 	require.NoError(err)
 	require.True(resp.IsSuccess())
 }
 
 func TestRequestBuilder_BasicAuth(t *testing.T) {
+	t.Parallel()
+
 	require := require.New(t)
+	assert := assert.New(t)
+
 	url := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
 		username, password, ok := r.BasicAuth()
-		require.True(ok)
-		require.EqualValues("user", username)
-		require.EqualValues("pass", password)
+		assert.True(ok)
+		assert.EqualValues("user", username)
+		assert.EqualValues("pass", password)
 		writer.WriteHeader(http.StatusOK)
 	})).URL
 	resp, err := httpcli.New().Get(url).
 		BasicAuth(httpcli.BasicAuth{
 			Username: "user",
 			Password: "pass",
-		}).Do(context.Background())
+		}).Do(t.Context())
 	require.NoError(err)
 	require.True(resp.IsSuccess())
 }
 
 func TestRequestBuilder_QueryParams(t *testing.T) {
+	t.Parallel()
+
 	require := require.New(t)
+	assert := assert.New(t)
+
 	request := map[string]any{
 		"1":    "2",
 		"test": 1,
 	}
 	url := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
-		require.NoError(err)
+		assert.NoError(err)
 		expected := url.Values{
 			"1":    {"2"},
 			"test": {"1"},
 		}
-		require.EqualValues(expected, r.Form)
+		assert.EqualValues(expected, r.Form)
 		writer.WriteHeader(http.StatusOK)
 	})).URL
-	resp, err := httpcli.New().Get(url).QueryParams(request).Do(context.Background())
+	resp, err := httpcli.New().Get(url).QueryParams(request).Do(t.Context())
 	require.NoError(err)
 	require.True(resp.IsSuccess())
 }
 
 func TestRequestBuilder_Retry(t *testing.T) {
+	t.Parallel()
+
 	require := require.New(t)
+	assert := assert.New(t)
+
 	callCount := 0
 	middlewareCallCount := 0
 	url := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
 		callCount++
 		if callCount == 3 {
 			data, err := io.ReadAll(r.Body)
-			require.NoError(err)
+			assert.NoError(err)
 			_, err = writer.Write(data)
-			require.NoError(err)
+			assert.NoError(err)
 			return
 		}
 		writer.WriteHeader(http.StatusInternalServerError)
@@ -159,7 +188,7 @@ func TestRequestBuilder_Retry(t *testing.T) {
 		Retry(httpcli.IfErrorOr5XXStatus(), retry.NewExponentialBackoff(5*time.Second)).
 		JsonRequestBody(example{Data: "test_data"}).
 		JsonResponseBody(&exm).
-		Do(context.Background())
+		Do(t.Context())
 	require.EqualValues(3, callCount)
 	require.EqualValues(1, middlewareCallCount)
 	require.NoError(err)
@@ -168,6 +197,8 @@ func TestRequestBuilder_Retry(t *testing.T) {
 }
 
 func TestRequestBuilder_RetryOnError(t *testing.T) {
+	t.Parallel()
+
 	require := require.New(t)
 	srv := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
 		writer.WriteHeader(http.StatusOK)
@@ -177,12 +208,14 @@ func TestRequestBuilder_RetryOnError(t *testing.T) {
 	resp, err := cli.Get(srv.URL).
 		Retry(httpcli.IfErrorOr5XXStatus(), retry.NewExponentialBackoff(3*time.Second)).
 		JsonRequestBody(example{Data: "test_data"}).
-		Do(context.Background())
+		Do(t.Context())
 	require.Error(err)
 	require.Nil(resp)
 }
 
 func TestRequestBuilder_RetryWithTimeout(t *testing.T) {
+	t.Parallel()
+
 	require := require.New(t)
 	srv := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
 		t.Log("call endpoint")
@@ -194,13 +227,15 @@ func TestRequestBuilder_RetryWithTimeout(t *testing.T) {
 		Retry(httpcli.IfErrorOr5XXStatus(), retry.NewExponentialBackoff(1*time.Second)).
 		Timeout(100 * time.Millisecond).
 		JsonRequestBody(example{Data: "test_data"}).
-		Do(context.Background())
+		Do(t.Context())
 	t.Log(err)
 	require.Error(err)
 	require.Nil(resp)
 }
 
 func TestRequestBuilder_GlobalRequestTimeout(t *testing.T) {
+	t.Parallel()
+
 	require := require.New(t)
 	srv := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
 		t.Log("call endpoint")
@@ -212,31 +247,35 @@ func TestRequestBuilder_GlobalRequestTimeout(t *testing.T) {
 	resp, err := cli.Get(srv.URL).
 		Retry(httpcli.IfErrorOr5XXStatus(), retry.NewExponentialBackoff(2*time.Second)).
 		JsonRequestBody(example{Data: "test_data"}).
-		Do(context.Background())
+		Do(t.Context())
 	t.Log(err)
 	require.Error(err)
 	require.Nil(resp)
 }
 
 func TestRequestBuilder_MultipartData(t *testing.T) {
+	t.Parallel()
+
 	require := require.New(t)
+	assert := assert.New(t)
+
 	url := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
 		err := r.ParseMultipartForm(1024)
-		require.NoError(err)
+		assert.NoError(err)
 		defer func() { _ = r.MultipartForm.RemoveAll() }()
 
-		require.EqualValues("test", r.MultipartForm.Value["field1"][0])
+		assert.EqualValues("test", r.MultipartForm.Value["field1"][0])
 
 		fh := r.MultipartForm.File["file"][0]
 		contentTypeHeader := fh.Header.Get("Content-Type")
-		require.EqualValues("application/json1", contentTypeHeader)
+		assert.EqualValues("application/json1", contentTypeHeader)
 		file, err := fh.Open()
-		require.NoError(err)
+		assert.NoError(err)
 		defer file.Close()
 		data, err := io.ReadAll(file)
-		require.NoError(err)
+		assert.NoError(err)
 		_, err = writer.Write(data)
-		require.NoError(err)
+		assert.NoError(err)
 	})).URL
 
 	file, err := os.Open("test_data/multipart.json")
@@ -250,12 +289,12 @@ func TestRequestBuilder_MultipartData(t *testing.T) {
 			},
 		}},
 		Values: map[string]string{"field1": "test"},
-	}).Do(context.Background())
+	}).Do(t.Context())
 	require.NoError(err)
 	require.True(resp.IsSuccess())
 
 	_, err = file.Read([]byte{0})
-	require.Error(err) //file closed
+	require.Error(err) // file closed
 
 	expected, err := os.ReadFile("test_data/multipart.json")
 	require.NoError(err)
@@ -265,17 +304,21 @@ func TestRequestBuilder_MultipartData(t *testing.T) {
 }
 
 func TestRequestBuilder_Middlewares(t *testing.T) {
+	t.Parallel()
+
 	require := require.New(t)
+	assert := assert.New(t)
+
 	url := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
-		require.EqualValues("5", r.Header.Get("Content-Length"))
-		require.NotEqual("chunked", r.Header.Get("Transfer-Encoding"))
+		assert.EqualValues("5", r.Header.Get("Content-Length"))
+		assert.NotEqual("chunked", r.Header.Get("Transfer-Encoding"))
 		writer.WriteHeader(http.StatusOK)
 	})).URL
 	err := httpcli.New().Post(url).
 		RequestBody([]byte("hello")).
 		StatusCodeToError().
 		Middlewares(httpcli.SetContentLength()).
-		DoWithoutResponse(context.Background())
+		DoWithoutResponse(t.Context())
 	require.NoError(err)
 }
 
@@ -284,9 +327,9 @@ func TestConcurrency(t *testing.T) {
 
 	srv := echoServer()
 	cli := httpcli.New()
-	group, _ := errgroup.WithContext(context.Background())
+	group, _ := errgroup.WithContext(t.Context())
 	group.SetLimit(100)
-	for i := 0; i < 10000; i++ {
+	for range 10000 {
 		group.Go(func() error {
 			data := make([]byte, 4200)
 			_, _ = rand.Read(data)
@@ -308,7 +351,7 @@ func TestConcurrency(t *testing.T) {
 					}
 					return nil
 				}, retry.NewExponentialBackoff(500*time.Millisecond)).
-				Do(context.Background())
+				Do(t.Context())
 			if err != nil {
 				return err
 			}
@@ -339,7 +382,7 @@ func BenchmarkClient_Post(b *testing.B) {
 			resp, err := cli.Post(srv.URL).
 				JsonRequestBody(example{Data: hex.EncodeToString(data)}).
 				JsonResponseBody(&example{}).
-				Do(context.Background())
+				Do(b.Context())
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -363,7 +406,7 @@ func BenchmarkGoResty(b *testing.B) {
 			_, err := cli.R().
 				SetBody(example{Data: hex.EncodeToString(data)}).
 				SetResult(&example{}).
-				SetContext(context.Background()).
+				SetContext(b.Context()).
 				Post(srv.URL)
 			if err != nil {
 				b.Fatal(err)
@@ -373,19 +416,21 @@ func BenchmarkGoResty(b *testing.B) {
 }
 
 func echoServer() *httptest.Server {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("content-type", "application/json")
-		data, err := io.ReadAll(r.Body)
-		if err != nil {
-			panic(err)
-		}
-		if !jsoniter.Valid(data) {
-			panic(errors.Errorf("invalid json: %s", data))
-		}
-		_, err = w.Write(data)
-		if err != nil {
-			panic(err)
-		}
-	}))
+	srv := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			data, err := io.ReadAll(r.Body)
+			if err != nil {
+				panic(err)
+			}
+			if !jsoniter.Valid(data) {
+				panic(errors.Errorf("invalid json: %s", data))
+			}
+			_, err = w.Write(data)
+			if err != nil {
+				panic(err)
+			}
+		},
+	))
 	return srv
 }

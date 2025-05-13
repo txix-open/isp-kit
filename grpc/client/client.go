@@ -83,12 +83,13 @@ func (cli *Client) Close() error {
 	return cli.grpcCli.Close()
 }
 
+// nolint:ireturn
 func (cli *Client) BackendClient() isp.BackendServiceClient {
 	return cli.backendCli
 }
 
 func (cli *Client) do(ctx context.Context, _ *request.Builder, message *isp.Message) (*isp.Message, error) {
-	currentHosts := cli.currentHosts.Load().([]string)
+	currentHosts := cli.currentHosts.Load().([]string) // nolint:forcetypeassert
 	if len(currentHosts) == 0 {
 		return nil, errors.New("grpc client: client is not initialized properly: empty hosts array")
 	}

@@ -8,7 +8,7 @@ func SetContentLength() Middleware {
 	transferEncoding := []string{"identity"}
 	return func(next RoundTripper) RoundTripper {
 		return RoundTripperFunc(func(ctx context.Context, request *Request) (*Response, error) {
-			if request.body == nil { //multipart
+			if request.body == nil { // multipart
 				return next.RoundTrip(ctx, request)
 			}
 
