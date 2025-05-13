@@ -15,6 +15,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 )
 
+// nolint:gochecknoglobals
 var (
 	DefaultPropagator Propagator     = propagation.TraceContext{}
 	DefaultProvider   TracerProvider = NewNoopProvider()
@@ -24,6 +25,7 @@ const (
 	RequestId = attribute.Key("app.request_id")
 )
 
+// nolint:ireturn
 func NewProviderFromConfiguration(ctx context.Context, logger log.Logger, config Config) (Provider, error) {
 	if !config.Enable {
 		return NewNoopProvider(), nil
@@ -64,7 +66,7 @@ func NewProviderFromConfiguration(ctx context.Context, logger log.Logger, config
 	provider := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter),
 		sdktrace.WithResource(res),
-		sdktrace.WithSampler(sdktrace.AlwaysSample()), //TODO consider configuration, but pass all for now
+		sdktrace.WithSampler(sdktrace.AlwaysSample()), // TODO consider configuration, but pass all for now
 	)
 	return provider, nil
 }

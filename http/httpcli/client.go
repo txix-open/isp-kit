@@ -31,6 +31,7 @@ type Client struct {
 	roundTripper RoundTripper
 }
 
+// nolint:mnd,gochecknoglobals
 var (
 	StdClient = &http.Client{
 		Transport: &http.Transport{
@@ -92,6 +93,7 @@ func (c *Client) Patch(url string) *RequestBuilder {
 	return NewRequestBuilder(http.MethodPatch, url, c.globalConfig, c.Execute)
 }
 
+// nolint:cyclop
 func (c *Client) Execute(ctx context.Context, builder *RequestBuilder) (*Response, error) {
 	request, err := builder.newHttpRequest(ctx)
 	if err != nil {
@@ -123,7 +125,7 @@ func (c *Client) Execute(ctx context.Context, builder *RequestBuilder) (*Respons
 
 	if builder.multipartData != nil {
 		ct, reader := builder.multipartData.openReader()
-		request.Header.Set("content-type", ct)
+		request.Header.Set("Content-Type", ct)
 		request.Body = reader
 	}
 
@@ -161,6 +163,7 @@ func (c *Client) Execute(ctx context.Context, builder *RequestBuilder) (*Respons
 	return resp, nil
 }
 
+// nolint:bodyclose
 func (c *Client) executeWithRetries(ctx context.Context, request *Request) (*Response, error) {
 	var (
 		response *Response
@@ -169,7 +172,7 @@ func (c *Client) executeWithRetries(ctx context.Context, request *Request) (*Res
 	origCtx := ctx
 	_ = request.retryOptions.retrier.Do(ctx, func() error {
 		if response != nil {
-			response.Close() //prevent context and buffer leak from previous failed attempt
+			response.Close() // prevent context and buffer leak from previous failed attempt
 		}
 		var (
 			ctx    context.Context
@@ -179,7 +182,7 @@ func (c *Client) executeWithRetries(ctx context.Context, request *Request) (*Res
 			ctx, cancel = context.WithTimeout(origCtx, request.timeout)
 			request.Raw = request.Raw.WithContext(ctx)
 		}
-		if request.body != nil { //it's a none multipart
+		if request.body != nil { // it's a none multipart
 			request.Raw.Body = io.NopCloser(bytes.NewBuffer(request.body))
 		}
 		var resp *http.Response
@@ -201,6 +204,7 @@ func defaultTransportDialContext(dialer *net.Dialer) func(context.Context, strin
 	return dialer.DialContext
 }
 
+// nolint:ireturn
 func joinMiddlewares(root RoundTripper, mws ...Middleware) RoundTripper {
 	roundTripper := root
 	for i := len(mws) - 1; i >= 0; i-- {

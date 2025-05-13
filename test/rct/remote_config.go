@@ -12,6 +12,7 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
+// nolint:lll
 func Test[T any](t *testing.T, defaultRemoteConfigPath string, remoteConfig T) {
 	require := require.New(t)
 
@@ -56,9 +57,10 @@ func FindTag[T any](v T, tag string) bool {
 		if cur.Kind() == reflect.Ptr {
 			cur = cur.Elem()
 		}
+		// nolint:exhaustive
 		switch cur.Kind() {
 		case reflect.Struct:
-			for i := 0; i < cur.NumField(); i++ {
+			for i := range cur.NumField() {
 				field := cur.Field(i)
 				if field.Tag.Get(tag) != "" {
 					return true

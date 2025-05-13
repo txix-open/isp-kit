@@ -25,7 +25,7 @@ func ErrorHandler(logger log.Logger) http2.Middleware {
 				return err
 			}
 
-			//hide error details to prevent potential security leaks
+			// hide error details to prevent potential security leaks
 			err = Fault{
 				Code:   "Server",
 				String: "internal server error",

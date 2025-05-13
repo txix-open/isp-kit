@@ -13,6 +13,8 @@ type someStruct struct {
 }
 
 func TestJson(t *testing.T) {
+	t.Parallel()
+
 	require := require.New(t)
 
 	s1 := someStruct{

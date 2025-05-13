@@ -23,7 +23,7 @@ func TestStompWatcher_Run(t *testing.T) {
 
 	watcher := consumer.NewWatcher(config)
 
-	err := watcher.Run(context.Background())
+	err := watcher.Run(t.Context())
 
 	require.Error(t, err, "expected error due to invalid stomp address")
 	require.LessOrEqual(t, observer.ErrorCount.Load(), int32(2), "Number of errors should be <= 2")
@@ -43,7 +43,7 @@ func TestStompWatcher_Serve(t *testing.T) {
 
 	watcher := consumer.NewWatcher(config)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	go watcher.Serve(ctx)

@@ -23,6 +23,8 @@ type Book struct {
 }
 
 func TestClient_Invoke(t *testing.T) {
+	t.Parallel()
+
 	test, require := test.New(t)
 	handler := func(ctx context.Context, book Book) (*Book, error) {
 		return &book, nil
@@ -34,7 +36,7 @@ func TestClient_Invoke(t *testing.T) {
 
 	req := Book{Id: 123, Name: "test"}
 	res := Book{}
-	resp, err := cli.Invoke(context.Background(), srv.URL, "test", nil, req)
+	resp, err := cli.Invoke(t.Context(), srv.URL, "test", nil, req)
 	require.NoError(err)
 	require.True(resp.Http.IsSuccess())
 	require.NoError(resp.UnmarshalPayload(&res))
@@ -43,7 +45,7 @@ func TestClient_Invoke(t *testing.T) {
 
 	plainReq := client.PlainXml{Value: []byte("<Book><Id>123</Id><Name>test</Name></Book>")}
 	plainResp := client.PlainXml{}
-	resp, err = cli.Invoke(context.Background(), srv.URL, "test", nil, plainReq)
+	resp, err = cli.Invoke(t.Context(), srv.URL, "test", nil, plainReq)
 	require.NoError(err)
 	require.True(resp.Http.IsSuccess())
 	require.NoError(resp.UnmarshalPayload(&plainResp))
@@ -51,7 +53,7 @@ func TestClient_Invoke(t *testing.T) {
 
 	req = Book{Id: 123, Name: "test"}
 	res = Book{}
-	resp, err = cli.Invoke(context.Background(), srv.URL, "unknown_action", nil, req)
+	resp, err = cli.Invoke(t.Context(), srv.URL, "unknown_action", nil, req)
 	require.NoError(err)
 	require.EqualValues(http.StatusInternalServerError, resp.Http.StatusCode())
 	fault, err := resp.Fault()

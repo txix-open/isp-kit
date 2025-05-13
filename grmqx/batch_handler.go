@@ -18,6 +18,7 @@ func (b BatchHandlerAdapterFunc) Handle(batch []BatchItem) {
 	b(batch)
 }
 
+// nolint:containedctx
 type BatchItem struct {
 	Context  context.Context
 	Delivery *consumer.Delivery
@@ -67,6 +68,14 @@ func (r *BatchHandler) Handle(ctx context.Context, delivery *consumer.Delivery) 
 	}
 }
 
+func (r *BatchHandler) Close() {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	r.closed = true
+	close(r.c)
+}
+
 func (r *BatchHandler) run() {
 	var timer *time.Timer
 	defer func() {
@@ -102,12 +111,4 @@ func (r *BatchHandler) run() {
 		r.adapter.Handle(r.batch)
 		r.batch = nil
 	}
-}
-
-func (r *BatchHandler) Close() {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
-	r.closed = true
-	close(r.c)
 }

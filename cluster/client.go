@@ -278,7 +278,7 @@ func (c *Client) notifyModuleReady(ctx context.Context, cli *clientWrapper, requ
 	return nil
 }
 
-func (c *Client) applyRemoteConfig(ctx context.Context, config []byte) (err error) {
+func (c *Client) applyRemoteConfig(ctx context.Context, config []byte) error {
 	ctx, cancel := context.WithTimeout(ctx, c.eventHandler.handleConfigTimeout)
 	defer cancel()
 

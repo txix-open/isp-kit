@@ -58,7 +58,7 @@ func (c Config) Middleware() http2.Middleware {
 				trace.WithSpanKind(trace.SpanKindServer),
 			}
 
-			spanName := ""
+			var spanName string
 			serverEndpoint := http_metrics.ServerEndpoint(ctx)
 			if serverEndpoint != "" {
 				attributes = append(attributes, semconv.HTTPRouteKey.String(serverEndpoint))
@@ -67,7 +67,7 @@ func (c Config) Middleware() http2.Middleware {
 				spanName = fmt.Sprintf("%s %s", r.Method, r.URL.Path)
 			}
 
-			//TODO some of endpoint exported
+			// TODO some of endpoint exported
 			/*if publicEndpoint {
 				opts = append(opts, trace.WithNewRoot())
 				// Linking incoming span context if any for public endpoint.

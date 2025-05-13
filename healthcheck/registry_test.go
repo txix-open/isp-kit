@@ -2,7 +2,6 @@ package healthcheck_test
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -15,13 +14,15 @@ import (
 	"github.com/txix-open/isp-kit/test/grmqt"
 )
 
+// nolint:bodyclose,noctx
 func TestRegistry(t *testing.T) {
+	t.Parallel()
 	test, require := test.New(t)
 
 	mqTest := grmqt.New(test)
 	cli := grmqx.New(test.Logger())
 	t.Cleanup(cli.Close)
-	err := cli.Upgrade(context.Background(), grmqx.NewConfig(mqTest.ConnectionConfig().Url()))
+	err := cli.Upgrade(t.Context(), grmqx.NewConfig(mqTest.ConnectionConfig().Url()))
 	require.NoError(err)
 
 	registry := healthcheck.NewRegistry()

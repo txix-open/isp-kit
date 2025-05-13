@@ -8,6 +8,7 @@ import (
 	"github.com/txix-open/isp-kit/metrics"
 )
 
+// nolint:interfacebloat
 type MetricStorage interface {
 	ObserveConsumerDials(dials int64)
 	ObserveConsumerFetches(fetches int64)

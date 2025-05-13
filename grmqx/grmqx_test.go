@@ -1,4 +1,4 @@
-package tests
+package grmqx_test
 
 import (
 	"context"
@@ -72,10 +72,10 @@ func TestRequestIdChain(t *testing.T) {
 		grmqx.WithConsumers(consumer1, consumer2),
 		grmqx.WithDeclarations(grmqx.TopologyFromConsumers(consumerCfg1, consumerCfg2)),
 	)
-	err := cli.Upgrade(context.Background(), cfg)
+	err := cli.Upgrade(t.Context(), cfg)
 	require.NoError(err)
 
-	ctx := requestid.ToContext(context.Background(), expectedRequestId)
+	ctx := requestid.ToContext(t.Context(), expectedRequestId)
 	ctx = log.ToContext(ctx, log.String(requestid.LogKey, expectedRequestId))
 	err = pub1.Publish(ctx, &amqp091.Publishing{})
 	require.NoError(err)
@@ -124,7 +124,7 @@ func TestRetry(t *testing.T) {
 	)
 	cli.Upgrade(config)
 
-	err := pub.Publish(context.Background(), &amqp091.Publishing{})
+	err := pub.Publish(t.Context(), &amqp091.Publishing{})
 	require.NoError(err)
 
 	time.Sleep(2 * time.Second)
@@ -162,8 +162,8 @@ func TestBatchHandler(t *testing.T) {
 	)
 	cli.Upgrade(config)
 
-	for i := 0; i < 101; i++ {
-		err := pub.Publish(context.Background(), &amqp091.Publishing{})
+	for range 101 {
+		err := pub.Publish(t.Context(), &amqp091.Publishing{})
 		require.NoError(err)
 	}
 

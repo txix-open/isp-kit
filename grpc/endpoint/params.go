@@ -24,7 +24,7 @@ func AuthDataParam() ParamMapper {
 		Builder: func(ctx context.Context, message *isp.Message) (any, error) {
 			md, ok := metadata.FromIncomingContext(ctx)
 			if !ok {
-				return nil, errors.New("metadata is expected in context")
+				return nil, errors.New("metadata is expected in context") // nolint:err113
 			}
 			return grpc.AuthData(md), nil
 		},

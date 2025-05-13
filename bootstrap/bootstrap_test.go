@@ -1,10 +1,8 @@
 package bootstrap_test
 
 import (
-	"os"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/txix-open/isp-kit/bootstrap"
 	"github.com/txix-open/isp-kit/cluster"
 )
@@ -16,14 +14,8 @@ type RemoteConfig struct {
 }
 
 func TestNew(t *testing.T) {
-	t.Parallel()
-	require := require.New(t)
-
-	err := os.Setenv("APP_CONFIG_PATH", "test_data/config_test.yml")
-	require.NoError(err)
-
-	err = os.Setenv("DefaultRemoteConfigPath", "test_data/default_remote_config_test.json")
-	require.NoError(err)
+	t.Setenv("APP_CONFIG_PATH", "test_data/config_test.yml")
+	t.Setenv("DefaultRemoteConfigPath", "test_data/default_remote_config_test.json")
 
 	_ = bootstrap.New("test", RemoteConfig{}, []cluster.EndpointDescriptor{{
 		Path:             "test/endpoint",

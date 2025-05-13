@@ -1,3 +1,4 @@
+// nolint:ireturn
 package metrics
 
 import (
@@ -10,6 +11,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+)
+
+const (
+	describeChanCapacity      = 512
+	metricsDescriptionTimeout = 1 * time.Second
 )
 
 type Metric interface {
@@ -57,21 +63,27 @@ func (r *Registry) MetricsHandler() http.Handler {
 }
 
 func (r *Registry) MetricsDescriptionHandler() http.Handler {
-	return http.TimeoutHandler(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		writer.Header().Set("content-type", "text/plain")
+	return http.TimeoutHandler(
+		http.HandlerFunc(r.metricsDescriptionHandler),
+		metricsDescriptionTimeout,
+		"timeout",
+	)
+}
 
-		for _, metric := range r.list {
-			c := make(chan *prometheus.Desc, 512)
-			metric.Describe(c)
-			for i := 0; i < len(c); i++ {
-				desc := <-c
-				_, _ = fmt.Fprintf(writer, "%s, type: %T\n", desc, metric)
-			}
+func (r *Registry) metricsDescriptionHandler(writer http.ResponseWriter, request *http.Request) {
+	writer.Header().Set("Content-Type", "text/plain")
+
+	for _, metric := range r.list {
+		c := make(chan *prometheus.Desc, describeChanCapacity)
+		metric.Describe(c)
+		for range len(c) {
+			desc := <-c
+			_, _ = fmt.Fprintf(writer, "%s, type: %T\n", desc, metric)
 		}
-	}), 1*time.Second, "timeout")
+	}
 }
 
 func GetOrRegister[M Metric](registry *Registry, metric M) M {
 	m := registry.GetOrRegister(metric)
-	return m.(M)
+	return m.(M) // nolint:forcetypeassert
 }

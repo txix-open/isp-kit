@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	isphttp "github.com/txix-open/isp-kit/http"
 	"github.com/txix-open/isp-kit/http/apierrors"
@@ -25,6 +26,8 @@ type Response struct {
 }
 
 func TestService(t *testing.T) {
+	t.Parallel()
+
 	url := prepareServer(t)
 	response := Response{}
 
@@ -68,6 +71,8 @@ type endpointDescriptor struct {
 }
 
 func prepareServer(t *testing.T) string {
+	t.Helper()
+
 	logger, err := log.New(log.WithLevel(log.DebugLevel))
 	require.NoError(t, err)
 
@@ -101,7 +106,7 @@ func prepareServer(t *testing.T) string {
 	srv.Upgrade(muxer)
 	go func() {
 		err := srv.Serve(listener)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 	}()
 
 	return listener.Addr().String()

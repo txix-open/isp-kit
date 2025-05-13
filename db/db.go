@@ -51,7 +51,7 @@ func (db *Client) RunInTransaction(ctx context.Context, txFunc TxFunc, opts ...T
 	}
 	defer func() {
 		p := recover()
-		if p != nil { //rollback and repanic
+		if p != nil { // rollback and repanic
 			_ = tx.Rollback()
 			panic(p)
 		}

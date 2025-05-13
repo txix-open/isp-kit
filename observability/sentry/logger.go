@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// nolint:gochecknoglobals
 var (
 	logLevelMapping = map[log.Level]sentry.Level{
 		log.FatalLevel: sentry.LevelFatal,
@@ -144,6 +145,7 @@ func SetException(e *sentry.Event, exception error) {
 			Type:       reflect.TypeOf(err).String(),
 			Stacktrace: sentry.ExtractStacktrace(err),
 		})
+		// nolint:errorlint
 		switch previous := err.(type) {
 		case interface{ Unwrap() error }:
 			err = previous.Unwrap()
@@ -157,6 +159,7 @@ func SetException(e *sentry.Event, exception error) {
 	slices.Reverse(e.Exception)
 }
 
+// nolint:forcetypeassert
 func fieldToAny(field log.Field) any {
 	switch {
 	case field.String != "":
@@ -180,7 +183,7 @@ func fieldToAny(field log.Field) any {
 
 func errorFromField(field log.Field) error {
 	if field.Type == zapcore.ErrorType {
-		return field.Interface.(error)
+		return field.Interface.(error) // nolint:forcetypeassert
 	}
 	return nil
 }

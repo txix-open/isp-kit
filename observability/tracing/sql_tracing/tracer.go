@@ -23,6 +23,7 @@ const (
 
 type contextKey struct{}
 
+// nolint:gochecknoglobals
 var (
 	contextKeyValue = contextKey{}
 )
@@ -39,6 +40,7 @@ func NewTracer(tracer trace.Tracer, config Config) Tracer {
 	}
 }
 
+// nolint:spancheck
 func (t Tracer) TraceQueryStart(ctx context.Context, _ *pgx.Conn, data pgx.TraceQueryStartData) context.Context {
 	label := sql_metrics.OperationLabelFromContext(ctx)
 	if label == "" && strings.HasPrefix(data.SQL, "begin") {

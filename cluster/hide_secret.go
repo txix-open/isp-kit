@@ -8,6 +8,7 @@ import (
 	"github.com/txix-open/isp-kit/json"
 )
 
+// nolint:gochecknoglobals
 var (
 	secretFieldSubstrings = map[string]bool{
 		"password": true,

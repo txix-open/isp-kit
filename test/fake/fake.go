@@ -15,6 +15,7 @@ func MaxSliceSize(value uint) Option {
 	return options.WithRandomMapAndSliceMaxSize(value)
 }
 
+// nolint:ireturn
 func It[T any](opts ...Option) T {
 	allOpts := []Option{
 		MinSliceSize(1),

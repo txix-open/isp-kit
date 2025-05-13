@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/txix-open/isp-kit/grpc"
 	"github.com/txix-open/isp-kit/grpc/apierrors"
@@ -29,9 +30,11 @@ type respBody struct {
 }
 
 func TestGrpcBasic(t *testing.T) {
+	t.Parallel()
+
 	require, srv, cli := prepareTest(t)
 	reqId := requestid.Next()
-	ctx := requestid.ToContext(context.Background(), reqId)
+	ctx := requestid.ToContext(t.Context(), reqId)
 	expectedReq := reqBody{
 		A: "string",
 		B: true,
@@ -66,6 +69,8 @@ func TestGrpcBasic(t *testing.T) {
 }
 
 func TestGrpcValidation(t *testing.T) {
+	t.Parallel()
+
 	require, srv, cli := prepareTest(t)
 
 	type reqBody struct {
@@ -80,7 +85,7 @@ func TestGrpcValidation(t *testing.T) {
 	}))
 	srv.Upgrade(handler)
 
-	err = cli.Invoke("endpoint").JsonRequestBody(reqBody{A: ""}).Do(context.Background())
+	err = cli.Invoke("endpoint").JsonRequestBody(reqBody{A: ""}).Do(t.Context())
 	require.EqualValues(codes.InvalidArgument, status.Code(err))
 	apiError := apierrors.FromError(err)
 	require.NotNil(apiError)
@@ -95,11 +100,13 @@ func TestGrpcValidation(t *testing.T) {
 }
 
 func TestRequestIdChain(t *testing.T) {
+	t.Parallel()
+
 	_, srv1, cli1 := prepareTest(t)
 	require, srv2, cli2 := prepareTest(t)
 
 	reqId := requestid.Next()
-	ctx := requestid.ToContext(context.Background(), reqId)
+	ctx := requestid.ToContext(t.Context(), reqId)
 	callCount := int32(0)
 	handler1 := func(ctx context.Context) {
 		receivedReqId := requestid.FromContext(ctx)
@@ -125,11 +132,13 @@ func TestRequestIdChain(t *testing.T) {
 }
 
 func TestGrpcAppendMetadata(t *testing.T) {
+	t.Parallel()
+
 	require, srv, cli := prepareTest(t)
 	reqId := requestid.Next()
 	testKey := "test-key"
 	testValue := "testValue"
-	ctx := requestid.ToContext(context.Background(), reqId)
+	ctx := requestid.ToContext(t.Context(), reqId)
 
 	handler := func(ctx context.Context, data grpc.AuthData) (*respBody, error) {
 		receivedReqId := requestid.FromContext(ctx)
@@ -162,6 +171,7 @@ func TestGrpcAppendMetadata(t *testing.T) {
 }
 
 func prepareTest(t *testing.T) (*require.Assertions, *grpc.Server, *grpcCli.Client) {
+	t.Helper()
 	required := require.New(t)
 
 	listener, err := net.Listen("tcp", "127.0.0.1:")
@@ -176,7 +186,7 @@ func prepareTest(t *testing.T) (*require.Assertions, *grpc.Server, *grpcCli.Clie
 	})
 	go func() {
 		err := srv.Serve(listener)
-		required.NoError(err)
+		assert.NoError(t, err)
 	}()
 
 	cli.Upgrade([]string{listener.Addr().String()})

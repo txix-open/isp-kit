@@ -11,6 +11,7 @@ import (
 
 type serverEndpointContextKey struct{}
 
+// nolint:gochecknoglobals
 var (
 	serverEndpointContextKeyValue = serverEndpointContextKey{}
 )

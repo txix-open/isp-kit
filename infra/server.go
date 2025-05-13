@@ -12,6 +12,7 @@ type Server struct {
 	s   *http.Server
 }
 
+// nolint:gosec
 func NewServer() *Server {
 	mux := http.NewServeMux()
 	return &Server{

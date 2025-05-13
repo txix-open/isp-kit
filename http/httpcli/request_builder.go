@@ -26,7 +26,12 @@ type RequestBuilder struct {
 	execute func(ctx context.Context, req *RequestBuilder) (*Response, error)
 }
 
-func NewRequestBuilder(method string, url string, cfg *GlobalRequestConfig, execute func(ctx context.Context, req *RequestBuilder) (*Response, error)) *RequestBuilder {
+func NewRequestBuilder(
+	method string,
+	url string,
+	cfg *GlobalRequestConfig,
+	execute func(ctx context.Context, req *RequestBuilder) (*Response, error),
+) *RequestBuilder {
 	builder := &RequestBuilder{
 		method:       method,
 		url:          url,

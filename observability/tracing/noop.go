@@ -15,6 +15,7 @@ func NewNoopProvider() NoopProvider {
 	return NoopProvider{}
 }
 
+// nolint:ireturn
 func (n NoopProvider) Tracer(name string, options ...trace.TracerOption) trace.Tracer {
 	return noop.Tracer{}
 }

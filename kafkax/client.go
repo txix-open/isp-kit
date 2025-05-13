@@ -13,7 +13,9 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-const sendMetricPeriod = 1 * time.Second
+const (
+	sendMetricPeriod = 1 * time.Second
+)
 
 type state struct {
 	publishers []*publisher.Publisher

@@ -41,7 +41,7 @@ func New(config Config) (*Consumer, error) {
 }
 
 func (c *Consumer) Run() error {
-	for i := 0; i < c.Concurrency; i++ {
+	for range c.Concurrency {
 		c.workersWg.Add(1)
 		go c.runWorker()
 	}
@@ -54,26 +54,6 @@ func (c *Consumer) Run() error {
 		return err
 	case <-c.closeConsumer:
 		return nil
-	}
-}
-
-func (c *Consumer) runWorker() {
-	defer c.workersWg.Done()
-
-	for {
-		msg, err := c.sub.Read()
-		if errors.Is(err, stomp.ErrCompletedSubscription) {
-			return
-		}
-		if err != nil {
-			c.Observer.Error(c, err)
-			c.unexpectedErr <- err
-			return
-		}
-
-		c.deliveryWg.Add(1)
-		delivery := NewDelivery(c.deliveryWg, c.conn, msg)
-		c.handler.Handle(context.Background(), delivery)
 	}
 }
 
@@ -99,4 +79,24 @@ func (c *Consumer) Close() error {
 	}
 
 	return nil
+}
+
+func (c *Consumer) runWorker() {
+	defer c.workersWg.Done()
+
+	for {
+		msg, err := c.sub.Read()
+		if errors.Is(err, stomp.ErrCompletedSubscription) {
+			return
+		}
+		if err != nil {
+			c.Observer.Error(c, err)
+			c.unexpectedErr <- err
+			return
+		}
+
+		c.deliveryWg.Add(1)
+		delivery := NewDelivery(c.deliveryWg, c.conn, msg)
+		c.handler.Handle(context.Background(), delivery)
+	}
 }

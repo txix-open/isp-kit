@@ -27,7 +27,7 @@ func (c Client) Invoke(
 	requestBody any,
 ) (*Response, error) {
 	builder := c.cli.Post(url)
-	builder.Header("content-type", soap.ContentType)
+	builder.Header("Content-Type", soap.ContentType)
 	if soapAction != "" {
 		builder.Header(soap.ActionHeader, soapAction)
 	}

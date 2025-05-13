@@ -14,6 +14,7 @@ func NewRequestBody(body []byte) RequestBody {
 	}
 }
 
+// nolint:nonamedreturns
 func (r RequestBody) Read(p []byte) (n int, err error) {
 	return r.body.Read(p)
 }

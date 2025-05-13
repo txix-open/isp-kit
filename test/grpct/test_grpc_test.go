@@ -1,7 +1,6 @@
 package grpct_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/txix-open/isp-kit/test"
@@ -9,12 +8,13 @@ import (
 )
 
 func TestMockServer_Mock(t *testing.T) {
+	t.Parallel()
 	test, require := test.New(t)
 
 	srv, cli := grpct.NewMock(test)
 	srv.Mock("endpoint", func() {
 
 	})
-	err := cli.Invoke("endpoint").Do(context.Background())
+	err := cli.Invoke("endpoint").Do(t.Context())
 	require.NoError(err)
 }

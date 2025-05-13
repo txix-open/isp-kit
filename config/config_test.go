@@ -1,7 +1,6 @@
 package config_test
 
 import (
-	"os"
 	"testing"
 	"time"
 
@@ -27,12 +26,9 @@ type Example struct {
 }
 
 func Test(t *testing.T) {
+	t.Setenv("TEST_EnvOverride", "envoverride")
+	t.Setenv("test_slice.[1].anything", "envoverride")
 	require := require.New(t)
-
-	err := os.Setenv("TEST_EnvOverride", "envoverride")
-	require.NoError(err)
-	err = os.Setenv("test_slice.[1].anything", "envoverride")
-	require.NoError(err)
 
 	cfg, err := config.New(
 		config.WithExtraSource(config.NewYamlConfig("test_data/test.yml")),

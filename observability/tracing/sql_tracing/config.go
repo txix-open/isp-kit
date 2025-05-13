@@ -21,6 +21,7 @@ func NewConfig() Config {
 	}
 }
 
+// nolint:ireturn
 func (c Config) QueryTracer() pgx.QueryTracer {
 	if tracing.IsNoop(c.Provider) {
 		return noop{}

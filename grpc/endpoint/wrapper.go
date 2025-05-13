@@ -70,5 +70,4 @@ func (m Wrapper) WithMiddlewares(middlewares ...grpc.Middleware) Wrapper {
 		BodyMapper:    m.BodyMapper,
 		Middlewares:   append(m.Middlewares, middlewares...),
 	}
-
 }

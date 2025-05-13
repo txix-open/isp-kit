@@ -1,7 +1,6 @@
 package dbx_test
 
 import (
-	"context"
 	"os"
 	"strconv"
 	"testing"
@@ -12,6 +11,8 @@ import (
 )
 
 func TestOpen(t *testing.T) {
+	t.Parallel()
+
 	require := require.New(t)
 	port, err := strconv.Atoi(envOrDefault("PG_PORT", "5432"))
 	require.NoError(err)
@@ -25,10 +26,10 @@ func TestOpen(t *testing.T) {
 			"target_session_attrs": "read-write",
 		},
 	}
-	db, err := dbx.Open(context.Background(), cfg)
+	db, err := dbx.Open(t.Context(), cfg)
 	require.NoError(err)
 	var time time.Time
-	err = db.SelectRow(context.Background(), &time, "select now()")
+	err = db.SelectRow(t.Context(), &time, "select now()")
 	require.NoError(err)
 }
 

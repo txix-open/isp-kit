@@ -16,6 +16,7 @@ type SubStruct struct {
 }
 
 func TestValidateNil(t *testing.T) {
+	t.Parallel()
 	require := require.New(t)
 
 	ok, details := validator.Default.Validate(Struct{})
@@ -29,6 +30,7 @@ func TestValidateNil(t *testing.T) {
 }
 
 func TestValidateArray(t *testing.T) {
+	t.Parallel()
 	require := require.New(t)
 
 	arr := []SubStruct{{
@@ -52,6 +54,7 @@ func TestValidateArray(t *testing.T) {
 }
 
 func TestMap(t *testing.T) {
+	t.Parallel()
 	require := require.New(t)
 
 	m := map[string]SubStruct{
@@ -65,6 +68,8 @@ func TestMap(t *testing.T) {
 }
 
 func TestCompositeDataType(t *testing.T) {
+	t.Parallel()
+
 	require := require.New(t)
 	type s struct {
 		SomeStruct *Struct        `validate:"required"`
@@ -113,6 +118,8 @@ func TestCompositeDataType(t *testing.T) {
 }
 
 func TestOneOf(t *testing.T) {
+	t.Parallel()
+
 	require := require.New(t)
 	type s struct {
 		Int int    `validate:"oneof=5 22 913"`

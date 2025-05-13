@@ -11,6 +11,11 @@ import (
 	"github.com/txix-open/isp-kit/log"
 )
 
+const (
+	defaultDialTimeout    = 5 * time.Second
+	defaultMaxBatchSizeMb = 64
+)
+
 type ConsumerConfig struct {
 	Addresses         []string `validate:"required" schema:"Список адресов брокеров для чтения сообщений"`
 	Topic             string   `validate:"required" schema:"Топик"`
@@ -26,7 +31,7 @@ type ConsumerConfig struct {
 
 func (c ConsumerConfig) GetMaxBatchSizeMb() int {
 	if c.MaxBatchSizeMb <= 0 {
-		return 64
+		return defaultMaxBatchSizeMb
 	}
 
 	return c.MaxBatchSizeMb
@@ -42,30 +47,9 @@ func (c ConsumerConfig) GetCommitInterval() time.Duration {
 
 func (c ConsumerConfig) GetDialTimeout() time.Duration {
 	if c.DialTimeoutMs == nil {
-		return 5 * time.Second
+		return defaultDialTimeout
 	}
 	return time.Duration(*c.DialTimeoutMs) * time.Millisecond
-}
-
-func (c ConsumerConfig) createDialer(mechanismType string) (*kafka.Dialer, error) {
-	saslMechanism, err := setupSASLMechanism(mechanismType, c.Auth)
-	if err != nil {
-		return nil, errors.WithMessage(err, "failed to setup sasl mechanism")
-	}
-
-	tls, err := setupTLS(c.TLS)
-	if err != nil {
-		return nil, errors.WithMessage(err, "failed to setup tls")
-	}
-
-	dialer := &kafka.Dialer{
-		DualStack:     true,
-		Timeout:       c.GetDialTimeout(),
-		SASLMechanism: saslMechanism,
-		TLS:           tls,
-	}
-
-	return dialer, nil
 }
 
 func (c ConsumerConfig) DefaultConsumer(
@@ -120,4 +104,25 @@ func (c ConsumerConfig) DefaultConsumer(
 	)
 
 	return *cons
+}
+
+func (c ConsumerConfig) createDialer(mechanismType string) (*kafka.Dialer, error) {
+	saslMechanism, err := setupSASLMechanism(mechanismType, c.Auth)
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to setup sasl mechanism")
+	}
+
+	tls, err := setupTLS(c.TLS)
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to setup tls")
+	}
+
+	dialer := &kafka.Dialer{
+		DualStack:     true,
+		Timeout:       c.GetDialTimeout(),
+		SASLMechanism: saslMechanism,
+		TLS:           tls,
+	}
+
+	return dialer, nil
 }

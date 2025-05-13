@@ -18,10 +18,13 @@ type Config struct {
 }
 
 func Test(t *testing.T) {
+	t.Parallel()
 	rct.Test(t, "config.json", Config{})
 }
 
 func TestFindTag(t *testing.T) {
+	t.Parallel()
+
 	tag := "validate"
 	assert.True(t, rct.FindTag(Config{}, tag))
 	assert.True(t, rct.FindTag(&Config{}, tag))

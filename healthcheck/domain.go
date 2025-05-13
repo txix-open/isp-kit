@@ -9,6 +9,7 @@ const (
 	StatusFail = "fail"
 )
 
+// nolint:tagliatelle
 type Detail struct {
 	ComponentName string
 	ComponentType string

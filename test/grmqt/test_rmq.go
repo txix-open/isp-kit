@@ -18,6 +18,7 @@ type Client struct {
 	GrmqxCli *grmqx.Client
 }
 
+// nolint:nosprintfhostport,noctx,bodyclose,mnd
 func New(t *test.Test) *Client {
 	host := t.Config().Optional().String("RMQ_HOST", "127.0.0.1")
 	port := t.Config().Optional().Int("RMQ_PORT", 5672)
