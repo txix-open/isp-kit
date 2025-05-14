@@ -47,6 +47,23 @@ func PublisherRequestId() publisher.Middleware {
 	}
 }
 
+type Retrier interface {
+	Do(ctx context.Context, f func() error) error
+}
+
+// PublisherRetry creates a middleware for retrying message publications.
+// It is recommended to use this middleware after logging,
+// to avoid duplicate logging of publication attempts.
+func PublisherRetry(retrier Retrier) publisher.Middleware {
+	return func(next publisher.RoundTripper) publisher.RoundTripper {
+		return publisher.RoundTripperFunc(func(ctx context.Context, exchange string, routingKey string, msg *amqp091.Publishing) error {
+			return retrier.Do(ctx, func() error {
+				return next.Publish(ctx, exchange, routingKey, msg)
+			})
+		})
+	}
+}
+
 type PublisherMetricStorage interface {
 	ObservePublishDuration(exchange string, routingKey string, t time.Duration)
 	ObservePublishMsgSize(exchange string, routingKey string, size int)

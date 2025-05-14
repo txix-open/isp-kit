@@ -49,6 +49,23 @@ func PublisherRequestId() publisher.Middleware {
 	}
 }
 
+type Retrier interface {
+	Do(ctx context.Context, f func() error) error
+}
+
+// PublisherRetry creates a middleware for retrying message publications.
+// It is recommended to use this middleware after logging,
+// to avoid duplicate logging of publication attempts.
+func PublisherRetry(retrier Retrier) publisher.Middleware {
+	return func(next publisher.RoundTripper) publisher.RoundTripper {
+		return publisher.RoundTripperFunc(func(ctx context.Context, queue string, msg *publisher.Message) error {
+			return retrier.Do(ctx, func() error {
+				return next.Publish(ctx, queue, msg)
+			})
+		})
+	}
+}
+
 func ConsumerLog(logger log.Logger, logBody bool) consumer.Middleware {
 	return func(next consumer.Handler) consumer.Handler {
 		return consumer.HandlerFunc(func(ctx context.Context, delivery *consumer.Delivery) {
