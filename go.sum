@@ -163,8 +163,8 @@ github.com/txix-open/bgjob v1.5.0 h1:/ZbHzb3EZDZSzaUxA7xfuYt9CS/hmXC33mJ4Z4Lvkhc
 github.com/txix-open/bgjob v1.5.0/go.mod h1:aKbwpVclWmq82s7fchazp099yWjEpVKFkxT85i4hARM=
 github.com/txix-open/etp/v4 v4.0.1 h1:5VSYgGsvnMz0tvUHsjVWFETI0qWBTCF1O3ARCHaCIgA=
 github.com/txix-open/etp/v4 v4.0.1/go.mod h1:FIu7TUDdwcgmtmF6tFTV1bGA2fRY/iVaPQdsGzvqYc8=
-github.com/txix-open/grmq v1.8.0 h1:YXTruBap7EQZ6WNOhjoFqx/XBYMBhgeYM4mzNkX+bzU=
-github.com/txix-open/grmq v1.8.0/go.mod h1:EyFOP17KrwEFOUjR+PH8iH3LCtiN9TSQ8t0ysyk62po=
+github.com/txix-open/grmq v1.8.1 h1:bcPLuYZXJ+1h9D3w7JYzUTypnQsw9XAT0Ftl/Fu+cZA=
+github.com/txix-open/grmq v1.8.1/go.mod h1:EyFOP17KrwEFOUjR+PH8iH3LCtiN9TSQ8t0ysyk62po=
 github.com/txix-open/jsonschema v1.3.0 h1:XGuOTg22G7PdqfKypjajM20/i5FyGfFYsJKmheebKi4=
 github.com/txix-open/jsonschema v1.3.0/go.mod h1:l8YDZ1nvJrw6uxWowSVOxCV/ebiMJyapffW87ZEqH00=
 github.com/txix-open/validator/v10 v10.0.0-20250506161033-f8ce404fffdb h1:UJgT4u/QMv5QHKOQeJ7igShHa36c2/vIRqJiRLdDlf0=
