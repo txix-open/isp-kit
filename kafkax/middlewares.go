@@ -89,6 +89,9 @@ type Retrier interface {
 	Do(ctx context.Context, f func() error) error
 }
 
+// PublisherRetry creates a middleware for retrying message publications.
+// It is recommended to use this middleware after logging,
+// to avoid duplicate logging of publication attempts.
 func PublisherRetry(retrier Retrier) publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
 		return publisher.RoundTripperFunc(func(ctx context.Context, msgs ...kafka.Message) error {
