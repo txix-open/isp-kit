@@ -61,7 +61,12 @@ func Open(ctx context.Context, config Config, opts ...Option) (*Client, error) {
 	dbCli.SetMaxIdleConns(maxIdleConns)
 	dbCli.SetConnMaxIdleTime(connMaxIdleTimeout)
 
-	if cli.migrationRunner != nil {
+	isReadOnly, err := dbCli.IsReadOnly(ctx)
+	if err != nil {
+		return nil, errors.WithMessage(err, "check is read only connection")
+	}
+
+	if !isReadOnly && cli.migrationRunner != nil {
 		err = cli.migrationRunner.Run(ctx, dbCli.DB.DB)
 		if err != nil {
 			return nil, errors.WithMessage(err, "migration run")
@@ -79,6 +84,26 @@ func createSchema(ctx context.Context, config Config) error {
 	dbCli, err := db.Open(ctx, config.Dsn())
 	if err != nil {
 		return errors.WithMessage(err, "open db")
+	}
+	isReadOnly, err := dbCli.IsReadOnly(ctx)
+	if err != nil {
+		return errors.WithMessage(err, "check is read only connection")
+	}
+	if isReadOnly {
+		query := `
+			SELECT EXISTS (
+				SELECT 1 FROM pg_namespace WHERE nspname = $1
+			)
+		`
+		var exists bool
+		err := dbCli.QueryRowContext(ctx, query, schema).Scan(&exists)
+		if err != nil {
+			return errors.WithMessage(err, "check schema existence")
+		}
+		if !exists {
+			return errors.Errorf("read-only mode: schema '%s' does not exist", schema)
+		}
+		return nil
 	}
 
 	_, err = dbCli.Exec(ctx, fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", schema))
