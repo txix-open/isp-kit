@@ -57,6 +57,7 @@ func (c *Client) Upgrade(ctx context.Context, config dbx.Config) error {
 	tracingConfig.EnableStatement = true
 	opts := append([]dbx.Option{
 		dbx.WithQueryTracer(metricsTracer, tracingConfig.QueryTracer()),
+		dbx.WithCreateSchema(true),
 	}, c.options...)
 
 	newCli, err := dbx.Open(ctx, config, opts...)

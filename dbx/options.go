@@ -19,3 +19,9 @@ func WithQueryTracer(tracers ...pgx.QueryTracer) Option {
 		db.queryTraces = append(db.queryTraces, tracers...)
 	}
 }
+
+func WithCreateSchema(createSchema bool) Option {
+	return func(db *Client) {
+		db.createSchema = createSchema
+	}
+}

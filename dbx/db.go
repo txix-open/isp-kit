@@ -32,6 +32,7 @@ type Client struct {
 
 	migrationRunner MigrationRunner
 	queryTraces     []pgx.QueryTracer
+	createSchema    bool
 }
 
 func Open(ctx context.Context, config Config, opts ...Option) (*Client, error) {
@@ -40,7 +41,8 @@ func Open(ctx context.Context, config Config, opts ...Option) (*Client, error) {
 		opt(cli)
 	}
 
-	if config.Schema != "public" && config.Schema != "" {
+	isCustomSchema := config.Schema != "public" && config.Schema != ""
+	if cli.createSchema && isCustomSchema {
 		err := createSchema(ctx, config)
 		if err != nil {
 			return nil, errors.WithMessage(err, "create schema")
@@ -64,6 +66,13 @@ func Open(ctx context.Context, config Config, opts ...Option) (*Client, error) {
 	isReadOnly, err := dbCli.IsReadOnly(ctx)
 	if err != nil {
 		return nil, errors.WithMessage(err, "check is read only connection")
+	}
+
+	if isCustomSchema {
+		err := checkSchemaExistence(ctx, config.Schema, dbCli)
+		if err != nil {
+			return nil, errors.WithMessage(err, "check schema existence")
+		}
 	}
 
 	if !isReadOnly && cli.migrationRunner != nil {
@@ -90,19 +99,6 @@ func createSchema(ctx context.Context, config Config) error {
 		return errors.WithMessage(err, "check is read only connection")
 	}
 	if isReadOnly {
-		query := `
-			SELECT EXISTS (
-				SELECT 1 FROM pg_namespace WHERE nspname = $1
-			)
-		`
-		var exists bool
-		err := dbCli.QueryRowContext(ctx, query, schema).Scan(&exists)
-		if err != nil {
-			return errors.WithMessage(err, "check schema existence")
-		}
-		if !exists {
-			return errors.Errorf("read-only mode: schema '%s' does not exist", schema)
-		}
 		return nil
 	}
 
@@ -114,6 +110,21 @@ func createSchema(ctx context.Context, config Config) error {
 	err = dbCli.Close()
 	if err != nil {
 		return errors.WithMessage(err, "close db")
+	}
+	return nil
+}
+
+func checkSchemaExistence(ctx context.Context, schema string, dbCli *db.Client) error {
+	query := `SELECT EXISTS (
+		SELECT 1 FROM pg_namespace WHERE nspname = $1
+	)`
+	var exists bool
+	err := dbCli.QueryRowContext(ctx, query, schema).Scan(&exists)
+	if err != nil {
+		return errors.WithMessage(err, "check schema existence")
+	}
+	if !exists {
+		return errors.Errorf("schema '%s' does not exist", schema)
 	}
 	return nil
 }
