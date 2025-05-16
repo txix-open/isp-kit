@@ -35,24 +35,22 @@ type Client struct {
 	createSchema    bool
 }
 
-func Open(ctx context.Context, config Config, opts ...Option) (*Client, error) {
-	cli := &Client{}
+// nolint:cyclop,nonamedreturns
+func Open(ctx context.Context, config Config, opts ...Option) (cli *Client, err error) {
+	cli = &Client{}
 	for _, opt := range opts {
 		opt(cli)
-	}
-
-	isCustomSchema := config.Schema != "public" && config.Schema != ""
-	if cli.createSchema && isCustomSchema {
-		err := createSchema(ctx, config)
-		if err != nil {
-			return nil, errors.WithMessage(err, "create schema")
-		}
 	}
 
 	dbCli, err := db.Open(ctx, config.Dsn(), db.WithQueryTracer(cli.queryTraces...))
 	if err != nil {
 		return nil, errors.WithMessage(err, "open db")
 	}
+	defer func() {
+		if err != nil {
+			_ = dbCli.Close()
+		}
+	}()
 
 	maxOpenConn := defaultMaxOpenConn
 	if config.MaxOpenConn > 0 {
@@ -68,8 +66,16 @@ func Open(ctx context.Context, config Config, opts ...Option) (*Client, error) {
 		return nil, errors.WithMessage(err, "check is read only connection")
 	}
 
+	isCustomSchema := config.Schema != "public" && config.Schema != ""
+	if !isReadOnly && cli.createSchema && isCustomSchema {
+		_, err = dbCli.Exec(ctx, fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", config.Schema))
+		if err != nil {
+			return nil, errors.WithMessage(err, "exec create schema query")
+		}
+	}
+
 	if isCustomSchema {
-		err := checkSchemaExistence(ctx, config.Schema, dbCli)
+		err = checkSchemaExistence(ctx, config.Schema, dbCli)
 		if err != nil {
 			return nil, errors.WithMessage(err, "check schema existence")
 		}
@@ -84,32 +90,6 @@ func Open(ctx context.Context, config Config, opts ...Option) (*Client, error) {
 
 	cli.Client = dbCli
 	return cli, nil
-}
-
-func createSchema(ctx context.Context, config Config) error {
-	schema := config.Schema
-
-	config.Schema = ""
-	dbCli, err := db.Open(ctx, config.Dsn())
-	if err != nil {
-		return errors.WithMessage(err, "open db")
-	}
-	isReadOnly, err := dbCli.IsReadOnly(ctx)
-	if err != nil {
-		return errors.WithMessage(err, "check is read only connection")
-	}
-	if !isReadOnly {
-		_, err = dbCli.Exec(ctx, fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", schema))
-		if err != nil {
-			return errors.WithMessage(err, "exec query")
-		}
-	}
-
-	err = dbCli.Close()
-	if err != nil {
-		return errors.WithMessage(err, "close db")
-	}
-	return nil
 }
 
 func checkSchemaExistence(ctx context.Context, schema string, dbCli *db.Client) error {
