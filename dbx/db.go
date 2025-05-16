@@ -98,13 +98,11 @@ func createSchema(ctx context.Context, config Config) error {
 	if err != nil {
 		return errors.WithMessage(err, "check is read only connection")
 	}
-	if isReadOnly {
-		return nil
-	}
-
-	_, err = dbCli.Exec(ctx, fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", schema))
-	if err != nil {
-		return errors.WithMessage(err, "exec query")
+	if !isReadOnly {
+		_, err = dbCli.Exec(ctx, fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", schema))
+		if err != nil {
+			return errors.WithMessage(err, "exec query")
+		}
 	}
 
 	err = dbCli.Close()
