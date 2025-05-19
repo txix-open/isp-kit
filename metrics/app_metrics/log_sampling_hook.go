@@ -17,7 +17,7 @@ type LogCounter struct {
 }
 
 func NewLogCounter(registry *metrics.Registry) LogCounter {
-	counter := metrics.GetOrRegister[*prometheus.CounterVec](
+	counter := metrics.GetOrRegister(
 		registry,
 		prometheus.NewCounterVec(prometheus.CounterOpts{
 			Subsystem: "app",
