@@ -57,11 +57,20 @@ func (c *Client) Upgrade(ctx context.Context, config dbx.Config) error {
 	tracingConfig.EnableStatement = true
 	opts := append([]dbx.Option{
 		dbx.WithQueryTracer(metricsTracer, tracingConfig.QueryTracer()),
+		dbx.WithCreateSchema(true),
 	}, c.options...)
 
 	newCli, err := dbx.Open(ctx, config, opts...)
 	if err != nil {
 		return errors.WithMessage(err, "open new client")
+	}
+
+	readOnly, err := newCli.IsReadOnly(ctx)
+	if err != nil {
+		return errors.WithMessage(err, "check is new cli read only")
+	}
+	if readOnly {
+		c.logger.Info(ctx, "db client: connection is in read-only mode")
 	}
 
 	oldCli := c.cli.Swap(newCli)

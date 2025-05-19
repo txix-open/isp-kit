@@ -88,3 +88,12 @@ func (db *Client) Exec(ctx context.Context, query string, args ...any) (sql.Resu
 func (db *Client) ExecNamed(ctx context.Context, query string, arg any) (sql.Result, error) {
 	return db.NamedExecContext(ctx, query, arg)
 }
+
+func (db *Client) IsReadOnly(ctx context.Context) (bool, error) {
+	var isReadOnly string
+	err := db.QueryRowContext(ctx, "SHOW transaction_read_only").Scan(&isReadOnly)
+	if err != nil {
+		return false, err
+	}
+	return isReadOnly == "on", nil
+}

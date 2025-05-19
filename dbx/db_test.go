@@ -26,7 +26,7 @@ func TestOpen(t *testing.T) {
 			"target_session_attrs": "read-write",
 		},
 	}
-	db, err := dbx.Open(t.Context(), cfg)
+	db, err := dbx.Open(t.Context(), cfg, dbx.WithCreateSchema(true))
 	require.NoError(err)
 	var time time.Time
 	err = db.SelectRow(t.Context(), &time, "select now()")
