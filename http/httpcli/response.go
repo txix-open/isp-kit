@@ -23,11 +23,11 @@ var (
 	ReadingResponseMetricHookKey = ReadingResponseMetricHook{}
 )
 
-// Body
+// UnsafeBody
 // Read and return full response body
 // Be careful, after calling Close returned data is no longer available
 // Do not call close or copy slice if you want to use data outside the calling function
-func (r *Response) Body() ([]byte, error) {
+func (r *Response) UnsafeBody() ([]byte, error) {
 	if r.err != nil {
 		return nil, r.err
 	}
@@ -82,7 +82,7 @@ func (r *Response) StatusCode() int {
 // Return copy of response body
 // Slice is available after calling Close
 func (r *Response) BodyCopy() ([]byte, error) {
-	body, err := r.Body()
+	body, err := r.UnsafeBody()
 	if err != nil {
 		return nil, err
 	}

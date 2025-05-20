@@ -150,7 +150,7 @@ func (c *Client) Execute(ctx context.Context, builder *RequestBuilder) (*Respons
 	}
 
 	if resp.IsSuccess() && builder.responseBody != nil {
-		body, err := resp.Body()
+		body, err := resp.UnsafeBody()
 		if err != nil {
 			return nil, err
 		}
