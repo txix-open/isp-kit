@@ -17,7 +17,7 @@ func (r *Response) Close() {
 }
 
 func (r *Response) UnmarshalPayload(responseBody any) error {
-	resBody, err := r.Http.Body()
+	resBody, err := r.Http.UnsafeBody()
 	if err != nil {
 		return errors.WithMessage(err, "read response body")
 	}
@@ -42,7 +42,7 @@ func (r *Response) UnmarshalPayload(responseBody any) error {
 }
 
 func (r *Response) Fault() (*soap.Fault, error) {
-	resBody, err := r.Http.Body()
+	resBody, err := r.Http.UnsafeBody()
 	if err != nil {
 		return nil, errors.WithMessage(err, "read response body")
 	}
