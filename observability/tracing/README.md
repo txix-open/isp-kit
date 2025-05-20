@@ -50,6 +50,7 @@
 
 Интерфейс трассировщика, поддерживающий корректное завершение сессии через `Shutdown()`.
 
+**Methods:**
 #### `func NewProviderFromConfiguration(ctx context.Context, logger log.Logger, config Config) (Provider, error)`
 
 Создаёт и возвращает `TracerProvider` на основе переданной конфигурации. Возвращает `NoopProvider`, если `Enable == false`.

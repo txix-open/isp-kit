@@ -4,13 +4,9 @@
 
 ## Types
 
-### `ConsumerStorage`
+### ConsumerStorage
 
 Хранилище метрик Kafka-потребителя.
-
-#### `func NewConsumerStorage(reg *metrics.Registry) *ConsumerStorage`
-
-Создаёт новое хранилище метрик для Kafka-потребителя.
 
 **Metrics:**
 
@@ -32,6 +28,10 @@
 
 **Methods:**
 
+#### `func NewConsumerStorage(reg *metrics.Registry) *ConsumerStorage`
+
+Создаёт новое хранилище метрик для Kafka-потребителя.
+
 #### `func (c *ConsumerStorage) ObserveConsumeDuration(consumerGroup, topic string, t time.Duration)`
 
 Регистрирует задержку обработки одного сообщения.
@@ -48,7 +48,7 @@
 
 Увеличивает счётчик ретраев сообщений.
 
-### `PublisherStorage`
+### PublisherStorage
 
 Хранилище метрик Kafka-публикатора.
 

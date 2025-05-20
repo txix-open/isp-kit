@@ -4,13 +4,9 @@
 
 ## Types
 
-### `ClientStorage`
+### ClientStorage
 
 Хранилище метрик HTTP-клиента.
-
-#### `func NewClientStorage(reg *metrics.Registry) *ClientStorage`
-
-Создаёт новое хранилище метрик для HTTP-клиента.
 
 **Metrics:**
 
@@ -43,6 +39,10 @@
 Счётчик ошибок клиента.
 
 **Methods:**
+
+#### `func NewClientStorage(reg *metrics.Registry) *ClientStorage`
+
+Создаёт новое хранилище метрик для HTTP-клиента.
 
 #### `func (s *ClientStorage) ObserveDuration(endpoint string, duration time.Duration)`
 
@@ -80,13 +80,9 @@
 
 Извлекает endpoint клиента из контекста.
 
-### `ServerStorage`
+### ServerStorage
 
 Хранилище метрик HTTP-сервера
-
-#### `func NewServerStorage(reg *metrics.Registry) *ServerStorage`
-
-Создаёт новое хранилище метрик для HTTP-сервера.
 
 **Metrics:**
 
@@ -107,6 +103,10 @@
 Счётчик HTTP-кодов.
 
 **Methods:**
+
+#### `func NewServerStorage(reg *metrics.Registry) *ServerStorage`
+
+Создаёт новое хранилище метрик для HTTP-сервера.
 
 #### `func (s *ServerStorage) ObserveDuration(method string, endpoint string, duration time.Duration)`
 

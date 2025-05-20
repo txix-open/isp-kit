@@ -10,37 +10,37 @@
 
 **Fields:**
 
-#### **Enable**
+#### `Enable bool`
 
 Флаг включения Sentry.
 
-#### **Dsn**
+#### `Dsn string`
 
 DSN Sentry.
 
-#### **ModuleName**
+#### `ModuleName string`
 
 Имя сервиса/модуля.
 
-#### **ModuleVersion**
+#### `ModuleVersion string`
 
 Версия модуля.
 
-#### **Environment**
+#### `Environment string`
 
 Окружение (например, `prod`, `dev`).
 
-#### **InstanceId**
+#### `InstanceId string`
 
 Уникальный ID инстанса.
 
-#### **Tags**
+#### `Tags map[string]string`
 
 Дополнительные произвольные теги.
 
 ### Hub
 
-Интерфейс `Hub` для отправки ошибок и событий:
+Интерфейс `Hub` для отправки ошибок и событий.
 
 **Methods:**
 
@@ -122,5 +122,3 @@ hub.CatchError(ctx, err, log.LevelError)
 ```
 
 Ошибка будет автоматически дополнена `requestId` и пользовательскими полями из `EnrichEvent`.
-
----

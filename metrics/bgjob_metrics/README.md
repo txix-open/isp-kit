@@ -6,7 +6,7 @@
 
 ## Types
 
-### `Storage`
+### Storage
 
 Структура, содержащая все необходимые метрики:
 
@@ -30,11 +30,11 @@
 
 Количество внутренних ошибок воркера.
 
-### `func NewStorage(reg *metrics.Registry) *Storage`
+**Methods:**
+
+#### `func NewStorage(reg *metrics.Registry) *Storage`
 
 Создаёт экземпляр `Storage`, регистрируя соответствующие метрики в Prometheus.
-
-**Methods:**
 
 #### `ObserveExecuteDuration(queue, jobType string, duration time.Duration)`
 

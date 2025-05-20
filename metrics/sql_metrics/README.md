@@ -4,13 +4,9 @@
 
 ## Types
 
-### `QueryDurationMetrics`
+### QueryDurationMetrics
 
 Хранилище метрик времени выполнения SQL-запросов.
-
-#### `func NewTracer(reg *metrics.Registry) QueryDurationMetrics`
-
-Создаёт новое хранилище метрик SQL-запросов.
 
 **Metrics:**
 
@@ -19,6 +15,10 @@
 Продолжительность выполнения SQL-запроса, метрика `summary` с лейблом `operation`.
 
 **Methods:**
+
+#### `func NewTracer(reg *metrics.Registry) QueryDurationMetrics`
+
+Создаёт новое хранилище метрик SQL-запросов.
 
 #### `func (m QueryDurationMetrics) TraceQueryStart(ctx context.Context, conn *pgx.Conn, data pgx.TraceQueryStartData) context.Context`
 

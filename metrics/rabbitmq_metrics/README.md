@@ -4,7 +4,7 @@
 
 ## Types
 
-### `ConsumerStorage`
+### ConsumerStorage
 
 Хранилище метрик потребления сообщений.
 
@@ -64,13 +64,9 @@
 
 Увеличивает счётчик повторных попыток обработки.
 
-### `PublisherStorage`
+### PublisherStorage
 
 Хранилище метрик публикации сообщений.
-
-#### `func NewPublisherStorage(reg *metrics.Registry) *PublisherStorage`
-
-Создаёт новое хранилище метрик для публикации сообщений в RabbitMQ.
 
 **Metrics:**
 
@@ -87,6 +83,10 @@
 Количество ошибок при публикации.
 
 **Methods:**
+
+#### `func NewPublisherStorage(reg *metrics.Registry) *PublisherStorage`
+
+Создаёт новое хранилище метрик для публикации сообщений в RabbitMQ.
 
 #### `func (c *PublisherStorage) ObservePublishDuration(exchange string, routingKey string, duration time.Duration)`
 

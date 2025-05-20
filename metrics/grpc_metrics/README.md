@@ -4,13 +4,9 @@
 
 ## Types
 
-### `ClientStorage`
+### ClientStorage
 
 Хранилище метрик GRPC-клиента.
-
-#### `func NewClientStorage(reg *metrics.Registry) *ClientStorage`
-
-Создаёт и регистрирует метрику `client_request_duration_ms` с лейблом `endpoint` в переданном реестре.
 
 **Metrics:**
 
@@ -20,17 +16,17 @@
 
 **Methods:**
 
+#### `func NewClientStorage(reg *metrics.Registry) *ClientStorage`
+
+Создаёт и регистрирует метрику `client_request_duration_ms` с лейблом `endpoint` в переданном реестре.
+
 #### `func (s *ClientStorage) ObserveDuration(endpoint string, duration time.Duration)`
 
 Регистрирует длительность GRPC-вызова для заданного `endpoint`.
 
-### `ServerStorage`
+### ServerStorage
 
 Хранилище метрик GRPC-сервера.
-
-#### `func NewServerStorage(reg *metrics.Registry) *ServerStorage`
-
-Создаёт и регистрирует все метрики сервера с нужными лейблами в переданном реестре.
 
 **Metrics:**
 
@@ -51,6 +47,10 @@
 Количество ответов по статус-кодам (`OK`, `InvalidArgument`, и т.д.).
 
 **Methods:**
+
+#### `func NewServerStorage(reg *metrics.Registry) *ServerStorage`
+
+Создаёт и регистрирует все метрики сервера с нужными лейблами в переданном реестре.
 
 #### `func (s *ServerStorage) ObserveDuration(endpoint string, duration time.Duration)`
 
