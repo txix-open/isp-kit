@@ -130,7 +130,7 @@ func Log(logger log.Logger) httpcli.Middleware {
 			}
 
 			if config.LogResponseBody {
-				responseBody, _ := resp.Body()
+				responseBody, _ := resp.UnsafeBody()
 				responseFields = append(responseFields, log.ByteString("responseBody", responseBody))
 			}
 

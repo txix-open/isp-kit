@@ -298,7 +298,7 @@ func TestRequestBuilder_MultipartData(t *testing.T) {
 
 	expected, err := os.ReadFile("test_data/multipart.json")
 	require.NoError(err)
-	actual, err := resp.Body()
+	actual, err := resp.UnsafeBody()
 	require.NoError(err)
 	require.Equal(expected, actual)
 }
@@ -342,7 +342,7 @@ func TestConcurrency(t *testing.T) {
 					if err != nil {
 						return err
 					}
-					_, err = response.Body()
+					_, err = response.UnsafeBody()
 					if err != nil {
 						return err
 					}
