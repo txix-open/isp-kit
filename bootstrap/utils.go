@@ -1,9 +1,7 @@
 package bootstrap
 
 import (
-	"context"
 	json2 "encoding/json"
-	"fmt"
 	"net"
 	"os"
 	"path"
@@ -13,7 +11,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/app"
 	"github.com/txix-open/isp-kit/config"
-	"github.com/txix-open/isp-kit/infra"
 	"github.com/txix-open/isp-kit/json"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/log/file"
@@ -109,27 +106,6 @@ func relativePathFromBin(part string) (string, error) {
 		return "", errors.WithMessage(err, "get executable path")
 	}
 	return path.Join(path.Dir(ex), part), nil
-}
-
-func infraServer(localConfig LocalConfig, application *app.Application) *infra.Server {
-	infraServer := infra.NewServer()
-	infraServerPort := localConfig.GrpcInnerAddress.Port + 1
-	if localConfig.InfraServerPort != 0 {
-		infraServerPort = localConfig.InfraServerPort
-	}
-	infraServerAddress := fmt.Sprintf(":%d", infraServerPort)
-	application.AddRunners(app.RunnerFunc(func(ctx context.Context) error {
-		application.Logger().Info(ctx, "run infra server", log.String("infraServerAddress", infraServerAddress))
-		err := infraServer.ListenAndServe(infraServerAddress)
-		if err != nil {
-			return errors.WithMessagef(err, "run infra server on %s", infraServerAddress)
-		}
-		return nil
-	}))
-	application.AddClosers(app.CloserFunc(func() error {
-		return infraServer.Shutdown()
-	}))
-	return infraServer
 }
 
 func localConfig(config *config.Config) (*LocalConfig, error) {
