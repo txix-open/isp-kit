@@ -7,6 +7,7 @@ import (
 	"path"
 	"runtime/debug"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/app"
@@ -18,6 +19,18 @@ import (
 	"github.com/txix-open/isp-kit/metrics/app_metrics"
 	"github.com/txix-open/isp-kit/validator"
 	"go.uber.org/zap/zapcore"
+)
+
+const (
+	postShutdownWait = 500 * time.Millisecond
+
+	defaultLogFileMaxSizeMb  = 512
+	defaultLogFileMaxBackups = 4
+	defaultLogFileCompress   = true
+
+	defaultEnableLogSampling       = false
+	defaultMaxLogSamplingPerSecond = 1000
+	defaulLogtSamplingPassEvery    = 100
 )
 
 func parseConfigServiceHosts(cfg ConfigServiceAddr) ([]string, error) {
