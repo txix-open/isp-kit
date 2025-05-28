@@ -2,14 +2,10 @@ package bootstrap
 
 import (
 	"context"
-	json2 "encoding/json"
 	"fmt"
 	stdlog "log"
-	"maps"
 	"net"
 	"os"
-	"path"
-	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
@@ -17,37 +13,27 @@ import (
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/app"
 	"github.com/txix-open/isp-kit/cluster"
-	"github.com/txix-open/isp-kit/config"
 	"github.com/txix-open/isp-kit/healthcheck"
 	"github.com/txix-open/isp-kit/infra"
 	"github.com/txix-open/isp-kit/infra/pprof"
 	"github.com/txix-open/isp-kit/json"
 	"github.com/txix-open/isp-kit/log"
-	"github.com/txix-open/isp-kit/log/file"
 	"github.com/txix-open/isp-kit/metrics"
-	"github.com/txix-open/isp-kit/metrics/app_metrics"
 	"github.com/txix-open/isp-kit/observability/sentry"
 	"github.com/txix-open/isp-kit/observability/tracing"
 	"github.com/txix-open/isp-kit/rc"
 	"github.com/txix-open/isp-kit/validator"
-	"go.uber.org/zap/zapcore"
 )
 
-const (
-	postShutdownWait = 500 * time.Millisecond
-
-	defaultLogFileMaxSizeMb  = 512
-	defaultLogFileMaxBackups = 4
-	defaultLogFileCompress   = true
-
-	defaultEnableLogSampling       = false
-	defaultMaxLogSamplingPerSecond = 1000
-	defaulLogtSamplingPassEvery    = 100
-)
+type ClusterClient interface {
+	Run(ctx context.Context, eventHandler *cluster.EventHandler) error
+	Close() error
+	Healthcheck(ctx context.Context) error
+}
 
 type Bootstrap struct {
 	App                 *app.Application
-	ClusterCli          *cluster.Client
+	ClusterCli          ClusterClient
 	RemoteConfig        *rc.Config
 	MetricsRegistry     *metrics.Registry
 	InfraServer         *infra.Server
@@ -99,7 +85,13 @@ func New(moduleVersion string, remoteConfig any, endpoints []cluster.EndpointDes
 	return boot
 }
 
-// nolint:funlen
+func (b *Bootstrap) Fatal(err error) {
+	b.SentryHub.CatchError(b.App.Context(), err, log.FatalLevel)
+	b.App.Close()
+	time.Sleep(postShutdownWait)
+	b.App.Logger().Fatal(context.Background(), err)
+}
+
 func bootstrap(
 	isDev bool,
 	application *app.Application,
@@ -109,52 +101,24 @@ func bootstrap(
 	remoteConfig any,
 	endpoints []cluster.EndpointDescriptor,
 ) (*Bootstrap, error) {
-	configServiceHosts, err := parseConfigServiceHosts(localConfig.ConfigServiceAddress)
+	broadcastHost, err := resolveBroadcastHost(localConfig)
 	if err != nil {
-		return nil, errors.WithMessage(err, "parse config service hosts")
+		return nil, err
 	}
 
-	broadcastHost := localConfig.GrpcOuterAddress.IP
-	if broadcastHost == "" {
-		broadcastHost, err = resolveHost(configServiceHosts[0])
-		if err != nil {
-			return nil, errors.WithMessage(err, "resolve local host")
-		}
-	}
-
-	moduleInfo := cluster.ModuleInfo{
-		ModuleName:    localConfig.ModuleName,
-		ModuleVersion: moduleVersion,
-		LibVersion:    kitVersion(),
-		GrpcOuterAddress: cluster.AddressConfiguration{
-			IP:   broadcastHost,
-			Port: strconv.Itoa(localConfig.GrpcOuterAddress.Port),
-		},
-		Endpoints:            endpoints,
-		MetricsAutodiscovery: metricsServiceDiscovery(localConfig, broadcastHost),
-	}
-
-	schema := rc.GenerateConfigSchema(remoteConfig)
-	schemaData, err := json.Marshal(schema)
-	if err != nil {
-		return nil, errors.WithMessage(err, "marshal schema")
-	}
-	defaultConfig, err := readDefaultRemoteConfig(isDev, localConfig)
-	if err != nil {
-		return nil, errors.WithMessage(err, "read default remote config")
-	}
-	configData := cluster.ConfigData{
-		Version: moduleVersion,
-		Schema:  schemaData,
-		Config:  defaultConfig,
-	}
-
-	clusterCli := cluster.NewClient(
-		moduleInfo,
-		configData,
-		configServiceHosts,
-		sentry.WrapErrorLogger(application.Logger(), sentryHub),
+	wrappedLogger := sentry.WrapErrorLogger(application.Logger(), sentryHub)
+	clusterCli, err := initClusterClient(
+		isDev,
+		localConfig,
+		remoteConfig,
+		moduleVersion,
+		broadcastHost,
+		endpoints,
+		wrappedLogger,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	rc := rc.New(validator.Default, []byte(localConfig.RemoteConfigOverride))
 
@@ -165,57 +129,35 @@ func bootstrap(
 		return nil, errors.WithMessage(err, "resolve migrations dir path")
 	}
 
-	healthcheckRegistry := healthcheck.NewRegistry()
-	healthcheckRegistry.Register("configServiceConnection", clusterCli)
-
-	infraServer := infraServer(localConfig, application)
-	metricsRegistry := metrics.DefaultRegistry
-	infraServer.Handle("/internal/metrics", metricsRegistry.MetricsHandler())
-	infraServer.Handle("/internal/metrics/descriptions", metricsRegistry.MetricsDescriptionHandler())
-	infraServer.Handle("/internal/health", healthcheckRegistry.Handler())
-	pprof.RegisterHandlers("/internal", infraServer)
-	application.Logger().Info(application.Context(),
-		"infra server handlers",
-		log.Any("infraServerHandlers", append([]string{
-			"/internal/metrics",
-			"/internal/metrics/descriptions",
-			"/internal/health",
-		}, pprof.Endpoints("/internal")...)),
+	infraServer, metricsRegistry, healthcheckRegistry := initInfra(
+		application,
+		localConfig,
+		clusterCli,
 	)
 
-	application.AddClosers(app.CloserFunc(func() error {
-		sentryHub.Flush()
-		return nil
-	}))
-
-	tracingConfig := tracing.Config{
-		Enable:        localConfig.Observability.Tracing.Enable,
-		Address:       localConfig.Observability.Tracing.Address,
-		ModuleName:    localConfig.ModuleName,
-		ModuleVersion: moduleVersion,
-		Environment:   localConfig.Observability.Tracing.Environment,
-		InstanceId:    localConfig.GrpcOuterAddress.IP,
-		Attributes:    localConfig.Observability.Tracing.Attributes,
-	}
-	tracingProvider, err := tracing.NewProviderFromConfiguration(
+	tracingProvider := initTracing(
 		application.Context(),
+		sentryHub,
+		localConfig,
+		moduleVersion,
+		broadcastHost,
 		application.Logger(),
-		tracingConfig,
 	)
-	if err != nil {
-		err = errors.WithMessage(err, "new tracing provider, tracing will be disabled")
-		sentryHub.CatchError(application.Context(), err, log.ErrorLevel)
-		application.Logger().Error(application.Context(), err)
-		tracingProvider = tracing.NewNoopProvider()
-	}
 	tracing.DefaultProvider = tracingProvider
-	application.AddClosers(app.CloserFunc(func() error {
-		err := tracingProvider.Shutdown(context.Background())
-		if err != nil {
-			return errors.WithMessage(err, "shutdown tracing provider")
-		}
-		return nil
-	}))
+
+	application.AddClosers(
+		app.CloserFunc(func() error {
+			sentryHub.Flush()
+			return nil
+		}),
+		app.CloserFunc(func() error {
+			err := tracingProvider.Shutdown(context.Background())
+			if err != nil {
+				return errors.WithMessage(err, "shutdown tracing provider")
+			}
+			return nil
+		}),
+	)
 
 	return &Bootstrap{
 		App:                 application,
@@ -232,141 +174,153 @@ func bootstrap(
 	}, nil
 }
 
-func (b *Bootstrap) Fatal(err error) {
-	b.SentryHub.CatchError(b.App.Context(), err, log.FatalLevel)
-	b.App.Close()
-	time.Sleep(postShutdownWait)
-	b.App.Logger().Fatal(context.Background(), err)
-}
-
-func parseConfigServiceHosts(cfg ConfigServiceAddr) ([]string, error) {
-	hosts := strings.Split(cfg.IP, ";")
-	ports := strings.Split(cfg.Port, ";")
-	if len(hosts) != len(ports) {
-		return nil, errors.New("len(hosts) != len(ports)")
+func resolveBroadcastHost(localConfig LocalConfig) (string, error) {
+	if localConfig.GrpcOuterAddress.IP != "" {
+		return localConfig.GrpcOuterAddress.IP, nil
 	}
-	arr := make([]string, 0)
-	for i, host := range hosts {
-		arr = append(arr, net.JoinHostPort(host, ports[i]))
-	}
-	return arr, nil
-}
-
-func resolveHost(target string) (string, error) {
-	conn, err := net.Dial("udp", target)
+	hosts, err := parseConfigServiceHosts(localConfig.ConfigServiceAddress)
 	if err != nil {
-		return "", errors.WithMessage(err, "net dial udp")
+		return "", errors.WithMessage(err, "parse config service hosts")
 	}
-	defer conn.Close()
-
-	return conn.LocalAddr().(*net.UDPAddr).IP.To4().String(), nil // nolint:forcetypeassert
-}
-
-func readDefaultRemoteConfig(isDev bool, cfg LocalConfig) (json2.RawMessage, error) {
-	path, err := defaultRemoteConfigPath(isDev, cfg)
+	broadcastHost, err := resolveHost(hosts[0])
 	if err != nil {
-		return nil, errors.WithMessage(err, "resolve path")
+		return "", errors.WithMessage(err, "resolve local host")
 	}
+	return broadcastHost, nil
+}
 
-	data, err := os.ReadFile(path)
+func prepareConfigData(isDev bool, localConfig LocalConfig, remoteConfig any, version string) (cluster.ConfigData, error) {
+	schema := rc.GenerateConfigSchema(remoteConfig)
+	schemaData, err := json.Marshal(schema)
 	if err != nil {
-		return nil, errors.WithMessage(err, "read file")
+		return cluster.ConfigData{}, errors.WithMessage(err, "marshal schema")
 	}
-
-	remoteConfig := json2.RawMessage{}
-	err = json.Unmarshal(data, &remoteConfig)
+	defaultConfig, err := readDefaultRemoteConfig(isDev, localConfig)
 	if err != nil {
-		return nil, errors.WithMessage(err, "unmarshal json")
+		return cluster.ConfigData{}, errors.WithMessage(err, "read default remote config")
 	}
-
-	return remoteConfig, nil
+	return cluster.ConfigData{
+		Version: version,
+		Schema:  schemaData,
+		Config:  defaultConfig,
+	}, nil
 }
 
-func defaultRemoteConfigPath(isDev bool, cfg LocalConfig) (string, error) {
-	if cfg.DefaultRemoteConfigPath != "" {
-		return cfg.DefaultRemoteConfigPath, nil
+func initClusterClient(
+	isDev bool,
+	localConfig LocalConfig,
+	remoteConfig any,
+	moduleVersion string,
+	broadcastHost string,
+	endpoints []cluster.EndpointDescriptor,
+	logger log.Logger,
+) (*cluster.Client, error) {
+	moduleInfo := cluster.ModuleInfo{
+		ModuleName:    localConfig.ModuleName,
+		ModuleVersion: moduleVersion,
+		LibVersion:    kitVersion(),
+		GrpcOuterAddress: cluster.AddressConfiguration{
+			IP:   broadcastHost,
+			Port: strconv.Itoa(localConfig.GrpcOuterAddress.Port),
+		},
+		Endpoints:            endpoints,
+		MetricsAutodiscovery: metricsServiceDiscovery(localConfig, broadcastHost),
 	}
 
-	if isDev {
-		return "conf/default_remote_config.json", nil
-	}
-
-	return relativePathFromBin("default_remote_config.json")
-}
-
-func configFilePath(isDev bool) (string, error) {
-	cfgPath := os.Getenv("APP_CONFIG_PATH")
-	if cfgPath != "" {
-		return cfgPath, nil
-	}
-
-	if isDev {
-		return "./conf/config_dev.yml", nil
-	}
-
-	return relativePathFromBin("config.yml")
-}
-
-func migrationsDirPath(isDev bool, cfg LocalConfig) (string, error) {
-	if cfg.MigrationsDirPath != "" {
-		return cfg.MigrationsDirPath, nil
-	}
-
-	if isDev {
-		return "./migrations", nil
-	}
-
-	return relativePathFromBin("migrations")
-}
-
-func relativePathFromBin(part string) (string, error) {
-	ex, err := os.Executable()
+	configData, err := prepareConfigData(isDev, localConfig, remoteConfig, moduleVersion)
+	configServiceHosts, err := parseConfigServiceHosts(localConfig.ConfigServiceAddress)
 	if err != nil {
-		return "", errors.WithMessage(err, "get executable path")
+		return nil, errors.WithMessage(err, "parse config service hosts")
 	}
-	return path.Join(path.Dir(ex), part), nil
+
+	return cluster.NewClient(
+		moduleInfo,
+		configData,
+		configServiceHosts,
+		logger,
+	), nil
 }
 
-func infraServer(localConfig LocalConfig, application *app.Application) *infra.Server {
+func initInfra(
+	app *app.Application,
+	localConfig LocalConfig,
+	clusterCli ClusterClient,
+) (*infra.Server, *metrics.Registry, *healthcheck.Registry) {
+	infra := infraServer(app, localConfig)
+	metricsReg := metrics.DefaultRegistry
+	hcReg := healthcheck.NewRegistry()
+
+	hcReg.Register("configServiceConnection", clusterCli)
+
+	infra.Handle("/internal/metrics", metricsReg.MetricsHandler())
+	infra.Handle("/internal/metrics/descriptions", metricsReg.MetricsDescriptionHandler())
+	infra.Handle("/internal/health", hcReg.Handler())
+	pprof.RegisterHandlers("/internal", infra)
+
+	app.Logger().Info(app.Context(),
+		"infra server handlers",
+		log.Any("infraServerHandlers", append([]string{
+			"/internal/metrics",
+			"/internal/metrics/descriptions",
+			"/internal/health",
+		}, pprof.Endpoints("/internal")...)),
+	)
+
+	return infra, metricsReg, hcReg
+}
+
+func infraServer(application *app.Application, localConfig LocalConfig) *infra.Server {
 	infraServer := infra.NewServer()
-	infraServerAddress := fmt.Sprintf(":%d", defineInfraServerPort(localConfig))
-	application.AddRunners(app.RunnerFunc(func(ctx context.Context) error {
-		application.Logger().Info(ctx, "run infra server", log.String("infraServerAddress", infraServerAddress))
-		err := infraServer.ListenAndServe(infraServerAddress)
-		if err != nil {
-			return errors.WithMessagef(err, "run infra server on %s", infraServerAddress)
-		}
-		return nil
-	}))
+	infraServerPort := localConfig.GrpcInnerAddress.Port + 1
+	if localConfig.InfraServerPort != 0 {
+		infraServerPort = localConfig.InfraServerPort
+	}
+	infraServerAddress := fmt.Sprintf(":%d", infraServerPort)
+	application.AddRunners(
+		app.RunnerFunc(func(ctx context.Context) error {
+			application.Logger().Info(ctx, "run infra server", log.String("infraServerAddress", infraServerAddress))
+			err := infraServer.ListenAndServe(infraServerAddress)
+			if err != nil {
+				return errors.WithMessagef(err, "run infra server on %s", infraServerAddress)
+			}
+			return nil
+		}),
+	)
 	application.AddClosers(app.CloserFunc(func() error {
 		return infraServer.Shutdown()
 	}))
 	return infraServer
 }
 
-func localConfig(config *config.Config) (*LocalConfig, error) {
-	localConfig := LocalConfig{}
-	err := config.Read(&localConfig)
+func initTracing(
+	ctx context.Context,
+	hub sentry.Hub,
+	cfg LocalConfig,
+	version string,
+	instanceId string,
+	logger log.Logger,
+) tracing.Provider {
+	tracingCfg := tracing.Config{
+		Enable:        cfg.Observability.Tracing.Enable,
+		Address:       cfg.Observability.Tracing.Address,
+		ModuleName:    cfg.ModuleName,
+		ModuleVersion: version,
+		Environment:   cfg.Observability.Tracing.Environment,
+		InstanceId:    instanceId,
+		Attributes:    cfg.Observability.Tracing.Attributes,
+	}
+	provider, err := tracing.NewProviderFromConfiguration(
+		ctx,
+		logger,
+		tracingCfg,
+	)
 	if err != nil {
-		return nil, errors.WithMessage(err, "read local config")
+		err = errors.WithMessage(err, "new tracing provider, tracing will be disabled")
+		hub.CatchError(ctx, err, log.ErrorLevel)
+		logger.Error(ctx, err)
+		return tracing.NewNoopProvider()
 	}
-	if localConfig.GrpcInnerAddress.Port != localConfig.GrpcOuterAddress.Port {
-		return nil, errors.Errorf("grpcInnerAddress.port is not equal grpcOuterAddress.port. potential mistake")
-	}
-	return &localConfig, nil
-}
-
-func kitVersion() string {
-	info, ok := debug.ReadBuildInfo()
-	if !ok {
-		return "0.0.0"
-	}
-	for _, dep := range info.Deps {
-		if dep.Path == "github.com/txix-open/isp-kit" {
-			return dep.Version
-		}
-	}
-	return "0.0.0"
+	return provider
 }
 
 func appConfig(isDev bool) (*app.Config, error) {
@@ -408,7 +362,7 @@ func appConfig(isDev bool) (*app.Config, error) {
 		if !isDev && isEnableSampling {
 			sampling = &log.SamplingConfig{
 				Initial:    cfg.Optional().Int("LOGS.SAMPLING.MAXPERSECOND", defaultMaxLogSamplingPerSecond),
-				Thereafter: cfg.Optional().Int("LOGS.SAMPLING.PASSEVERY", defaulLogtSamplingPassEvery),
+				Thereafter: cfg.Optional().Int("LOGS.SAMPLING.PASSEVERY", defaulLogSamplingPassEvery),
 				Hook:       logCounter.DroppedLogCounter(),
 			}
 		}
@@ -428,6 +382,17 @@ func appConfig(isDev bool) (*app.Config, error) {
 		LoggerConfigSupplier: logConfigSupplier,
 		ConfigOptions:        configsOpts,
 	}, nil
+}
+
+func configPath(isDev bool, configPath string) (string, error) {
+	if configPath != "" {
+		return configPath, nil
+	}
+	if isDev {
+		return "./conf/config.json", nil
+	}
+
+	return relativePathFromBin("conf/config.json")
 }
 
 func defineInfraServerPort(localConfig LocalConfig) int {
