@@ -1,0 +1,14 @@
+grpcOuterAddress:
+  ip: 127.0.0.1
+  port: 9003
+grpcInnerAddress:
+  ip: 0.0.0.0
+  port: 9003
+moduleName: isp-test-service
+
+infraServerPort: 9553
+configPath: test_data/config_test.json
+logfile:
+  maxSizeMb: 512
+  maxBackups: 4
+  compress: true

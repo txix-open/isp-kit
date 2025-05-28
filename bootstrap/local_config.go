@@ -3,20 +3,34 @@ package bootstrap
 import "time"
 
 type LocalConfig struct {
-	ConfigServiceAddress        ConfigServiceAddr
-	GrpcOuterAddress            GrpcOuterAddr
-	GrpcInnerAddress            GrpcInnerAddr
-	ModuleName                  string `validate:"required"`
-	DefaultRemoteConfigPath     string
-	MigrationsDirPath           string
-	RemoteConfigOverride        string
+	GrpcOuterAddress          GrpcOuterAddr
+	GrpcInnerAddress          GrpcInnerAddr
+	ModuleName                string `validate:"required"`
+	MigrationsDirPath         string
+	RemoteConfigOverride      string
+	LogFile                   LogFile
+	Logs                      Logs
+	Observability             Observability
+	InfraServerPort           int
+	HealthcheckHandlerTimeout time.Duration
+}
+
+type ClusteredLocalConfig struct {
+	LocalConfig
+
+	ConfigServiceAddress    ConfigServiceAddr
+	DefaultRemoteConfigPath string
+	// Path to the application configuration, used on offline mode
+	RemoteConfigPath            string
 	RemoteConfigReceiverTimeout time.Duration
-	LogFile                     LogFile
-	Logs                        Logs
-	Observability               Observability
-	InfraServerPort             int
 	MetricsAutodiscovery        MetricsAutodiscovery
-	HealthcheckHandlerTimeout   time.Duration
+}
+
+type StandaloneConfig struct {
+	LocalConfig
+
+	// Path to the application configuration
+	ConfigPath string
 }
 
 type Logs struct {
