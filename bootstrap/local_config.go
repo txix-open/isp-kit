@@ -1,18 +1,30 @@
 package bootstrap
 
 type LocalConfig struct {
+	GrpcOuterAddress     GrpcOuterAddr
+	GrpcInnerAddress     GrpcInnerAddr
+	ModuleName           string `validate:"required"`
+	MigrationsDirPath    string
+	RemoteConfigOverride string
+	LogFile              LogFile
+	Logs                 Logs
+	Observability        Observability
+	InfraServerPort      int
+}
+
+type ClusteredLocalConfig struct {
+	LocalConfig
 	ConfigServiceAddress    ConfigServiceAddr
-	GrpcOuterAddress        GrpcOuterAddr
-	GrpcInnerAddress        GrpcInnerAddr
-	ModuleName              string `validate:"required"`
 	DefaultRemoteConfigPath string
-	MigrationsDirPath       string
-	RemoteConfigOverride    string
-	LogFile                 LogFile
-	Logs                    Logs
-	Observability           Observability
-	InfraServerPort         int
-	MetricsAutodiscovery    MetricsAutodiscovery
+	// Path to the application configuration, used on offline mode
+	RemoteConfigPath     string
+	MetricsAutodiscovery MetricsAutodiscovery
+}
+
+type StandaloneConfig struct {
+	LocalConfig
+	// Path to the application configuration
+	ConfigPath string
 }
 
 type Logs struct {
