@@ -25,18 +25,6 @@ import (
 	"github.com/txix-open/isp-kit/validator"
 )
 
-const (
-	postShutdownWait = 500 * time.Millisecond
-
-	defaultLogFileMaxSizeMb  = 512
-	defaultLogFileMaxBackups = 4
-	defaultLogFileCompress   = true
-
-	defaultEnableLogSampling       = false
-	defaultMaxLogSamplingPerSecond = 1000
-	defaulLogtSamplingPassEvery    = 100
-)
-
 type ClusterClient interface {
 	Run(ctx context.Context, eventHandler *cluster.EventHandler) error
 	Close() error
