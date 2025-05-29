@@ -81,3 +81,17 @@ func TestNewStandalone(t *testing.T) {
 	assert.Equal(t, "field1_test_value", cfg.Field1)
 	assert.Equal(t, 10, cfg.Field2)
 }
+
+func TestNewStandalone_InvalidConfig(t *testing.T) {
+	t.Setenv("APP_CONFIG_PATH", "test_data/config_standalone_test.yml")
+
+	boot := bootstrap.NewStandalone("test")
+
+	type InvalidConfig struct {
+		Field1 string `validate:"required"`
+		Name   string `validate:"required"`
+	}
+	var cfg InvalidConfig
+	err := boot.ReadConfig(&cfg)
+	require.Error(t, err)
+}

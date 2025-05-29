@@ -8,6 +8,7 @@ import (
 	"github.com/txix-open/isp-kit/json"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/observability/sentry"
+	"github.com/txix-open/isp-kit/validator"
 )
 
 type StandaloneBootstrap struct {
@@ -72,6 +73,10 @@ func (b *StandaloneBootstrap) ReadConfig(destPtr any) error {
 	err = json.Unmarshal(rawCfg, destPtr)
 	if err != nil {
 		return errors.WithMessage(err, "unmarshal config")
+	}
+	err = validator.Default.ValidateToError(destPtr)
+	if err != nil {
+		return errors.WithMessage(err, "validate config")
 	}
 	return nil
 }
