@@ -78,7 +78,7 @@ func (a Adapter) collectDetails(err error) (map[string]string, error) {
 			field = field[1:]
 		}
 		firstLetter := 0
-		for i := 0; i < len(field); i++ {
+		for i := range field {
 			if field[i] == '.' {
 				field[firstLetter] = strings.ToLower(string(field[firstLetter]))[0]
 				firstLetter = i + 1
