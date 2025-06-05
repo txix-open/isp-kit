@@ -263,12 +263,13 @@ func (c *Client) notifyModuleReady(ctx context.Context, cli *clientWrapper, requ
 		moduleDependencies = append(moduleDependencies, dep)
 	}
 	declaration := BackendDeclaration{
-		ModuleName:      c.moduleInfo.ModuleName,
-		Version:         c.moduleInfo.ModuleVersion,
-		LibVersion:      c.moduleInfo.LibVersion,
-		Endpoints:       c.moduleInfo.Endpoints,
-		RequiredModules: moduleDependencies,
-		Address:         c.moduleInfo.GrpcOuterAddress,
+		ModuleName:           c.moduleInfo.ModuleName,
+		Version:              c.moduleInfo.ModuleVersion,
+		LibVersion:           c.moduleInfo.LibVersion,
+		Endpoints:            c.moduleInfo.Endpoints,
+		RequiredModules:      moduleDependencies,
+		Address:              c.moduleInfo.GrpcOuterAddress,
+		MetricsAutodiscovery: c.moduleInfo.MetricsAutodiscovery,
 	}
 	_, err := cli.EmitJsonWithAck(ctx, ModuleReady, declaration)
 	if err != nil {
