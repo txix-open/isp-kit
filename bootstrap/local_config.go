@@ -12,6 +12,7 @@ type LocalConfig struct {
 	Logs                    Logs
 	Observability           Observability
 	InfraServerPort         int
+	MetricsAutodiscovery    MetricsAutodiscovery
 }
 
 type Logs struct {
@@ -61,4 +62,10 @@ type Tracing struct {
 	Address     string
 	Environment string
 	Attributes  map[string]string
+}
+
+type MetricsAutodiscovery struct {
+	Enable           bool
+	Address          string
+	AdditionalLabels map[string]string
 }
