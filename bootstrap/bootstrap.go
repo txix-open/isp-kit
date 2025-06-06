@@ -5,6 +5,7 @@ import (
 	json2 "encoding/json"
 	"fmt"
 	stdlog "log"
+	"maps"
 	"net"
 	"os"
 	"path"
@@ -129,7 +130,8 @@ func bootstrap(
 			IP:   broadcastHost,
 			Port: strconv.Itoa(localConfig.GrpcOuterAddress.Port),
 		},
-		Endpoints: endpoints,
+		Endpoints:            endpoints,
+		MetricsAutodiscovery: metricsServiceDiscovery(localConfig),
 	}
 
 	schema := rc.GenerateConfigSchema(remoteConfig)
@@ -327,11 +329,7 @@ func relativePathFromBin(part string) (string, error) {
 
 func infraServer(localConfig LocalConfig, application *app.Application) *infra.Server {
 	infraServer := infra.NewServer()
-	infraServerPort := localConfig.GrpcInnerAddress.Port + 1
-	if localConfig.InfraServerPort != 0 {
-		infraServerPort = localConfig.InfraServerPort
-	}
-	infraServerAddress := fmt.Sprintf(":%d", infraServerPort)
+	infraServerAddress := fmt.Sprintf(":%d", defineInfraServerPort(localConfig))
 	application.AddRunners(app.RunnerFunc(func(ctx context.Context) error {
 		application.Logger().Info(ctx, "run infra server", log.String("infraServerAddress", infraServerAddress))
 		err := infraServer.ListenAndServe(infraServerAddress)
@@ -430,4 +428,36 @@ func appConfig(isDev bool) (*app.Config, error) {
 		LoggerConfigSupplier: logConfigSupplier,
 		ConfigOptions:        configsOpts,
 	}, nil
+}
+
+func defineInfraServerPort(localConfig LocalConfig) int {
+	if localConfig.InfraServerPort != 0 {
+		return localConfig.InfraServerPort
+	}
+	return localConfig.GrpcInnerAddress.Port + 1
+}
+
+func metricsServiceDiscovery(localConfig LocalConfig) *cluster.MetricsAutodiscovery {
+	if !localConfig.MetricsAutodiscovery.Enable {
+		return nil
+	}
+
+	labels := map[string]string{
+		"__metrics_path__": "/internal/metrics",
+		"app":              localConfig.ModuleName,
+	}
+	maps.Insert(labels, maps.All(localConfig.MetricsAutodiscovery.AdditionalLabels))
+
+	address := localConfig.MetricsAutodiscovery.Address
+	if address == "" {
+		address = net.JoinHostPort(
+			localConfig.GrpcOuterAddress.IP,
+			strconv.Itoa(defineInfraServerPort(localConfig)),
+		)
+	}
+
+	return &cluster.MetricsAutodiscovery{
+		Address: address,
+		Labels:  labels,
+	}
 }
