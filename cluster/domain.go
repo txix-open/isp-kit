@@ -20,22 +20,24 @@ type ConfigData struct {
 }
 
 type ModuleInfo struct {
-	ModuleName       string
-	ModuleVersion    string
-	LibVersion       string
-	GrpcOuterAddress AddressConfiguration
-	Endpoints        []EndpointDescriptor
+	ModuleName           string
+	ModuleVersion        string
+	LibVersion           string
+	GrpcOuterAddress     AddressConfiguration
+	Endpoints            []EndpointDescriptor
+	MetricsAutodiscovery *MetricsAutodiscovery
 }
 
 type RoutingConfig []BackendDeclaration
 
 type BackendDeclaration struct {
-	ModuleName      string
-	Version         string
-	LibVersion      string
-	Endpoints       []EndpointDescriptor
-	RequiredModules []ModuleDependency
-	Address         AddressConfiguration
+	ModuleName           string
+	Version              string
+	LibVersion           string
+	Endpoints            []EndpointDescriptor
+	RequiredModules      []ModuleDependency
+	Address              AddressConfiguration
+	MetricsAutodiscovery *MetricsAutodiscovery
 }
 
 type EndpointDescriptor struct {
@@ -54,6 +56,11 @@ type ModuleRequirements struct {
 type ModuleDependency struct {
 	Name     string
 	Required bool
+}
+
+type MetricsAutodiscovery struct {
+	Address string
+	Labels  map[string]string
 }
 
 func RequireAdminPermission(perm string) map[string]any {
