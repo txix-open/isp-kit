@@ -131,7 +131,7 @@ func bootstrap(
 			Port: strconv.Itoa(localConfig.GrpcOuterAddress.Port),
 		},
 		Endpoints:            endpoints,
-		MetricsAutodiscovery: metricsServiceDiscovery(localConfig),
+		MetricsAutodiscovery: metricsServiceDiscovery(localConfig, broadcastHost),
 	}
 
 	schema := rc.GenerateConfigSchema(remoteConfig)
@@ -437,7 +437,7 @@ func defineInfraServerPort(localConfig LocalConfig) int {
 	return localConfig.GrpcInnerAddress.Port + 1
 }
 
-func metricsServiceDiscovery(localConfig LocalConfig) *cluster.MetricsAutodiscovery {
+func metricsServiceDiscovery(localConfig LocalConfig, broadcastHost string) *cluster.MetricsAutodiscovery {
 	if !localConfig.MetricsAutodiscovery.Enable {
 		return nil
 	}
@@ -451,7 +451,7 @@ func metricsServiceDiscovery(localConfig LocalConfig) *cluster.MetricsAutodiscov
 	address := localConfig.MetricsAutodiscovery.Address
 	if address == "" {
 		address = net.JoinHostPort(
-			localConfig.GrpcOuterAddress.IP,
+			broadcastHost,
 			strconv.Itoa(defineInfraServerPort(localConfig)),
 		)
 	}
