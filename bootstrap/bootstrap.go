@@ -46,17 +46,18 @@ const (
 )
 
 type Bootstrap struct {
-	App                 *app.Application
-	ClusterCli          *cluster.Client
-	RemoteConfig        *rc.Config
-	MetricsRegistry     *metrics.Registry
-	InfraServer         *infra.Server
-	HealthcheckRegistry *healthcheck.Registry
-	BindingAddress      string
-	MigrationsDir       string
-	ModuleName          string
-	SentryHub           sentry.Hub
-	TracingProvider     tracing.Provider
+	App                         *app.Application
+	ClusterCli                  *cluster.Client
+	RemoteConfig                *rc.Config
+	RemoteConfigReceiverTimeout time.Duration
+	MetricsRegistry             *metrics.Registry
+	InfraServer                 *infra.Server
+	HealthcheckRegistry         *healthcheck.Registry
+	BindingAddress              string
+	MigrationsDir               string
+	ModuleName                  string
+	SentryHub                   sentry.Hub
+	TracingProvider             tracing.Provider
 }
 
 func New(moduleVersion string, remoteConfig any, endpoints []cluster.EndpointDescriptor) *Bootstrap {
@@ -217,18 +218,24 @@ func bootstrap(
 		return nil
 	}))
 
+	remoteConfigTimeout := cluster.DefaultRemoteConfigReceiverTimeout
+	if localConfig.RemoteConfigReceiverTimeoutInSec > 0 {
+		remoteConfigTimeout = time.Duration(localConfig.RemoteConfigReceiverTimeoutInSec) * time.Second
+	}
+
 	return &Bootstrap{
-		App:                 application,
-		ClusterCli:          clusterCli,
-		RemoteConfig:        rc,
-		BindingAddress:      bindingAddress,
-		ModuleName:          localConfig.ModuleName,
-		MigrationsDir:       migrationsDir,
-		InfraServer:         infraServer,
-		MetricsRegistry:     metricsRegistry,
-		HealthcheckRegistry: healthcheckRegistry,
-		SentryHub:           sentryHub,
-		TracingProvider:     tracingProvider,
+		App:                         application,
+		ClusterCli:                  clusterCli,
+		RemoteConfig:                rc,
+		RemoteConfigReceiverTimeout: remoteConfigTimeout,
+		BindingAddress:              bindingAddress,
+		ModuleName:                  localConfig.ModuleName,
+		MigrationsDir:               migrationsDir,
+		InfraServer:                 infraServer,
+		MetricsRegistry:             metricsRegistry,
+		HealthcheckRegistry:         healthcheckRegistry,
+		SentryHub:                   sentryHub,
+		TracingProvider:             tracingProvider,
 	}, nil
 }
 

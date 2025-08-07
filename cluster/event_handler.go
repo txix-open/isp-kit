@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	defaultRemoteConfigReceiverTimeout = 5 * time.Second
+	DefaultRemoteConfigReceiverTimeout = 5 * time.Second
 )
 
 type RemoteConfigReceiver interface {
@@ -35,7 +35,7 @@ func NewEventHandler() *EventHandler {
 }
 
 func (h *EventHandler) RemoteConfigReceiver(receiver RemoteConfigReceiver) *EventHandler {
-	return h.RemoteConfigReceiverWithTimeout(receiver, defaultRemoteConfigReceiverTimeout)
+	return h.RemoteConfigReceiverWithTimeout(receiver, DefaultRemoteConfigReceiverTimeout)
 }
 
 func (h *EventHandler) RemoteConfigReceiverWithTimeout(receiver RemoteConfigReceiver, timeout time.Duration) *EventHandler {
