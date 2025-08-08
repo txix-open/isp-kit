@@ -15,5 +15,6 @@ func NewResultHandler(logger log.Logger, adapter handler.SyncHandlerAdapter) han
 		handler.Log(logger),
 		handler.Metrics(rabbitmq_metrics.NewConsumerStorage(metrics.DefaultRegistry)),
 		consumer_tracing.NewConfig().Middleware(),
+		handler.Recovery(),
 	)
 }

@@ -5,12 +5,13 @@ import (
 	"time"
 
 	"github.com/txix-open/bgjob"
+	"github.com/txix-open/isp-kit/bgjobx/handler"
 	"github.com/txix-open/isp-kit/log"
 )
 
 type Observer struct {
 	log           log.Logger
-	metricStorage MetricStorage
+	metricStorage handler.MetricStorage
 }
 
 func (o Observer) JobStarted(ctx context.Context, job bgjob.Job) {

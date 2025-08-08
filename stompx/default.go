@@ -6,5 +6,10 @@ import (
 )
 
 func NewResultHandler(logger log.Logger, adapter handler.HandlerAdapter) handler.ResultHandler {
-	return handler.NewHandler(logger, adapter, handler.Log(logger))
+	return handler.NewHandler(
+		logger,
+		adapter,
+		handler.Log(logger),
+		handler.Recovery(),
+	)
 }
