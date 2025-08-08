@@ -54,6 +54,12 @@
 - Количество перемещений в DLQ
 - Количество ошибок воркеров
 
+## Стандартный обработчик
+
+#### `NewDefaultHandler(adapter bgjob.Handler, metricStorage handler.MetricStorage) handler.Sync`
+
+Используется для добавления стандартных middleware в функцию-обработчик каждого воркера при создании воркеров.
+
 ## Usage
 
 ### Default usage flow

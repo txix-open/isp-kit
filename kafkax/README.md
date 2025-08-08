@@ -99,6 +99,7 @@
 - Логированием
 - Метриками
 - Поддержкой синхронной обработки
+- Восстановлением при панике
 
 #### `PublisherLog(logger log.Logger, logBody bool) publisher.Middleware`
 
