@@ -33,6 +33,7 @@ type Client struct {
 	migrationRunner MigrationRunner
 	queryTraces     []pgx.QueryTracer
 	createSchema    bool
+	applicationName string
 }
 
 // nolint:cyclop,nonamedreturns
@@ -42,7 +43,7 @@ func Open(ctx context.Context, config Config, opts ...Option) (cli *Client, err 
 		opt(cli)
 	}
 
-	dbCli, err := db.Open(ctx, config.Dsn(), db.WithQueryTracer(cli.queryTraces...))
+	dbCli, err := db.Open(ctx, config.Dsn(cli.applicationName), db.WithQueryTracer(cli.queryTraces...))
 	if err != nil {
 		return nil, errors.WithMessage(err, "open db")
 	}

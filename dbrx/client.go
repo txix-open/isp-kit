@@ -3,10 +3,12 @@ package dbrx
 import (
 	"context"
 	"database/sql"
-	"github.com/txix-open/isp-kit/log"
+	"os"
 	"reflect"
 	"sync/atomic"
 	"time"
+
+	"github.com/txix-open/isp-kit/log"
 
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/db"
@@ -58,6 +60,7 @@ func (c *Client) Upgrade(ctx context.Context, config dbx.Config) error {
 	opts := append([]dbx.Option{
 		dbx.WithQueryTracer(metricsTracer, tracingConfig.QueryTracer()),
 		dbx.WithCreateSchema(true),
+		dbx.WithApplicationName(os.Args[0]),
 	}, c.options...)
 
 	newCli, err := dbx.Open(ctx, config, opts...)

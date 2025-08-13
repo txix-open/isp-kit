@@ -16,7 +16,7 @@ type Config struct {
 	Params      map[string]string `schema:"Дополнительные параметры подключения"`
 }
 
-func (c Config) Dsn() string {
+func (c Config) Dsn(applicationName string) string {
 	u := url.URL{
 		Scheme: "postgresql",
 		User:   nil,
@@ -30,6 +30,11 @@ func (c Config) Dsn() string {
 	if c.Schema != "" {
 		query.Set("search_path", c.Schema)
 	}
+
+	if applicationName != "" {
+		query.Set("application_name", applicationName)
+	}
+
 	for key, value := range c.Params {
 		query.Set(key, value)
 	}
