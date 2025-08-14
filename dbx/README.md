@@ -23,6 +23,8 @@
 - `WithMigrationRunner(migrationDir string, logger log.Logger) Option` – применить sql-скрипты для миграции, находящиеся
   в указанной директории.
 - `WithCreateSchema(createSchema bool) Option` – включить/выключить функцию создания схемы БД.
+- `WithApplicationName(moduleName string) Option` - указать название модуля в поле application_name таблицы серверных
+  процессов
 
 ## Usage
 
