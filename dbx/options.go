@@ -25,3 +25,9 @@ func WithCreateSchema(createSchema bool) Option {
 		db.createSchema = createSchema
 	}
 }
+
+func WithApplicationName(moduleName string) Option {
+	return func(db *Client) {
+		db.applicationName = moduleName
+	}
+}
