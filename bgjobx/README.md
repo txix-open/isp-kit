@@ -56,7 +56,7 @@
 
 ## Стандартный обработчик
 
-#### `NewDefaultHandler(adapter bgjob.Handler, metricStorage handler.MetricStorage) handler.Sync`
+#### `NewDefaultHandler(adapter handler.SyncHandlerAdapter, metricStorage handler.MetricStorage) handler.Sync`
 
 Используется для добавления стандартных middleware в функцию-обработчик каждого воркера при создании воркеров.
 
@@ -75,6 +75,7 @@ import (
 	"github.com/txix-open/bgjob"
 	"github.com/txix-open/isp-kit/app"
 	"github.com/txix-open/isp-kit/bgjobx"
+	"github.com/txix-open/isp-kit/bgjobx/handler"
 	"github.com/txix-open/isp-kit/dbrx"
 	"github.com/txix-open/isp-kit/dbx"
 )
@@ -102,9 +103,9 @@ func main() {
 		Queue:        "test",
 		Concurrency:  5,
 		PollInterval: 1 * time.Second,
-		Handle: bgjob.HandlerFunc(func(ctx context.Context, job bgjob.Job) bgjob.Result {
+		Handle: handler.SyncHandlerAdapterFunc(func(ctx context.Context, job bgjob.Job) handler.Result {
 			/* do some work */
-			return bgjob.Complete()
+			return handler.Complete()
 		}),
 	}
 	err = cli.Upgrade(application.Context(), []bgjobx.WorkerConfig{worker})

@@ -2,15 +2,10 @@ package handler
 
 import (
 	"context"
-	"runtime"
 
 	"github.com/go-stomp/stomp/v3"
-	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/log"
-)
-
-const (
-	panicStackLength = 4 << 10
+	"github.com/txix-open/isp-kit/panic_recovery"
 )
 
 type Middleware func(next HandlerAdapter) HandlerAdapter
@@ -47,24 +42,10 @@ func Log(logger log.Logger) Middleware {
 func Recovery() Middleware {
 	return func(next HandlerAdapter) HandlerAdapter {
 		return AdapterFunc(func(ctx context.Context, msg *stomp.Message) (res Result) {
-			defer func() {
-				r := recover()
-				if r == nil {
-					return
-				}
-
-				var err error
-				recovered, ok := r.(error)
-				if ok {
-					err = recovered
-				} else {
-					err = errors.Errorf("%v", recovered)
-				}
-				stack := make([]byte, panicStackLength)
-				length := runtime.Stack(stack, false)
-				res.Err = errors.Errorf("[PANIC RECOVER] %v %s\n", err, stack[:length])
+			defer panic_recovery.Recover(func(err error) {
+				res.Err = err
 				res.Requeue = true
-			}()
+			})
 			return next.Handle(ctx, msg)
 		})
 	}

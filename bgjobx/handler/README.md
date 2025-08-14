@@ -44,25 +44,25 @@ import (
 
 type customHandler struct{}
 
-func (h customHandler) Handle(ctx context.Context, job bgjob.Job) bgjob.Result {
+func (h customHandler) Handle(ctx context.Context, job bgjob.Job) handler.Result {
   /* put here business logic */
-  return bgjob.Reschedule(time.Duration(10) * time.Minute)
+  return handler.Reschedule(time.Duration(10) * time.Minute)
 }
 
 func main() {
-	var (
-		metricStorage = NewMetricStorage() /* MetricStorage interface implementation */
-		adapter       customHandler
-	)
-	
-	syncHandler := handler.NewSync(adapter, []handler.Middleware{
-		handler.WithDurationMeasure(metricStorage),
-		handler.Recovery(),
-	}...)
+  var (
+    metricStorage = NewMetricStorage() /* MetricStorage interface implementation */
+    adapter       customHandler
+  )
 
-	/* handler's call for example */
-	job := new(bgjob.Job) /* placeholder for example */
-	syncHandler.Handle(context.Background(), job)
+  syncHandler := handler.NewSync(adapter, []handler.Middleware{
+    handler.WithDurationMeasure(metricStorage),
+    handler.Recovery(),
+  }...)
+
+  /* handler's call for example */
+  job := new(bgjob.Job) /* placeholder for example */
+  syncHandler.Handle(context.Background(), job)
 }
 
 ```

@@ -7,14 +7,14 @@ import (
 )
 
 type SyncHandlerAdapter interface {
-	Handle(ctx context.Context, job bgjob.Job) bgjob.Result
+	Handle(ctx context.Context, job bgjob.Job) Result
 }
 
 type Middleware func(next SyncHandlerAdapter) SyncHandlerAdapter
 
-type SyncHandlerAdapterFunc func(ctx context.Context, job bgjob.Job) bgjob.Result
+type SyncHandlerAdapterFunc func(ctx context.Context, job bgjob.Job) Result
 
-func (a SyncHandlerAdapterFunc) Handle(ctx context.Context, job bgjob.Job) bgjob.Result {
+func (a SyncHandlerAdapterFunc) Handle(ctx context.Context, job bgjob.Job) Result {
 	return a(ctx, job)
 }
 
@@ -32,5 +32,20 @@ func NewSync(adapter SyncHandlerAdapter, middlewares ...Middleware) Sync {
 }
 
 func (r Sync) Handle(ctx context.Context, job bgjob.Job) bgjob.Result {
-	return r.handler.Handle(ctx, job)
+	result := r.handler.Handle(ctx, job)
+
+	switch {
+	case result.Complete:
+		return bgjob.Complete()
+	case result.Retry:
+		return bgjob.Retry(result.RetryDelay, result.Err)
+	case result.MoveToDlq:
+		return bgjob.MoveToDlq(result.Err)
+	case result.Reschedule:
+		return bgjob.Reschedule(result.RescheduleDelay)
+	case result.OverrideArg:
+		return bgjob.RescheduleWithArg(result.RescheduleDelay, result.Arg)
+	}
+
+	return bgjob.Result{}
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/txix-open/bgjob"
 	"github.com/txix-open/isp-kit/bgjobx"
+	"github.com/txix-open/isp-kit/bgjobx/handler"
 	"github.com/txix-open/isp-kit/dbx"
 	"github.com/txix-open/isp-kit/test"
 	"github.com/txix-open/isp-kit/test/dbt"
@@ -25,9 +26,9 @@ func TestClient(t *testing.T) {
 	callCount := int32(0)
 	worker := bgjobx.WorkerConfig{
 		Queue: "test",
-		Handle: bgjob.HandlerFunc(func(ctx context.Context, job bgjob.Job) bgjob.Result {
+		Handle: handler.SyncHandlerAdapterFunc(func(ctx context.Context, job bgjob.Job) handler.Result {
 			atomic.AddInt32(&callCount, 1)
-			return bgjob.Complete()
+			return handler.Complete()
 		}),
 		PollInterval: 500 * time.Millisecond,
 	}

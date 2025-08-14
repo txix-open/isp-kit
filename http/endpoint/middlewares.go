@@ -3,13 +3,14 @@ package endpoint
 import (
 	"context"
 	"fmt"
+	"net/http"
+
 	"github.com/getsentry/sentry-go"
 	http2 "github.com/txix-open/isp-kit/http"
 	"github.com/txix-open/isp-kit/http/apierrors"
 	"github.com/txix-open/isp-kit/log/logutil"
 	sentry2 "github.com/txix-open/isp-kit/observability/sentry"
-	"net/http"
-	"runtime"
+	"github.com/txix-open/isp-kit/panic_recovery"
 
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/log"
@@ -18,7 +19,6 @@ import (
 
 const (
 	defaultMaxRequestBodySize = 64 * 1024 * 1024
-	panicStackLength          = 4 << 10
 )
 
 type LogMiddleware http2.Middleware
@@ -32,25 +32,13 @@ func MaxRequestBodySize(maxBytes int64) http2.Middleware {
 	}
 }
 
+//nolint:nonamedreturns
 func Recovery() http2.Middleware {
 	return func(next http2.HandlerFunc) http2.HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) (err error) {
-			defer func() {
-				r := recover()
-				if r == nil {
-					return
-				}
-
-				recovered, ok := r.(error)
-				if ok {
-					err = recovered
-				} else {
-					err = fmt.Errorf("%v", recovered) // nolint:err113,errorlint
-				}
-				stack := make([]byte, panicStackLength)
-				length := runtime.Stack(stack, false)
-				err = errors.Errorf("[PANIC RECOVER] %v %s\n", err, stack[:length])
-			}()
+			defer panic_recovery.Recover(func(panicErr error) {
+				err = panicErr
+			})
 
 			return next(ctx, w, r)
 		}
