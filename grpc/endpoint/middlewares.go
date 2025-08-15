@@ -2,8 +2,6 @@ package endpoint
 
 import (
 	"context"
-	"fmt"
-	"runtime"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
@@ -12,36 +10,20 @@ import (
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/log/logutil"
 	sentry2 "github.com/txix-open/isp-kit/observability/sentry"
+	"github.com/txix-open/isp-kit/panic_recovery"
 	"github.com/txix-open/isp-kit/requestid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
-const (
-	panicStackLength = 4 << 10
-)
-
 // nolint:nonamedreturns
 func Recovery() grpc.Middleware {
 	return func(next grpc.HandlerFunc) grpc.HandlerFunc {
 		return func(ctx context.Context, message *isp.Message) (msg *isp.Message, err error) {
-			defer func() {
-				r := recover()
-				if r == nil {
-					return
-				}
-
-				recovered, ok := r.(error)
-				if ok {
-					err = recovered
-				} else {
-					err = fmt.Errorf("%v", recovered) // nolint:err113,errorlint
-				}
-				stack := make([]byte, panicStackLength)
-				length := runtime.Stack(stack, false)
-				err = errors.Errorf("[PANIC RECOVER] %v %s\n", err, stack[:length])
-			}()
+			defer panic_recovery.Recover(func(panicErr error) {
+				err = panicErr
+			})
 			return next(ctx, message)
 		}
 	}

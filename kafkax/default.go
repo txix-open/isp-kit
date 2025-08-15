@@ -13,5 +13,6 @@ func NewResultHandler(logger log.Logger, adapter handler.SyncHandlerAdapter) han
 		adapter,
 		handler.Log(logger),
 		handler.Metrics(kafka_metrics.NewConsumerStorage(metrics.DefaultRegistry)),
+		handler.Recovery(),
 	)
 }

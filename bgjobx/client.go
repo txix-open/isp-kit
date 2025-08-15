@@ -49,7 +49,7 @@ func (c *Client) Upgrade(ctx context.Context, workerConfigs []WorkerConfig) erro
 		worker := bgjob.NewWorker(
 			cli,
 			config.Queue,
-			WithDurationMeasure(metricStorage, config.Handle),
+			NewDefaultHandler(config.Handle, metricStorage),
 			bgjob.WithConcurrency(config.GetConcurrency()),
 			bgjob.WithPollInterval(config.GetPollInterval()),
 			bgjob.WithObserver(Observer{log: c.logger, metricStorage: metricStorage}),

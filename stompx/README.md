@@ -116,7 +116,7 @@
 
 ### `NewResultHandler(logger log.Logger, adapter handler.HandlerAdapter) handler.ResultHandler`
 
-Создаёт обработчик результата с логированием.
+Создаёт обработчик результата с логированием и восстановлением сервиса при панике.
 
 ## Middleware
 

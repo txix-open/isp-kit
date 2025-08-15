@@ -26,6 +26,7 @@
 - `Metrics(metricStorage ConsumerMetricStorage) Middleware` – сбор метрик времени обработки и размера сообщений,
   количества коммитов и ретраев.
 - `Log(logger log.Logger) Middleware` – логирование ключевых событий (успешные коммиты, отправка в ретрай с ошибкой).
+- `Recovery() Middleware` – предотвращает падение сервиса при панике в обработчике, преобразуя ее в ошибку.
 
 #### `(r Sync) Handle(ctx context.Context, delivery *consumer.Delivery)`
 

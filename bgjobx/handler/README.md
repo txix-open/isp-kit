@@ -1,0 +1,68 @@
+# Package `handler`
+
+Пакет `handler` предоставляет инструменты для обработки результатов выполнения bgjob с использованием middleware.
+
+## Types
+
+### Sync
+
+Структура `Sync` реализует обработчик фоновых задач с поддержкой middleware.
+
+**Methods:**
+
+#### `NewSync(adapter SyncHandlerAdapter, middlewares ...Middleware) Sync`
+
+Конструктор синхронного обработчика, принимающий на вход адаптер бизнес-логики, который должен реализовывать интерфейс
+`SyncHandlerAdapter`
+или быть преобразованным к `SyncHandlerAdapterFunc`, если это функция-обработчик.
+
+Стандартные Middleware:
+
+- `WithDurationMeasure(storage MetricStorage) Middleware` – middleware для сбора метрик, регистрирующая время
+  обработки. Принимает на вход хранилище метрик, реализующее интерфейс `MetricStorage`.
+- `Recovery() Middleware` – предотвращает падение сервиса при панике в обработчике, преобразуя ее в ошибку.
+
+#### `(r Sync) Handle(ctx context.Context, job bgjob.Job) bgjob.Result`
+
+Выполняет обработку сообщения.
+
+## Usage
+
+### Custom handler
+
+```go
+package main
+
+import (
+    "context"
+    "time"
+
+    "github.com/txix-open/bgjob"
+    "github.com/txix-open/isp-kit/bgjobx"
+    "github.com/txix-open/isp-kit/bgjobx/handler"
+)
+
+type customHandler struct{}
+
+func (h customHandler) Handle(ctx context.Context, job bgjob.Job) handler.Result {
+  /* put here business logic */
+  return handler.Reschedule(time.Duration(10) * time.Minute)
+}
+
+func main() {
+  var (
+    metricStorage = NewMetricStorage() /* MetricStorage interface implementation */
+    adapter       customHandler
+  )
+
+  syncHandler := handler.NewSync(adapter, []handler.Middleware{
+    handler.WithDurationMeasure(metricStorage),
+    handler.Recovery(),
+  }...)
+
+  /* handler's call for example */
+  job := new(bgjob.Job) /* placeholder for example */
+  syncHandler.Handle(context.Background(), job)
+}
+
+```
