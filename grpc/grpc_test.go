@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/txix-open/isp-kit/grpc"
@@ -168,6 +169,36 @@ func TestGrpcAppendMetadata(t *testing.T) {
 		Do(ctx)
 	require.NoError(err)
 	require.True(resp.Ok)
+}
+
+func TestGrpcRecovery(t *testing.T) {
+	t.Parallel()
+
+	require, srv, cli := prepareTest(t)
+	reqId := requestid.Next()
+	ctx := requestid.ToContext(t.Context(), reqId)
+	expectedReq := reqBody{
+		A: "string",
+		B: true,
+		C: 123,
+	}
+	handler := func(ctx context.Context, data grpc.AuthData, req reqBody) (*respBody, error) {
+		panic(errors.New("test panic error"))
+	}
+	logger, err := log.New()
+	require.NoError(err)
+	wrapper := endpoint.DefaultWrapper(logger)
+	srv.Upgrade(grpc.NewMux().Handle("endpoint", wrapper.Endpoint(handler)))
+
+	resp := respBody{}
+
+	err = cli.Invoke("endpoint").
+		ApplicationId(123).
+		JsonRequestBody(expectedReq).
+		JsonResponseBody(&resp).
+		Do(ctx)
+	require.Error(err)
+	require.False(resp.Ok)
 }
 
 func prepareTest(t *testing.T) (*require.Assertions, *grpc.Server, *grpcCli.Client) {

@@ -174,3 +174,44 @@ func TestBatchHandler(t *testing.T) {
 	require.EqualValues(101, deliveryCount.Load())
 	require.EqualValues(0, cli.QueueLength("test"))
 }
+
+func TestRecovery(t *testing.T) {
+	t.Parallel()
+	test, require := test.New(t)
+
+	pub := grmqx.Publisher{
+		RoutingKey: "test",
+	}.DefaultPublisher()
+
+	handler := grmqx.NewResultHandler(
+		test.Logger(),
+		handler.SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) handler.Result {
+			panic(errors.New("test panic error"))
+		}),
+	)
+	consumerCfg := grmqx.Consumer{
+		Queue: "test",
+		RetryPolicy: &grmqx.RetryPolicy{
+			FinallyMoveToDlq: true,
+			Retries: []grmqx.RetryConfig{{
+				DelayInMs:   300,
+				MaxAttempts: 3,
+			}},
+		},
+	}
+	consumer := consumerCfg.DefaultConsumer(handler, grmqx.ConsumerLog(test.Logger(), true))
+	cli := grmqt.New(test)
+	config := grmqx.NewConfig("",
+		grmqx.WithConsumers(consumer),
+		grmqx.WithPublishers(pub),
+		grmqx.WithDeclarations(grmqx.TopologyFromConsumers(consumerCfg)),
+	)
+	cli.Upgrade(config)
+
+	err := pub.Publish(t.Context(), &amqp091.Publishing{})
+	require.NoError(err)
+
+	time.Sleep(2 * time.Second)
+
+	require.EqualValues(1, cli.QueueLength("test.DLQ"))
+}

@@ -21,7 +21,9 @@ const (
 	testRequestIdTopic = "test_topic"
 	groupIdRequestId   = "testRequestId"
 	testRetryTopic     = "test_retry_topic"
+	testRecoverTopic   = "test_recover_topic"
 	groupIdRetry       = "testRetry"
+	groupIdRecover     = "testRecover"
 )
 
 func TestRequestIdChain(t *testing.T) {
@@ -195,4 +197,58 @@ func TestReadWrite(t *testing.T) {
 
 	require.EqualValues([]byte("test 2 message 1"), msg.Value)
 	require.EqualValues(topic2, msg.Topic)
+}
+
+func TestRecover(t *testing.T) {
+	t.Parallel()
+	test, require := test.New(t)
+	await := make(chan struct{})
+
+	testKafka := kafkat.NewKafka(test)
+	testKafka.CreateDefaultTopic(testRecoverTopic)
+
+	time.Sleep(500 * time.Millisecond)
+
+	pubCfg := testKafka.PublisherConfig(testRecoverTopic)
+	pub1 := pubCfg.DefaultPublisher(t.Context(), test.Logger(), kafkax.PublisherLog(test.Logger(), true))
+
+	consumerCfg := testKafka.ConsumerConfig(testRecoverTopic, groupIdRecover)
+
+	counter := 0
+	handler1 := kafkax.NewResultHandler(
+		test.Logger(),
+		handler.SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) handler.Result {
+			if counter != 1 {
+				counter++
+				panic(errors.New("test panic error"))
+			}
+
+			defer close(await)
+			return handler.Commit()
+		}),
+	)
+	cons1 := consumerCfg.DefaultConsumer(t.Context(), test.Logger(), handler1, kafkax.ConsumerLog(test.Logger(), true))
+
+	kafkaBrokerConfig := kafkax.NewConfig(
+		kafkax.WithPublishers(pub1),
+		kafkax.WithConsumers(cons1),
+	)
+
+	client := kafkax.New(test.Logger())
+	client.UpgradeAndServe(t.Context(), kafkaBrokerConfig)
+
+	time.Sleep(500 * time.Millisecond)
+
+	err := pub1.Publish(t.Context(), kafka.Message{
+		Value: []byte("test message"),
+	})
+	require.NoError(err)
+
+	select {
+	case <-await:
+		require.EqualValues(1, counter)
+		client.Close()
+	case <-time.After(20 * time.Second):
+		require.Fail("handler wasn't called")
+	}
 }
