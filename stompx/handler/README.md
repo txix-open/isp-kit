@@ -68,6 +68,10 @@ Middleware — функция, принимающая `HandlerAdapter` и воз
 
 Логирует действия хендлера (ACK или Requeue) с указанием destination.
 
+### Recovery
+
+Предотвращает падение сервиса при панике в обработчике, преобразуя ее в ошибку.
+
 ## Usage
 
 ### Default usage flow

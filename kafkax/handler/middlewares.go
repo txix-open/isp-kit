@@ -6,7 +6,10 @@ import (
 
 	"github.com/txix-open/isp-kit/kafkax/consumer"
 	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/panic_recovery"
 )
+
+const recoverMessageRetryPeriod = 15 * time.Second
 
 type ConsumerMetricStorage interface {
 	ObserveConsumeDuration(consumerGroup, topic string, t time.Duration)
@@ -70,6 +73,20 @@ func Log(logger log.Logger) Middleware {
 			}
 
 			return result
+		})
+	}
+}
+
+// nolint:nonamedreturns
+func Recovery() Middleware {
+	return func(next SyncHandlerAdapter) SyncHandlerAdapter {
+		return SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) (res Result) {
+			defer panic_recovery.Recover(func(err error) {
+				res.RetryError = err
+				res.Retry = true
+				res.RetryAfter = recoverMessageRetryPeriod
+			})
+			return next.Handle(ctx, delivery)
 		})
 	}
 }

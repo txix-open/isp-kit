@@ -6,6 +6,7 @@ import (
 
 	"github.com/txix-open/grmq/consumer"
 	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/panic_recovery"
 )
 
 type ConsumerMetricStorage interface {
@@ -87,6 +88,19 @@ func Log(logger log.Logger) Middleware {
 			}
 
 			return result
+		})
+	}
+}
+
+// nolint:nonamedreturns
+func Recovery() Middleware {
+	return func(next SyncHandlerAdapter) SyncHandlerAdapter {
+		return SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) (res Result) {
+			defer panic_recovery.Recover(func(err error) {
+				res.Err = err
+				res.MoveToDlq = true
+			})
+			return next.Handle(ctx, delivery)
 		})
 	}
 }

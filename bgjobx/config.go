@@ -3,14 +3,14 @@ package bgjobx
 import (
 	"time"
 
-	"github.com/txix-open/bgjob"
+	"github.com/txix-open/isp-kit/bgjobx/handler"
 )
 
 type WorkerConfig struct {
 	Queue        string
 	Concurrency  int
 	PollInterval time.Duration
-	Handle       bgjob.Handler
+	Handle       handler.SyncHandlerAdapter
 }
 
 func (c WorkerConfig) GetConcurrency() int {

@@ -23,6 +23,7 @@
   обработки, размер сообщения, статусы (Ack/Requeue/Retry/DLQ). Принимает на вход хранилище метрик, реализующее
   интерфейс `ConsumerMetricStorage`.
 - `Log(logger log.Logger) Middleware` – логирования событий обработки.
+- `Recovery() Middleware` – предотвращает падение сервиса при панике в обработчике, преобразуя ее в ошибку.
 
 #### `(r Sync) Handle(ctx context.Context, delivery *consumer.Delivery)`
 

@@ -65,6 +65,31 @@ func TestService(t *testing.T) {
 	require.Equal(t, expected, response)
 }
 
+func TestRecover(t *testing.T) {
+	t.Parallel()
+	url := prepareServer(t)
+
+	response := Response{}
+	client := resty.New().SetBaseURL("http://" + url)
+
+	resp, err := client.R().
+		SetBody(Request{Id: "man"}).
+		SetResult(&response).
+		Post("/recover")
+	require.NoError(t, err)
+	require.Equal(t, http.StatusInternalServerError, resp.StatusCode())
+
+	response = Response{}
+	resp, err = client.R().
+		SetResult(&response).
+		Get("/noBody")
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode())
+
+	expected := Response{Result: "Test"}
+	require.Equal(t, expected, response)
+}
+
 type endpointDescriptor struct {
 	Path    string
 	Handler any
@@ -90,6 +115,11 @@ func prepareServer(t *testing.T) string {
 		Path: "/noBody",
 		Handler: func(ctx context.Context) (*Response, error) {
 			return &Response{Result: "Test"}, nil
+		},
+	}, {
+		Path: "/recover",
+		Handler: func(ctx context.Context) (*Response, error) {
+			panic(errors.New("test panic error"))
 		},
 	}}
 
