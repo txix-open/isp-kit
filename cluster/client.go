@@ -30,30 +30,41 @@ const (
 )
 
 type Client struct {
-	moduleInfo      ModuleInfo
-	configData      ConfigData
-	lb              *lb.RoundRobin
-	eventHandler    *EventHandler
-	logger          log.Logger
-	sessionIsActive *atomic.Bool
-	closed          *atomic.Bool
+	moduleInfo          ModuleInfo
+	configData          ConfigData
+	lb                  *lb.RoundRobin
+	eventHandler        *EventHandler
+	handleConfigTimeout time.Duration
+	logger              log.Logger
+	sessionIsActive     *atomic.Bool
+	closed              *atomic.Bool
 
 	cli *atomic.Pointer[clientWrapper]
 }
 
-func NewClient(moduleInfo ModuleInfo, configData ConfigData, hosts []string, logger log.Logger) *Client {
+func NewClient(
+	moduleInfo ModuleInfo,
+	configData ConfigData,
+	hosts []string,
+	handleConfigTimeout time.Duration,
+	logger log.Logger,
+) *Client {
 	return &Client{
-		moduleInfo:      moduleInfo,
-		configData:      configData,
-		lb:              lb.NewRoundRobin(hosts),
-		sessionIsActive: &atomic.Bool{},
-		closed:          &atomic.Bool{},
-		cli:             &atomic.Pointer[clientWrapper]{},
-		logger:          logger,
+		moduleInfo:          moduleInfo,
+		configData:          configData,
+		lb:                  lb.NewRoundRobin(hosts),
+		handleConfigTimeout: handleConfigTimeout,
+		sessionIsActive:     &atomic.Bool{},
+		closed:              &atomic.Bool{},
+		cli:                 &atomic.Pointer[clientWrapper]{},
+		logger:              logger,
 	}
 }
 
 func (c *Client) Run(ctx context.Context, eventHandler *EventHandler) error {
+	if c.handleConfigTimeout != 0 {
+		eventHandler.handleConfigTimeout = c.handleConfigTimeout
+	}
 	c.eventHandler = eventHandler
 	c.closed.Store(false)
 
