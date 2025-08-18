@@ -153,6 +153,7 @@ func bootstrap(
 		moduleInfo,
 		configData,
 		configServiceHosts,
+		localConfig.RemoteConfigReceiverTimeout,
 		sentry.WrapErrorLogger(application.Logger(), sentryHub),
 	)
 

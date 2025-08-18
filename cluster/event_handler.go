@@ -30,17 +30,13 @@ type EventHandler struct {
 
 func NewEventHandler() *EventHandler {
 	return &EventHandler{
-		requiredModules: make(map[string]HostsUpgrader),
+		requiredModules:     make(map[string]HostsUpgrader),
+		handleConfigTimeout: defaultRemoteConfigReceiverTimeout,
 	}
 }
 
 func (h *EventHandler) RemoteConfigReceiver(receiver RemoteConfigReceiver) *EventHandler {
-	return h.RemoteConfigReceiverWithTimeout(receiver, defaultRemoteConfigReceiverTimeout)
-}
-
-func (h *EventHandler) RemoteConfigReceiverWithTimeout(receiver RemoteConfigReceiver, timeout time.Duration) *EventHandler {
 	h.remoteConfigReceiver = receiver
-	h.handleConfigTimeout = timeout
 	return h
 }
 
