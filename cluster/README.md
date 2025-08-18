@@ -17,7 +17,7 @@
 
 **Methods:**
 
-#### `NewClient(moduleInfo ModuleInfo, configData ConfigData, hosts []string, logger log.Logger) *Client`
+#### `NewClient(moduleInfo ModuleInfo, configData ConfigData, hosts []string, handleConfigTimeout time.Duration, logger log.Logger) *Client`
 
 Конструктор клиента кластера.
 
@@ -43,13 +43,10 @@
 
 Конструктор.
 
-#### `(h *EventHandler) RemoteConfigReceiverWithTimeout(receiver RemoteConfigReceiver, timeout time.Duration) *EventHandler`
-
-Установить обработчик на получение обновленной динамической-конфигурации текущего модуля. Обработчик должен реализовывать интерфейс `RemoteConfigReceiver`.
-
 #### `(h *EventHandler) RemoteConfigReceiver(receiver RemoteConfigReceiver) *EventHandler`
 
-То же самое, что и `RemoteConfigReceiverWithTimeout`, но без возможности указать timeout на обработку конфига. Используется значение по умолчанию в 5 секунд.
+Установить обработчик на получение обновленной динамической-конфигурации текущего модуля. Обработчик должен реализовывать интерфейс `RemoteConfigReceiver`.
+По умолчанию выставляет timeout на обработку конфига в 5 секунд.
 
 #### `(h *EventHandler) RoutesReceiver(receiver RoutesReceiver) *EventHandler`
 
@@ -69,9 +66,11 @@ package main
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/txix-open/isp-kit/app"
 	"github.com/txix-open/isp-kit/cluster"
+	"github.com/txix-open/isp-kit/config"
 	"github.com/txix-open/isp-kit/grpc/client"
 	"github.com/txix-open/isp-kit/rc"
 	"github.com/txix-open/isp-kit/shutdown"
@@ -120,6 +119,7 @@ func main() {
 		moduleInfo,
 		configData,
 		[]string{"config-service:8080"},
+		application.Config().Optional().Duration("remoteConfigReceiverTimeout", 5*time.Second),
 		application.Logger(),
 	)
 
