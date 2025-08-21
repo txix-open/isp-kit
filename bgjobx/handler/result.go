@@ -11,10 +11,10 @@ type Result struct {
 	Retry      bool
 	RetryDelay time.Duration
 
-	Reschedule      bool
-	RescheduleDelay time.Duration
-	OverrideArg     bool
-	Arg             []byte
+	Reschedule        bool
+	RescheduleDelay   time.Duration
+	RescheduleWithArg bool
+	Arg               []byte
 }
 
 func Complete() Result {
@@ -34,5 +34,5 @@ func Reschedule(after time.Duration) Result {
 }
 
 func RescheduleWithArg(after time.Duration, arg []byte) Result {
-	return Result{Reschedule: true, OverrideArg: true, RescheduleDelay: after, Arg: arg}
+	return Result{RescheduleWithArg: true, RescheduleDelay: after, Arg: arg}
 }
