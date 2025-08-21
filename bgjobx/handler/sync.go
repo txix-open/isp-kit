@@ -43,7 +43,7 @@ func (r Sync) Handle(ctx context.Context, job bgjob.Job) bgjob.Result {
 		return bgjob.MoveToDlq(result.Err)
 	case result.Reschedule:
 		return bgjob.Reschedule(result.RescheduleDelay)
-	case result.OverrideArg:
+	case result.RescheduleWithArg:
 		return bgjob.RescheduleWithArg(result.RescheduleDelay, result.Arg)
 	}
 
