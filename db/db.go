@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/metrics/sql_metrics"
 )
 
 type Client struct {
@@ -45,7 +46,10 @@ func (db *Client) RunInTransaction(ctx context.Context, txFunc TxFunc, opts ...T
 	for _, opt := range opts {
 		opt(options)
 	}
-	tx, err := db.BeginTxx(ctx, options.nativeOpts)
+	tx, err := db.BeginTxx(
+		txContext(ctx, options.metricsLabel),
+		options.nativeOpts,
+	)
 	if err != nil {
 		return errors.WithMessage(err, "begin transaction")
 	}
@@ -96,4 +100,11 @@ func (db *Client) IsReadOnly(ctx context.Context) (bool, error) {
 		return false, err
 	}
 	return isReadOnly == "on", nil
+}
+
+func txContext(ctx context.Context, label string) context.Context {
+	if label == "" {
+		return ctx
+	}
+	return sql_metrics.OperationLabelToContext(ctx, label)
 }
