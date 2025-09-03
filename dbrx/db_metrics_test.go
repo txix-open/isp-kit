@@ -1,8 +1,11 @@
 package dbrx_test
 
 import (
-	"github.com/txix-open/isp-kit/dbrx"
+	"context"
 	"testing"
+
+	"github.com/txix-open/isp-kit/db"
+	"github.com/txix-open/isp-kit/dbrx"
 
 	"github.com/txix-open/isp-kit/dbx"
 	"github.com/txix-open/isp-kit/metrics"
@@ -30,6 +33,13 @@ func TestDb_WithMetrics(t *testing.T) {
 	err := cli.SelectRow(ctx, &res, "select 1")
 	require.NoError(err)
 	require.Equal(1, res)
+
+	err = cli.RunInTransaction(
+		ctx,
+		func(ctx context.Context, tx *db.Tx) error { return nil },
+		db.MetricsLabel("testTransaction"),
+	)
+	require.NoError(err)
 }
 
 func TestDb_WithoutMetrics(t *testing.T) {
@@ -56,6 +66,11 @@ func TestDb_WithMetrics_WithoutLabel(t *testing.T) {
 	err := cli.SelectRow(ctx, &res, "select 1")
 	require.NoError(err)
 	require.Equal(1, res)
+
+	err = cli.RunInTransaction(ctx, func(ctx context.Context, tx *db.Tx) error {
+		return nil
+	})
+	require.NoError(err)
 }
 
 func TestCompareConfig(t *testing.T) {

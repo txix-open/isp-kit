@@ -2,6 +2,7 @@ package sql_metrics
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -38,6 +39,10 @@ func (m QueryDurationMetrics) TraceQueryStart(ctx context.Context, conn *pgx.Con
 		return ctx
 	}
 
+	if isTransaction(data.SQL) {
+		ctx = OperationLabelToContext(ctx, fmt.Sprintf("%s.%s", label, data.SQL))
+	}
+
 	return context.WithValue(ctx, startedAtContextKey, time.Now())
 }
 
@@ -59,4 +64,8 @@ func OperationLabelToContext(ctx context.Context, label string) context.Context 
 func OperationLabelFromContext(ctx context.Context) string {
 	value, _ := ctx.Value(labelContextKey).(string)
 	return value
+}
+
+func isTransaction(op string) bool {
+	return op == "begin" || op == "commit" || op == "rollback"
 }

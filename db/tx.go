@@ -8,7 +8,8 @@ import (
 )
 
 type txOptions struct {
-	nativeOpts *sql.TxOptions
+	nativeOpts   *sql.TxOptions
+	metricsLabel string
 }
 
 type TxOption func(options *txOptions)
@@ -28,6 +29,12 @@ func ReadOnly() TxOption {
 			options.nativeOpts = &sql.TxOptions{}
 		}
 		options.nativeOpts.ReadOnly = true
+	}
+}
+
+func MetricsLabel(name string) TxOption {
+	return func(options *txOptions) {
+		options.metricsLabel = name
 	}
 }
 
