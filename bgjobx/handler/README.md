@@ -26,6 +26,24 @@
 
 Выполняет обработку сообщения.
 
+### Mux
+
+Структура `Mux` реализует мультиплексор фоновых задач.
+
+**Methods:**
+
+#### `NewMux() *Mux`
+
+Конструктор мультиплексора.
+
+#### `(m *Mux) Register(jobType string, handler SyncHandlerAdapter) *Mux`
+
+Выполняет регистрацию обработчика задачи по ее типу в мультиплексоре.
+
+#### `(m *Mux) Handle(ctx context.Context, job bgjob.Job) Result`
+
+Выполняет вызов обработчика задачи в зависимости от типа задачи. Если обработчик не зарегистрирован, отправляет задачу в DLQ с ошибкой `bgjob.ErrUnknownType`.
+
 ## Usage
 
 ### Custom handler

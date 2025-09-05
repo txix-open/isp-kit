@@ -90,3 +90,72 @@ func TestRecovery(t *testing.T) {
 	assert.EqualValues(1, failedJob.Attempt)
 	assert.NotEmpty(failedJob.LastError)
 }
+
+func TestMux(t *testing.T) {
+	t.Parallel()
+
+	test, assert := test.New(t)
+	testDb := dbt.New(test, dbx.WithMigrationRunner("./migration", test.Logger()))
+	cli := bgjobx.NewClient(testDb, test.Logger())
+	t.Cleanup(func() {
+		cli.Close()
+	})
+
+	value := int32(0)
+	handler1 := handler.SyncHandlerAdapterFunc(func(ctx context.Context, job bgjob.Job) handler.Result {
+		atomic.AddInt32(&value, 1)
+		return handler.Complete()
+	})
+
+	handler2 := handler.SyncHandlerAdapterFunc(func(ctx context.Context, job bgjob.Job) handler.Result {
+		atomic.AddInt32(&value, 2)
+		return handler.Complete()
+	})
+
+	worker := bgjobx.WorkerConfig{
+		Queue: "test",
+		Handle: handler.NewMux().
+			Register("type1", handler1).
+			Register("type2", handler2),
+		PollInterval: 500 * time.Millisecond,
+	}
+	err := cli.Upgrade(t.Context(), []bgjobx.WorkerConfig{worker})
+	assert.NoError(err)
+
+	err = cli.Enqueue(t.Context(), bgjob.EnqueueRequest{
+		Id:    "1",
+		Type:  "type1",
+		Queue: "test",
+	})
+	assert.NoError(err)
+
+	err = cli.Enqueue(t.Context(), bgjob.EnqueueRequest{
+		Id:    "2",
+		Type:  "type2",
+		Queue: "test",
+	})
+	assert.NoError(err)
+
+	err = cli.Enqueue(t.Context(), bgjob.EnqueueRequest{
+		Id:    "3",
+		Type:  "type3",
+		Queue: "test",
+	})
+	assert.NoError(err)
+
+	time.Sleep(3 * time.Second)
+	assert.EqualValues(3, atomic.LoadInt32(&value))
+
+	db, _ := testDb.DB()
+	var failedJob bgjob.Job
+	err = db.QueryRow(`SELECT job_id, queue, type, attempt, last_error FROM bgjob_dead_job WHERE job_id = '3'`).Scan(
+		&failedJob.Id,
+		&failedJob.Queue,
+		&failedJob.Type,
+		&failedJob.Attempt,
+		&failedJob.LastError,
+	)
+	assert.NoError(err)
+	assert.EqualValues("type3", failedJob.Type)
+	assert.EqualValues(bgjob.ErrUnknownType.Error(), *failedJob.LastError)
+}
