@@ -34,6 +34,13 @@ func (r *Registry) Register(name string, checker Checker) {
 	r.checkers[name] = checker
 }
 
+func (r *Registry) Unregister(name string) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	delete(r.checkers, name)
+}
+
 func (r *Registry) Handler() http.Handler {
 	return http.TimeoutHandler(http.HandlerFunc(r.handle), 1*time.Second, "timeout")
 }
