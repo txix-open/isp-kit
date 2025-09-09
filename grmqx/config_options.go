@@ -25,3 +25,9 @@ func WithDeclarations(declarations topology.Declarations) ConfigOption {
 		c.Declarations = declarations
 	}
 }
+
+func WithLogObserver(logObserverInfo LogObserverInfo) ConfigOption {
+	return func(c *Config) {
+		c.LogObserverInfo = logObserverInfo
+	}
+}

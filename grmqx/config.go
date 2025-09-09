@@ -205,10 +205,18 @@ func JoinDeclarations(declarations ...topology.Declarations) topology.Declaratio
 }
 
 type Config struct {
-	Url          string
-	Publishers   []*publisher.Publisher
-	Consumers    []consumer.Consumer
-	Declarations topology.Declarations
+	Url             string
+	Publishers      []*publisher.Publisher
+	Consumers       []consumer.Consumer
+	Declarations    topology.Declarations
+	LogObserverInfo LogObserverInfo
+}
+
+type LogObserverInfo struct {
+	ConnectionId string
+	Host         string
+	Port         int
+	User         string
 }
 
 func NewConfig(url string, opts ...ConfigOption) Config {
