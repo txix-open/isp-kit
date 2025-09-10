@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/rabbitmq/amqp091-go"
+	"github.com/txix-open/grmq"
 	"github.com/txix-open/grmq/consumer"
 	"github.com/txix-open/grmq/publisher"
 	"github.com/txix-open/grmq/retry"
@@ -205,18 +206,11 @@ func JoinDeclarations(declarations ...topology.Declarations) topology.Declaratio
 }
 
 type Config struct {
-	Url             string
-	Publishers      []*publisher.Publisher
-	Consumers       []consumer.Consumer
-	Declarations    topology.Declarations
-	LogObserverInfo LogObserverInfo
-}
-
-type LogObserverInfo struct {
-	ConnectionId string
-	Host         string
-	Port         int
-	User         string
+	Url          string
+	Publishers   []*publisher.Publisher
+	Consumers    []consumer.Consumer
+	Declarations topology.Declarations
+	Observer     grmq.Observer
 }
 
 func NewConfig(url string, opts ...ConfigOption) Config {
