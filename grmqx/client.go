@@ -84,6 +84,9 @@ func (c *Client) upgrade(ctx context.Context, config Config, justServe bool) err
 		c.cli = nil
 	}
 
+	if config.Observer == nil {
+		config.Observer = NewLogObserver(ctx, c.logger)
+	}
 	cli := grmq.New(
 		config.Url,
 		grmq.WithDialConfig(grmq.DialConfig{
@@ -96,7 +99,7 @@ func (c *Client) upgrade(ctx context.Context, config Config, justServe bool) err
 		grmq.WithPublishers(config.Publishers...),
 		grmq.WithConsumers(config.Consumers...),
 		grmq.WithDeclarations(config.Declarations),
-		grmq.WithObserver(NewLogObserver(ctx, c.logger)),
+		grmq.WithObserver(config.Observer),
 	)
 
 	if justServe {
