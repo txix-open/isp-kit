@@ -2,13 +2,14 @@ package stompt_test
 
 import (
 	"context"
-	"github.com/txix-open/isp-kit/stompx/handler"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/go-stomp/stomp/v3"
 	"github.com/txix-open/isp-kit/stompx"
+	stompConsumer "github.com/txix-open/isp-kit/stompx/consumer"
+	"github.com/txix-open/isp-kit/stompx/handler"
 	"github.com/txix-open/isp-kit/stompx/publisher"
 	"github.com/txix-open/isp-kit/test"
 	"github.com/txix-open/isp-kit/test/stompt"
@@ -31,7 +32,8 @@ func Test(t *testing.T) {
 		return handler.Ack()
 	}))
 	consumer := stompx.DefaultConsumer(consumerCfg, handler, logger, stompx.ConsumerLog(logger, true))
-	cli.Upgrade(consumer)
+	consumerCli := stompConsumer.NewWatcher(consumer)
+	cli.Upgrade(consumerCli)
 
 	pub := stompx.DefaultPublisher(publisherCfg, stompx.PublisherLog(logger, true))
 	group, ctx := errgroup.WithContext(t.Context())

@@ -10,6 +10,7 @@ import (
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/requestid"
 	"github.com/txix-open/isp-kit/stompx"
+	"github.com/txix-open/isp-kit/stompx/consumer"
 	"github.com/txix-open/isp-kit/stompx/handler"
 	"github.com/txix-open/isp-kit/stompx/publisher"
 	"github.com/txix-open/isp-kit/test"
@@ -46,6 +47,7 @@ func TestRequestIdChain(t *testing.T) {
 		}),
 	)
 	consumer1 := stompx.DefaultConsumer(consumerCfg1, handler1, logger, stompx.ConsumerLog(logger, true))
+	consumerCli1 := consumer.NewWatcher(consumer1)
 
 	await := make(chan struct{})
 	handler2 := stompx.NewResultHandler(
@@ -58,6 +60,7 @@ func TestRequestIdChain(t *testing.T) {
 		}),
 	)
 	consumer2 := stompx.DefaultConsumer(consumerCfg2, handler2, logger, stompx.ConsumerLog(logger, true))
+	consumerCli2 := consumer.NewWatcher(consumer2)
 
 	consumerGroup := stompx.NewConsumerGroup(logger)
 	t.Cleanup(func() {
@@ -65,7 +68,7 @@ func TestRequestIdChain(t *testing.T) {
 		require.NoError(err)
 	})
 
-	consumerGroup.UpgradeAndServe(t.Context(), consumer1, consumer2)
+	consumerGroup.UpgradeAndServe(t.Context(), consumerCli1, consumerCli2)
 
 	ctx := requestid.ToContext(t.Context(), expectedRequestId)
 	ctx = log.ToContext(ctx, log.String(requestid.LogKey, expectedRequestId))
@@ -105,6 +108,7 @@ func TestRecover(t *testing.T) {
 		}),
 	)
 	consumer1 := stompx.DefaultConsumer(consumerCfg1, handler1, logger, stompx.ConsumerLog(logger, true))
+	consumerCli1 := consumer.NewWatcher(consumer1)
 
 	consumerGroup := stompx.NewConsumerGroup(logger)
 	t.Cleanup(func() {
@@ -112,7 +116,7 @@ func TestRecover(t *testing.T) {
 		require.NoError(err)
 	})
 
-	consumerGroup.UpgradeAndServe(t.Context(), consumer1)
+	consumerGroup.UpgradeAndServe(t.Context(), consumerCli1)
 
 	err := pub1.Publish(t.Context(), &publisher.Message{
 		Body: []byte("test msg"),

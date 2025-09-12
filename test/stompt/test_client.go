@@ -47,7 +47,7 @@ func (c *Client) PublisherConfig(queue string) stompx.PublisherConfig {
 	}
 }
 
-func (c *Client) Upgrade(consumers ...consumer.Config) {
+func (c *Client) Upgrade(consumers ...*consumer.Watcher) {
 	group := stompx.NewConsumerGroup(c.t.Logger())
 	c.t.T().Cleanup(func() {
 		err := group.Close()

@@ -12,23 +12,23 @@ import (
 type ConsumerGroup struct {
 	locker    sync.Locker
 	consumers []*consumer.Watcher
-	prevCfg   []consumer.Config
+	prevCfg   []*consumer.Watcher
 	logger    log.Logger
 }
 
 func NewConsumerGroup(logger log.Logger) *ConsumerGroup {
 	return &ConsumerGroup{
 		locker:  &sync.Mutex{},
-		prevCfg: []consumer.Config{},
+		prevCfg: []*consumer.Watcher{},
 		logger:  logger,
 	}
 }
 
-func (g *ConsumerGroup) Upgrade(ctx context.Context, consumers ...consumer.Config) error {
+func (g *ConsumerGroup) Upgrade(ctx context.Context, consumers ...*consumer.Watcher) error {
 	return g.upgrade(ctx, false, consumers...)
 }
 
-func (g *ConsumerGroup) UpgradeAndServe(ctx context.Context, consumers ...consumer.Config) {
+func (g *ConsumerGroup) UpgradeAndServe(ctx context.Context, consumers ...*consumer.Watcher) {
 	_ = g.upgrade(ctx, true, consumers...)
 }
 
@@ -41,13 +41,13 @@ func (g *ConsumerGroup) Close() error {
 	return nil
 }
 
-func (g *ConsumerGroup) upgrade(ctx context.Context, justServe bool, consumers ...consumer.Config) error {
+func (g *ConsumerGroup) upgrade(ctx context.Context, justServe bool, newConfig ...*consumer.Watcher) error {
 	g.locker.Lock()
 	defer g.locker.Unlock()
 
 	g.logger.Debug(ctx, "stomp client: received new config")
 
-	if reflect.DeepEqual(g.prevCfg, consumers) {
+	if reflect.DeepEqual(g.prevCfg, newConfig) {
 		g.logger.Debug(ctx, "stomp client: configs are equal. skipping upgrade")
 		return nil
 	}
@@ -56,9 +56,7 @@ func (g *ConsumerGroup) upgrade(ctx context.Context, justServe bool, consumers .
 
 	g.close()
 
-	for _, config := range consumers {
-		c := consumer.NewWatcher(config)
-
+	for _, c := range newConfigConsumers(newConfig) {
 		if justServe {
 			c.Serve(ctx)
 		} else {
@@ -72,7 +70,7 @@ func (g *ConsumerGroup) upgrade(ctx context.Context, justServe bool, consumers .
 	}
 
 	g.logger.Debug(ctx, "stomp client: initialization done")
-	g.prevCfg = consumers
+	g.prevCfg = newConfig
 
 	return nil
 }
@@ -82,4 +80,16 @@ func (g *ConsumerGroup) close() {
 		c.Shutdown()
 	}
 	g.consumers = nil
+}
+
+func newConfigConsumers(cfg []*consumer.Watcher) []*consumer.Watcher {
+	consumers := make([]*consumer.Watcher, 0)
+
+	for _, c := range cfg {
+		var newConsumer consumer.Watcher
+		newConsumer = *c
+		consumers = append(consumers, &newConsumer)
+	}
+
+	return consumers
 }
