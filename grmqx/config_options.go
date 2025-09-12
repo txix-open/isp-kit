@@ -1,7 +1,6 @@
 package grmqx
 
 import (
-	"github.com/txix-open/grmq"
 	"github.com/txix-open/grmq/consumer"
 	"github.com/txix-open/grmq/publisher"
 	"github.com/txix-open/grmq/topology"
@@ -27,8 +26,8 @@ func WithDeclarations(declarations topology.Declarations) ConfigOption {
 	}
 }
 
-func WithLogObserver(observer grmq.Observer) ConfigOption {
+func WithLogObserver(newObserverFunc NewLogObserverFunc) ConfigOption {
 	return func(c *Config) {
-		c.Observer = observer
+		c.NewObserver = newObserverFunc
 	}
 }
