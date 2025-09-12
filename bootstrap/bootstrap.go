@@ -254,7 +254,8 @@ func parseConfigServiceHosts(cfg ConfigServiceAddr) ([]string, error) {
 }
 
 func resolveHost(target string) (string, error) {
-	conn, err := net.Dial("udp", target)
+	var d net.Dialer
+	conn, err := d.DialContext(context.Background(), "udp", target)
 	if err != nil {
 		return "", errors.WithMessage(err, "net dial udp")
 	}

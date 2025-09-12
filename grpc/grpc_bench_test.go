@@ -6,6 +6,11 @@ import (
 	"crypto/rand"
 	"crypto/tls"
 	"encoding/hex"
+	"net"
+	"net/http"
+	"testing"
+	"time"
+
 	"github.com/txix-open/isp-kit/http/endpoint"
 	"github.com/txix-open/isp-kit/http/endpoint/httplog"
 	"github.com/txix-open/isp-kit/http/httpcli"
@@ -16,10 +21,6 @@ import (
 	"github.com/txix-open/isp-kit/test/httpt"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
-	"net"
-	"net/http"
-	"testing"
-	"time"
 )
 
 type Data struct {
@@ -90,7 +91,8 @@ func BenchmarkHttp2H2CParallel(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	listener, err := net.Listen("tcp", "127.0.0.1:")
+	var lc net.ListenConfig
+	listener, err := lc.Listen(b.Context(), "tcp", "127.0.0.1:")
 	if err != nil {
 		b.Fatal(err)
 	}

@@ -205,7 +205,8 @@ func prepareTest(t *testing.T) (*require.Assertions, *grpc.Server, *grpcCli.Clie
 	t.Helper()
 	required := require.New(t)
 
-	listener, err := net.Listen("tcp", "127.0.0.1:")
+	var lc net.ListenConfig
+	listener, err := lc.Listen(t.Context(), "tcp", "127.0.0.1:")
 	required.NoError(err)
 	srv := grpc.NewServer()
 	cli, err := grpcCli.Default()

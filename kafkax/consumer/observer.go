@@ -27,6 +27,7 @@ func (n NoopObserver) CloseDone() {
 // nolint:containedctx
 type LogObserver struct {
 	NoopObserver
+
 	ctx    context.Context
 	logger log.Logger
 }

@@ -13,6 +13,7 @@ import (
 
 type Client struct {
 	*sqlx.DB
+
 	queryTracers tracers
 }
 

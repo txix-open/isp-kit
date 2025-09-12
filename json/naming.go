@@ -9,6 +9,7 @@ import (
 
 type namingStrategyExtension struct {
 	jsoniter.DummyExtension
+
 	translate func(string) string
 }
 

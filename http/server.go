@@ -75,7 +75,8 @@ func (s *Server) Upgrade(handler http.Handler) {
 }
 
 func (s *Server) ListenAndServe(address string) error {
-	listener, err := net.Listen("tcp", address)
+	var lc net.ListenConfig
+	listener, err := lc.Listen(context.Background(), "tcp", address)
 	if err != nil {
 		return errors.WithMessagef(err, "listen: %s", address)
 	}

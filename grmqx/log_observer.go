@@ -12,6 +12,7 @@ import (
 // nolint:containedctx
 type LogObserver struct {
 	grmq.NoopObserver
+
 	ctx    context.Context
 	logger log.Logger
 }
