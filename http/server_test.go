@@ -129,7 +129,8 @@ func prepareServer(t *testing.T) string {
 		muxer.Handle(descriptor.Path, mapper.Endpoint(descriptor.Handler))
 	}
 
-	listener, err := net.Listen("tcp", "127.0.0.1:")
+	var lc net.ListenConfig
+	listener, err := lc.Listen(t.Context(), "tcp", "127.0.0.1:")
 	require.NoError(t, err)
 
 	srv := isphttp.NewServer(logger)

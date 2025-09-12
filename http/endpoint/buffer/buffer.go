@@ -12,6 +12,7 @@ const (
 
 type Buffer struct {
 	http.ResponseWriter
+
 	requestBuffer  *bytes.Buffer
 	responseBuffer *bytes.Buffer
 	statusCode     int

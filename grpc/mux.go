@@ -17,6 +17,7 @@ const (
 
 type Mux struct {
 	isp.UnimplementedBackendServiceServer
+
 	unaryHandlers map[string]HandlerFunc
 }
 

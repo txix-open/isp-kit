@@ -17,6 +17,7 @@ const (
 
 type ClientBalancer struct {
 	*httpcli.Client
+
 	hostManager *lb.RoundRobin
 	schema      string
 }

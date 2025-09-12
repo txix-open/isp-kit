@@ -71,7 +71,7 @@ Loop:
 
 				consumed = true
 			default:
-				if err = d.DecodeElement(b.Content, &se); err != nil {
+				if err = d.DecodeElement(b.Content, &se); err != nil { //nolint:noinlineerr
 					return err
 				}
 

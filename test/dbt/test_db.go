@@ -16,6 +16,7 @@ import (
 
 type TestDb struct {
 	*dbx.Client
+
 	must   must
 	schema string
 }

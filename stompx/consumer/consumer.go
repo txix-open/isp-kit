@@ -10,6 +10,7 @@ import (
 
 type Consumer struct {
 	Config
+
 	conn          *stomp.Conn
 	sub           *stomp.Subscription
 	deliveryWg    *sync.WaitGroup

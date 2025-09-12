@@ -35,7 +35,8 @@ func (m *MockServer) Mock(endpoint string, handler any) *MockServer {
 func TestServer(t *test.Test, service isp.BackendServiceServer) (*grpc.Server, *client.Client) {
 	assert := t.Assert()
 
-	listener, err := net.Listen("tcp", "127.0.0.1:")
+	var lc net.ListenConfig
+	listener, err := lc.Listen(t.T().Context(), "tcp", "127.0.0.1:")
 	assert.NoError(err)
 	srv := grpc.NewServer()
 	cli, err := client.Default()

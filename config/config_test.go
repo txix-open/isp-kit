@@ -15,10 +15,11 @@ type Subst struct {
 }
 
 type Example struct {
-	Int  int `validate:"required"`
-	Bool bool
-	Dur  time.Duration
 	Subst
+
+	Int         int `validate:"required"`
+	Bool        bool
+	Dur         time.Duration
 	SetExplicit int `validate:"required"`
 	SomeStruct  Subst
 	EnvOverride string

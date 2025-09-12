@@ -15,6 +15,7 @@ type scSource interface {
 
 type writerWrapper struct {
 	http.ResponseWriter
+
 	statusCode int
 }
 

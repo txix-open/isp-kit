@@ -34,6 +34,7 @@ func (n NoopObserver) ShutdownDone() {
 // nolint:containedctx
 type LogObserver struct {
 	NoopObserver
+
 	ctx    context.Context
 	logger log.Logger
 }
