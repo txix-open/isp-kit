@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/rabbitmq/amqp091-go"
+	"github.com/txix-open/grmq"
 	"github.com/txix-open/grmq/consumer"
 	"github.com/txix-open/grmq/publisher"
 	"github.com/txix-open/grmq/retry"
@@ -209,6 +210,7 @@ type Config struct {
 	Publishers   []*publisher.Publisher
 	Consumers    []consumer.Consumer
 	Declarations topology.Declarations
+	Observer     grmq.Observer
 }
 
 func NewConfig(url string, opts ...ConfigOption) Config {
