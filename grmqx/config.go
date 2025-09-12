@@ -1,6 +1,7 @@
 package grmqx
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/txix-open/grmq/publisher"
 	"github.com/txix-open/grmq/retry"
 	"github.com/txix-open/grmq/topology"
+	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/metrics"
 	"github.com/txix-open/isp-kit/metrics/rabbitmq_metrics"
 	"github.com/txix-open/isp-kit/observability/tracing/rabbitmq/publisher_tracing"
@@ -205,12 +207,14 @@ func JoinDeclarations(declarations ...topology.Declarations) topology.Declaratio
 	return result
 }
 
+type NewLogObserverFunc func(ctx context.Context, logger log.Logger) grmq.Observer
+
 type Config struct {
 	Url          string
 	Publishers   []*publisher.Publisher
 	Consumers    []consumer.Consumer
 	Declarations topology.Declarations
-	Observer     grmq.Observer
+	NewObserver  NewLogObserverFunc
 }
 
 func NewConfig(url string, opts ...ConfigOption) Config {
