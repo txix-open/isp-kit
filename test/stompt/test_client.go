@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/txix-open/isp-kit/stompx"
-	"github.com/txix-open/isp-kit/stompx/consumer"
 	"github.com/txix-open/isp-kit/test"
 )
 
@@ -47,12 +46,12 @@ func (c *Client) PublisherConfig(queue string) stompx.PublisherConfig {
 	}
 }
 
-func (c *Client) Upgrade(consumers ...*consumer.Watcher) {
-	group := stompx.NewConsumerGroup(c.t.Logger())
+func (c *Client) Upgrade(config stompx.Config) {
+	group := stompx.New(c.t.Logger())
 	c.t.T().Cleanup(func() {
 		err := group.Close()
 		c.t.Assert().NoError(err)
 	})
-	err := group.Upgrade(context.Background(), consumers...)
+	err := group.Upgrade(context.Background(), config)
 	c.t.Assert().NoError(err)
 }

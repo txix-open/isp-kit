@@ -31,9 +31,10 @@ func Test(t *testing.T) {
 		counter.Add(1)
 		return handler.Ack()
 	}))
-	consumer := stompx.DefaultConsumer(consumerCfg, handler, logger, stompx.ConsumerLog(logger, true))
-	consumerCli := stompConsumer.NewWatcher(consumer)
-	cli.Upgrade(consumerCli)
+	consumerConfig := stompx.DefaultConsumer(consumerCfg, handler, logger, stompx.ConsumerLog(logger, true))
+	consumer := stompConsumer.NewWatcher(consumerConfig)
+
+	cli.Upgrade(stompx.NewConfig(stompx.WithConsumers(consumer)))
 
 	pub := stompx.DefaultPublisher(publisherCfg, stompx.PublisherLog(logger, true))
 	group, ctx := errgroup.WithContext(t.Context())
