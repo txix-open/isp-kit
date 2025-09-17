@@ -92,17 +92,17 @@ func (c *Client) upgrade(ctx context.Context, justServe bool, newConfig Config) 
 
 	c.setNewState()
 
-	for _, consumer := range newConfig.getConsumers() {
+	for _, consumerCli := range newConfig.Consumers {
 		if justServe {
-			consumer.Serve(ctx)
+			consumerCli.Serve(ctx)
 		} else {
-			err := consumer.Run(ctx)
+			err := consumerCli.Run(ctx)
 			if err != nil {
 				return err
 			}
 		}
 
-		c.state.consumers = append(c.state.consumers, consumer)
+		c.state.consumers = append(c.state.consumers, consumerCli)
 	}
 	c.state.publishers = newConfig.Publishers
 
