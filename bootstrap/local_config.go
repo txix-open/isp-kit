@@ -16,6 +16,7 @@ type LocalConfig struct {
 	Observability               Observability
 	InfraServerPort             int
 	MetricsAutodiscovery        MetricsAutodiscovery
+	HealthcheckHandlerTimeout   time.Duration
 }
 
 type Logs struct {
