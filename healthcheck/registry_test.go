@@ -25,7 +25,7 @@ func TestRegistry(t *testing.T) {
 	err := cli.Upgrade(t.Context(), grmqx.NewConfig(mqTest.ConnectionConfig().Url()))
 	require.NoError(err)
 
-	registry := healthcheck.NewRegistry()
+	registry := healthcheck.NewRegistry(1 * time.Second)
 	registry.Register("rabbitClient", cli)
 
 	s := httptest.NewServer(registry.Handler())

@@ -76,6 +76,19 @@ func (p *Publisher) Close() error {
 	return nil
 }
 
+func (p *Publisher) Healthcheck(ctx context.Context) error {
+	if len(p.Address) == 0 {
+		return errors.New("publisher is not initialized")
+	}
+
+	_, err := p.aliveConn()
+	if err != nil {
+		return errors.WithMessage(err, "connect to stomp")
+	}
+
+	return nil
+}
+
 func (p *Publisher) publish(ctx context.Context, queue string, msg *Message) error {
 	conn, err := p.aliveConn()
 	if err != nil {

@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	cacheTime = 1 * time.Second
+	cacheTime            = 1 * time.Second
+	defaultHandleTimeout = 1 * time.Second
 )
 
 type Registry struct {
@@ -18,12 +19,18 @@ type Registry struct {
 	lastResult    Result
 	lastCheckTime time.Time
 	lock          sync.Locker
+	handleTimeout time.Duration
 }
 
-func NewRegistry() *Registry {
+func NewRegistry(handleTimeout time.Duration) *Registry {
+	if handleTimeout == 0 {
+		handleTimeout = defaultHandleTimeout
+	}
+
 	return &Registry{
-		checkers: make(map[string]Checker),
-		lock:     &sync.Mutex{},
+		checkers:      make(map[string]Checker),
+		lock:          &sync.Mutex{},
+		handleTimeout: handleTimeout,
 	}
 }
 
@@ -34,8 +41,15 @@ func (r *Registry) Register(name string, checker Checker) {
 	r.checkers[name] = checker
 }
 
+func (r *Registry) Unregister(name string) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	delete(r.checkers, name)
+}
+
 func (r *Registry) Handler() http.Handler {
-	return http.TimeoutHandler(http.HandlerFunc(r.handle), 1*time.Second, "timeout")
+	return http.TimeoutHandler(http.HandlerFunc(r.handle), r.handleTimeout, "timeout")
 }
 
 func (r *Registry) handle(writer http.ResponseWriter, _ *http.Request) {

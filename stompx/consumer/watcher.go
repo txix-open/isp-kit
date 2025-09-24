@@ -3,10 +3,10 @@ package consumer
 import (
 	"context"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
+	"go.uber.org/atomic"
 )
 
 type Watcher struct {
@@ -15,6 +15,7 @@ type Watcher struct {
 	shutdownDone  chan struct{}
 	mustReconnect *atomic.Bool
 	reportErrOnce *sync.Once
+	alive         *atomic.Bool
 }
 
 func NewWatcher(config Config) *Watcher {
@@ -27,6 +28,7 @@ func NewWatcher(config Config) *Watcher {
 		config:        config,
 		mustReconnect: mustReconnect,
 		reportErrOnce: &sync.Once{},
+		alive:         atomic.NewBool(true),
 	}
 }
 
@@ -57,12 +59,20 @@ func (w *Watcher) Shutdown() {
 	<-w.shutdownDone
 }
 
+func (w *Watcher) Healthcheck(ctx context.Context) error {
+	if w.alive.Load() {
+		return nil
+	}
+	return errors.New("could not fetch messages")
+}
+
 func (w *Watcher) run(ctx context.Context, firstSessionErr chan error) {
 	defer func() {
 		close(w.shutdownDone)
 	}()
 
 	for {
+		w.alive.Store(true)
 		err := w.runSession(firstSessionErr)
 		if err == nil { // normal close
 			return
@@ -71,6 +81,8 @@ func (w *Watcher) run(ctx context.Context, firstSessionErr chan error) {
 		consumer := &Consumer{
 			Config: w.config,
 		}
+
+		w.alive.Store(false)
 		w.config.Observer.Error(consumer, err)
 
 		if !w.mustReconnect.Load() {

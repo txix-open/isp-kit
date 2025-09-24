@@ -166,7 +166,7 @@ func bootstrap(
 		return nil, errors.WithMessage(err, "resolve migrations dir path")
 	}
 
-	healthcheckRegistry := healthcheck.NewRegistry()
+	healthcheckRegistry := healthcheck.NewRegistry(localConfig.HealthcheckHandlerTimeout)
 	healthcheckRegistry.Register("configServiceConnection", clusterCli)
 
 	infraServer := infraServer(localConfig, application)

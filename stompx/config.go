@@ -9,6 +9,19 @@ import (
 	"github.com/txix-open/isp-kit/stompx/publisher"
 )
 
+type Config struct {
+	Consumers  []*consumer.Watcher
+	Publishers []*publisher.Publisher
+}
+
+func NewConfig(opts ...ConfigOption) Config {
+	cfg := &Config{}
+	for _, opt := range opts {
+		opt(cfg)
+	}
+	return *cfg
+}
+
 type ConsumerConfig struct {
 	Address       string            `validate:"required" schema:"Адрес брокера"`
 	Queue         string            `validate:"required" schema:"Очередь"`
