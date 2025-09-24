@@ -10,6 +10,7 @@ import (
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/requestid"
 	"github.com/txix-open/isp-kit/stompx"
+	"github.com/txix-open/isp-kit/stompx/consumer"
 	"github.com/txix-open/isp-kit/stompx/handler"
 	"github.com/txix-open/isp-kit/stompx/publisher"
 	"github.com/txix-open/isp-kit/test"
@@ -45,7 +46,8 @@ func TestRequestIdChain(t *testing.T) {
 			return handler.Ack()
 		}),
 	)
-	consumer1 := stompx.DefaultConsumer(consumerCfg1, handler1, logger, stompx.ConsumerLog(logger, true))
+	consumerConfig1 := stompx.DefaultConsumer(consumerCfg1, handler1, logger, stompx.ConsumerLog(logger, true))
+	consumer1 := consumer.NewWatcher(consumerConfig1)
 
 	await := make(chan struct{})
 	handler2 := stompx.NewResultHandler(
@@ -57,15 +59,20 @@ func TestRequestIdChain(t *testing.T) {
 			return handler.Ack()
 		}),
 	)
-	consumer2 := stompx.DefaultConsumer(consumerCfg2, handler2, logger, stompx.ConsumerLog(logger, true))
+	consumerConfig2 := stompx.DefaultConsumer(consumerCfg2, handler2, logger, stompx.ConsumerLog(logger, true))
+	consumer2 := consumer.NewWatcher(consumerConfig2)
 
-	consumerGroup := stompx.NewConsumerGroup(logger)
+	stompCli := stompx.New(logger)
 	t.Cleanup(func() {
-		err := consumerGroup.Close()
+		err := stompCli.Close()
 		require.NoError(err)
 	})
 
-	consumerGroup.UpgradeAndServe(t.Context(), consumer1, consumer2)
+	config := stompx.NewConfig(
+		stompx.WithConsumers(consumer1, consumer2),
+	)
+
+	stompCli.UpgradeAndServe(t.Context(), config)
 
 	ctx := requestid.ToContext(t.Context(), expectedRequestId)
 	ctx = log.ToContext(ctx, log.String(requestid.LogKey, expectedRequestId))
@@ -104,15 +111,19 @@ func TestRecover(t *testing.T) {
 			return handler.Ack()
 		}),
 	)
-	consumer1 := stompx.DefaultConsumer(consumerCfg1, handler1, logger, stompx.ConsumerLog(logger, true))
+	consumerConfig1 := stompx.DefaultConsumer(consumerCfg1, handler1, logger, stompx.ConsumerLog(logger, true))
+	consumer1 := consumer.NewWatcher(consumerConfig1)
 
-	consumerGroup := stompx.NewConsumerGroup(logger)
+	stompCli := stompx.New(logger)
 	t.Cleanup(func() {
-		err := consumerGroup.Close()
+		err := stompCli.Close()
 		require.NoError(err)
 	})
 
-	consumerGroup.UpgradeAndServe(t.Context(), consumer1)
+	config := stompx.NewConfig(
+		stompx.WithConsumers(consumer1),
+	)
+	stompCli.UpgradeAndServe(t.Context(), config)
 
 	err := pub1.Publish(t.Context(), &publisher.Message{
 		Body: []byte("test msg"),

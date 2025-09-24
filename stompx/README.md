@@ -1,8 +1,42 @@
 # Package `stompx`
 
-Пакет `stompx` предоставляет высокоуровневую обёртку над STOMP-протоколом, реализуя удобные инструменты для создания потребителей и издателей сообщений, с поддержкой middleware, логирования, повторных попыток и управления группой потребителей.
+Пакет `stompx` предоставляет высокоуровневую обёртку над STOMP-протоколом, реализуя удобные инструменты для создания потребителей и издателей сообщений, с поддержкой middleware, логирования, повторных попыток и управления группой потребителей и издателей.
 
 ## Types
+
+### Config
+
+Конфигурация stompx-клиента.
+
+**Fields:**
+
+#### `Consumers  []*consumer.Watcher`
+
+Массив потребителей.
+
+#### `Publishers []*publisher.Publisher`
+
+Массив издателей.
+
+**Methods:**
+
+#### `NewConfig(opts ...ConfigOption) Config`
+
+Создаёт конфигурацию клиента с указанными опциями.
+
+### ConfigOption
+
+Функция, применяющая опции к `Config`.
+
+**Functions:**
+
+#### `WithConsumers(consumers ...*consumer.Watcher) ConfigOption`
+
+Добавляет клиенты потребителей в конфигурацию клиента.
+
+#### `WithPublishers(publishers ...*publisher.Publisher) ConfigOption`
+
+Добавляет клиенты издателей в конфигурацию клиента.
 
 ### ConsumerConfig
 
@@ -60,25 +94,37 @@
 
 Пароль.
 
-#### `ConnHeaders  map[string]string`
+#### `ConnHeaders map[string]string`
 
 Дополнительные заголовки подключения.
 
-### ConsumerGroup
+### Client
 
-Группа потребителей, способная обновляться и перезапускаться при изменении конфигурации.
+Клиент, включающий в себя группу потребителей и издателей, способный обновлять соединения и перезапускаться при изменении конфигурации.
 
 **Methods:**
 
-#### `(g *ConsumerGroup) Upgrade(ctx context.Context, consumers ...Consumer) error`
+#### `New(logger log.Logger) *Client`
 
-Применяет новую конфигурацию без запуска.
+Создать новый клиент с логгером.
 
-#### `(g *ConsumerGroup) UpgradeAndServe(ctx context.Context, consumers ...Consumer) error`
+#### `(g *Client) Upgrade(ctx context.Context, config Config) error`
 
-Применяет и запускает новых потребителей.
+Обновить конфигурацию, синхронно инициализировать клиент с гарантией готовности всех компонентов:
 
-#### `(g *ConsumerGroup) Close() error`
+- Блокировка и ожидание первой успешно установленной сессии.
+- Запуск всех потребителей, инициализация всех издателей.
+- Вернет первую возникшую ошибку во время открытия первой сессии или `nil`.
+
+#### `(g *Client) UpgradeAndServe(ctx context.Context, config Config) error`
+
+Обновить конфигурацию и перезапустить подключения:
+
+- Останавливает старые соединения,
+- Инициализирует новые потребители/издатели,
+- Запускает обработку сообщений потребителями.
+
+#### `(g *Client) Close() error`
 
 Завершает все активные подключения.
 
@@ -160,6 +206,8 @@ import (
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/requestid"
 	"github.com/txix-open/isp-kit/stompx"
+	"github.com/txix-open/isp-kit/stompx/consumer"
+	"github.com/txix-open/isp-kit/stompx/publisher"
 )
 
 func main() {
@@ -179,26 +227,33 @@ func main() {
 		Password: "admin",
 	}
 
-	consumer, err := stompx.DefaultConsumer(consumerCfg, handler, logger)
-	if err != nil {
-		log.Fatal(err)
+	publisherCfg := stompx.PublisherConfig{
+		Address:  "tcp://localhost:61613",
+		Queue:    "/queue/example",
+		Username: "admin",
+		Password: "admin",
 	}
 
-	// Создаём группу потребителей
-	group := stompx.NewConsumerGroup(logger)
+	consumerCli := consumer.NewWatcher(stompx.DefaultConsumer(consumerCfg, handler, logger))
+	publisherCli := stompx.DefaultPublisher(publisherCfg)
+
+	// Создаём конфигурацию
+	config := stompx.NewConfig(
+		stompx.WithConsumers(consumerCli),
+		stompx.WithPublishers(publisherCli))
+
+	// Создаём клиент
+	сli := stompx.NewClient(logger)
 
 	// Обработка завершения приложения
 	shutdown.On(func() {
 		logger.Info("shutting down...")
-		_ = group.Close()
+		_ = сli.Close()
 		logger.Info("shutdown completed")
 	})
 
-	// Запускаем потребителей
-	err = group.UpgradeAndServe(context.Background(), consumer)
-	if err != nil {
-		logger.Fatal("failed to start consumer group", log.String("error", err.Error()))
-	}
+	// Запускаем клиент
+	сli.UpgradeAndServe(context.Background(), config)
 	...
 }
 ```
