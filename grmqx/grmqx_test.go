@@ -10,6 +10,7 @@ import (
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/txix-open/grmq/consumer"
 	"github.com/txix-open/isp-kit/grmqx"
+	"github.com/txix-open/isp-kit/grmqx/batch_handler"
 	"github.com/txix-open/isp-kit/grmqx/handler"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/requestid"
@@ -141,13 +142,18 @@ func TestBatchHandler(t *testing.T) {
 		RoutingKey: "test",
 	}.DefaultPublisher()
 	deliveryCount := atomic.Int32{}
-	handler := grmqx.BatchHandlerAdapterFunc(func(batch []grmqx.BatchItem) {
-		for _, item := range batch {
-			err := item.Delivery.Ack()
-			require.NoError(err)
-			deliveryCount.Add(1)
-		}
-	})
+
+	handler := grmqx.NewResultBatchHandler(
+		test.Logger(),
+		batch_handler.SyncHandlerAdapterFunc(func(batch []batch_handler.Item) *batch_handler.Result {
+			res := batch_handler.NewResult()
+			for idx := range batch {
+				res.AddAck(idx)
+				deliveryCount.Add(1)
+			}
+			return res
+		}),
+	)
 	consumerCfg := grmqx.BatchConsumer{
 		Queue:             "test",
 		BatchSize:         100,

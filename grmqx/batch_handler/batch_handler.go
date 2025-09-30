@@ -1,4 +1,4 @@
-package grmqx
+package batch_handler
 
 import (
 	"context"
@@ -9,48 +9,44 @@ import (
 )
 
 type BatchHandlerAdapter interface {
-	Handle(batch []BatchItem)
+	Handle(batch []Item)
 }
 
-type BatchHandlerAdapterFunc func(batch []BatchItem)
+type BatchHandlerAdapterFunc func(batch []Item)
 
-func (b BatchHandlerAdapterFunc) Handle(batch []BatchItem) {
+func (b BatchHandlerAdapterFunc) Handle(batch []Item) {
 	b(batch)
 }
 
 // nolint:containedctx
-type BatchItem struct {
+type Item struct {
 	Context  context.Context
 	Delivery *consumer.Delivery
 }
 
-type BatchHandler struct {
+type Handler struct {
 	adapter       BatchHandlerAdapter
 	purgeInterval time.Duration
 	maxSize       int
-	batch         []BatchItem
-	c             chan BatchItem
+	batch         []Item
+	c             chan Item
 	runner        *sync.Once
 	closed        bool
 	lock          sync.Locker
 }
 
-func NewBatchHandler(
-	adapter BatchHandlerAdapter,
-	purgeInterval time.Duration,
-	maxSize int,
-) *BatchHandler {
-	return &BatchHandler{
+func New(adapter BatchHandlerAdapter, purgeInterval time.Duration, maxSize int) *Handler {
+	return &Handler{
 		adapter:       adapter,
 		purgeInterval: purgeInterval,
 		maxSize:       maxSize,
-		c:             make(chan BatchItem),
+		c:             make(chan Item),
 		runner:        &sync.Once{},
 		lock:          &sync.Mutex{},
 	}
 }
 
-func (r *BatchHandler) Handle(ctx context.Context, delivery *consumer.Delivery) {
+func (r *Handler) Handle(ctx context.Context, delivery *consumer.Delivery) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -62,13 +58,13 @@ func (r *BatchHandler) Handle(ctx context.Context, delivery *consumer.Delivery) 
 	r.runner.Do(func() {
 		go r.run()
 	})
-	r.c <- BatchItem{
+	r.c <- Item{
 		Context:  ctx,
 		Delivery: delivery,
 	}
 }
 
-func (r *BatchHandler) Close() {
+func (r *Handler) Close() {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -76,7 +72,7 @@ func (r *BatchHandler) Close() {
 	close(r.c)
 }
 
-func (r *BatchHandler) run() {
+func (r *Handler) run() {
 	var timer *time.Timer
 	defer func() {
 		if len(r.batch) > 0 {

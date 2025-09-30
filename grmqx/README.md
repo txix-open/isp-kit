@@ -107,30 +107,11 @@
 
 ####
 
-`(b BatchConsumer) DefaultConsumer(handler BatchHandlerAdapter, restMiddlewares ...consumer.Middleware) consumer.Consumer`
+`(b BatchConsumer) DefaultConsumer(handler batch_handler.BatchHandlerAdapter, restMiddlewares ...consumer.Middleware) consumer.Consumer`
 
 Создать батч-консумера с пакетной обработкой сообщений. Обработчик сообщений должен реализовывать интерфейс
-`BatchHandlerAdapter` или быть преобразованным к `BatchHandlerAdapterFunc`, если это функция-обработчик.
-
-### BatchHandler
-
-Обработчик для пакетной обработки сообщений из очереди RabbitMQ.
-
-**Methods:**
-
-#### `NewBatchHandler(adapter BatchHandlerAdapter, purgeInterval time.Duration, maxSize int) *BatchHandler`
-
-Конструктор обработчика. Принимает адаптер бизнес-логики, который должен реализовывать интерфейс `BatchHandlerAdapter`
-или быть преобразованным к `BatchHandlerAdapterFunc`, если это функция-обработчик. Также принимает интервал очистки
-очереди и максимальный ее размер.
-
-#### `(r *BatchHandler) Handle(ctx context.Context, delivery *consumer.Delivery)`
-
-Добавить сообщение в текущий батч.
-
-#### `(r *BatchHandler) Close()`
-
-Завершить работу обработчика сообщений.
+`batch_handler.BatchHandlerAdapter` или быть преобразованным к `batch_handler.BatchHandlerAdapterFunc`, 
+если это функция-обработчик.
 
 ### LogObserver
 
@@ -195,6 +176,14 @@
 - Логирования
 - Сбора метрик
 - Трейсинга
+- Восстановления при панике
+
+#### `NewResultBatchHandler(logger log.Logger, adapter batch_handler.SyncHandlerAdapter) batch_handler.Sync`
+
+Создает готовый синхронный пакетный обработчик сообщений RabbitMQ с предустановленными инструментами для:
+
+- Логирования
+- Сбора метрик
 - Восстановления при панике
 
 ## Usage
@@ -270,13 +259,19 @@ import (
 	"log"
 
 	"github.com/txix-open/isp-kit/grmqx"
+	"github.com/txix-open/isp-kit/grmqx/batch_handler"
 	log2 "github.com/txix-open/isp-kit/log"
 )
 
 type batchHandler struct{}
 
-func (h batchHandler) Handle(batch []grmqx.BatchItem) {
+func (h batchHandler) Handle(batch []batch_handler.Item) *batch_handler.Result {
+	result := batch_handler.NewResult()
 	/* put here business logic */
+	for idx := range batch {
+		result.AddAck(idx)
+	}
+	return result
 }
 
 func main() {
