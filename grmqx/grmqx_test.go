@@ -145,13 +145,11 @@ func TestBatchHandler(t *testing.T) {
 
 	handler := grmqx.NewResultBatchHandler(
 		test.Logger(),
-		batch_handler.SyncHandlerAdapterFunc(func(batch []batch_handler.Item) *batch_handler.Result {
-			res := batch_handler.NewResult()
-			for idx := range batch {
-				res.AddAck(idx)
+		batch_handler.SyncHandlerAdapterFunc(func(batch []*batch_handler.BatchItem) {
+			for _, item := range batch {
+				item.Ack()
 				deliveryCount.Add(1)
 			}
-			return res
 		}),
 	)
 	consumerCfg := grmqx.BatchConsumer{

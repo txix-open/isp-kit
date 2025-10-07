@@ -8,39 +8,23 @@ import (
 	"github.com/txix-open/grmq/consumer"
 )
 
-type BatchHandlerAdapter interface {
-	Handle(batch []Item)
-}
-
-type BatchHandlerAdapterFunc func(batch []Item)
-
-func (b BatchHandlerAdapterFunc) Handle(batch []Item) {
-	b(batch)
-}
-
-// nolint:containedctx
-type Item struct {
-	Context  context.Context
-	Delivery *consumer.Delivery
-}
-
 type Handler struct {
-	adapter       BatchHandlerAdapter
+	adapter       SyncHandlerAdapter
 	purgeInterval time.Duration
 	maxSize       int
-	batch         []Item
-	c             chan Item
+	batch         []*BatchItem
+	c             chan BatchItem
 	runner        *sync.Once
 	closed        bool
 	lock          sync.Locker
 }
 
-func New(adapter BatchHandlerAdapter, purgeInterval time.Duration, maxSize int) *Handler {
+func New(adapter SyncHandlerAdapter, purgeInterval time.Duration, maxSize int) *Handler {
 	return &Handler{
 		adapter:       adapter,
 		purgeInterval: purgeInterval,
 		maxSize:       maxSize,
-		c:             make(chan Item),
+		c:             make(chan BatchItem),
 		runner:        &sync.Once{},
 		lock:          &sync.Mutex{},
 	}
@@ -58,7 +42,7 @@ func (r *Handler) Handle(ctx context.Context, delivery *consumer.Delivery) {
 	r.runner.Do(func() {
 		go r.run()
 	})
-	r.c <- Item{
+	r.c <- BatchItem{
 		Context:  ctx,
 		Delivery: delivery,
 	}
@@ -94,7 +78,7 @@ func (r *Handler) run() {
 			if !ok {
 				return
 			}
-			r.batch = append(r.batch, item)
+			r.batch = append(r.batch, &item)
 			if len(r.batch) < r.maxSize {
 				continue
 			}

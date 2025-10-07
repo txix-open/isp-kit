@@ -5,15 +5,15 @@ import (
 )
 
 type SyncHandlerAdapter interface {
-	Handle(items []Item) *Result
+	Handle(items []*BatchItem)
 }
 
 type Middleware func(next SyncHandlerAdapter) SyncHandlerAdapter
 
-type SyncHandlerAdapterFunc func(items []Item) *Result
+type SyncHandlerAdapterFunc func(items []*BatchItem)
 
-func (a SyncHandlerAdapterFunc) Handle(items []Item) *Result {
-	return a(items)
+func (a SyncHandlerAdapterFunc) Handle(items []*BatchItem) {
+	a(items)
 }
 
 type Sync struct {
@@ -32,34 +32,30 @@ func NewSync(logger log.Logger, adapter SyncHandlerAdapter, middlewares ...Middl
 	return s
 }
 
-func (r Sync) Handle(items []Item) {
+func (r Sync) Handle(items []*BatchItem) {
 	if len(items) == 0 {
 		return
 	}
 
-	result := r.handler.Handle(items)
+	r.handler.Handle(items)
 
-	for _, ack := range result.ToAck {
-		item := items[ack.Idx]
-		err := item.Delivery.Ack()
-		if err != nil {
-			r.logger.Error(item.Context, "rmq client: ack message error", log.Any("error", err))
-		}
-	}
-
-	for _, retry := range result.ToRetry {
-		item := items[retry.Idx]
-		err := item.Delivery.Retry()
-		if err != nil {
-			r.logger.Error(item.Context, "rmq client: retry message error", log.Any("error", err))
-		}
-	}
-
-	for _, dlq := range result.ToDlq {
-		item := items[dlq.Idx]
-		err := item.Delivery.Nack(false)
-		if err != nil {
-			r.logger.Error(item.Context, "rmq client: nack message error", log.Any("error", err))
+	for _, item := range items {
+		switch {
+		case item.Result.Ack:
+			err := item.Delivery.Ack()
+			if err != nil {
+				r.logger.Error(item.Context, "rmq client: ack message error", log.Any("error", err))
+			}
+		case item.Result.Retry:
+			err := item.Delivery.Retry()
+			if err != nil {
+				r.logger.Error(item.Context, "rmq client: retry message error", log.Any("error", err))
+			}
+		case item.Result.MoveToDlq:
+			err := item.Delivery.Nack(false)
+			if err != nil {
+				r.logger.Error(item.Context, "rmq client: nack message error", log.Any("error", err))
+			}
 		}
 	}
 }

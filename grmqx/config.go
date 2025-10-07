@@ -144,7 +144,7 @@ func (b BatchConsumer) ConsumerConfig() Consumer {
 	}
 }
 
-func (b BatchConsumer) DefaultConsumer(handler batch_handler.BatchHandlerAdapter, restMiddlewares ...consumer.Middleware) consumer.Consumer {
+func (b BatchConsumer) DefaultConsumer(handler batch_handler.SyncHandlerAdapter, restMiddlewares ...consumer.Middleware) consumer.Consumer {
 	batchHandler := batch_handler.New(
 		handler,
 		time.Duration(b.PurgeIntervalInMs)*time.Millisecond,
