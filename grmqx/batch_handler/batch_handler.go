@@ -1,4 +1,4 @@
-package grmqx
+package batch_handler
 
 import (
 	"context"
@@ -8,39 +8,19 @@ import (
 	"github.com/txix-open/grmq/consumer"
 )
 
-type BatchHandlerAdapter interface {
-	Handle(batch []BatchItem)
-}
-
-type BatchHandlerAdapterFunc func(batch []BatchItem)
-
-func (b BatchHandlerAdapterFunc) Handle(batch []BatchItem) {
-	b(batch)
-}
-
-// nolint:containedctx
-type BatchItem struct {
-	Context  context.Context
-	Delivery *consumer.Delivery
-}
-
-type BatchHandler struct {
-	adapter       BatchHandlerAdapter
+type Handler struct {
+	adapter       SyncHandlerAdapter
 	purgeInterval time.Duration
 	maxSize       int
-	batch         []BatchItem
+	batch         []*BatchItem
 	c             chan BatchItem
 	runner        *sync.Once
 	closed        bool
 	lock          sync.Locker
 }
 
-func NewBatchHandler(
-	adapter BatchHandlerAdapter,
-	purgeInterval time.Duration,
-	maxSize int,
-) *BatchHandler {
-	return &BatchHandler{
+func New(adapter SyncHandlerAdapter, purgeInterval time.Duration, maxSize int) *Handler {
+	return &Handler{
 		adapter:       adapter,
 		purgeInterval: purgeInterval,
 		maxSize:       maxSize,
@@ -50,7 +30,7 @@ func NewBatchHandler(
 	}
 }
 
-func (r *BatchHandler) Handle(ctx context.Context, delivery *consumer.Delivery) {
+func (r *Handler) Handle(ctx context.Context, delivery *consumer.Delivery) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -68,7 +48,7 @@ func (r *BatchHandler) Handle(ctx context.Context, delivery *consumer.Delivery) 
 	}
 }
 
-func (r *BatchHandler) Close() {
+func (r *Handler) Close() {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -76,7 +56,7 @@ func (r *BatchHandler) Close() {
 	close(r.c)
 }
 
-func (r *BatchHandler) run() {
+func (r *Handler) run() {
 	var timer *time.Timer
 	defer func() {
 		if len(r.batch) > 0 {
@@ -98,7 +78,7 @@ func (r *BatchHandler) run() {
 			if !ok {
 				return
 			}
-			r.batch = append(r.batch, item)
+			r.batch = append(r.batch, &item)
 			if len(r.batch) < r.maxSize {
 				continue
 			}
