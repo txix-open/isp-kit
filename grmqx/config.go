@@ -12,6 +12,7 @@ import (
 	"github.com/txix-open/grmq/publisher"
 	"github.com/txix-open/grmq/retry"
 	"github.com/txix-open/grmq/topology"
+	"github.com/txix-open/isp-kit/grmqx/batch_handler"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/metrics"
 	"github.com/txix-open/isp-kit/metrics/rabbitmq_metrics"
@@ -143,8 +144,8 @@ func (b BatchConsumer) ConsumerConfig() Consumer {
 	}
 }
 
-func (b BatchConsumer) DefaultConsumer(handler BatchHandlerAdapter, restMiddlewares ...consumer.Middleware) consumer.Consumer {
-	batchHandler := NewBatchHandler(
+func (b BatchConsumer) DefaultConsumer(handler batch_handler.SyncHandlerAdapter, restMiddlewares ...consumer.Middleware) consumer.Consumer {
+	batchHandler := batch_handler.New(
 		handler,
 		time.Duration(b.PurgeIntervalInMs)*time.Millisecond,
 		b.BatchSize,
