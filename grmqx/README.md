@@ -107,10 +107,10 @@
 
 ####
 
-`(b BatchConsumer) DefaultConsumer(handler batch_handler.BatchHandlerAdapter, restMiddlewares ...consumer.Middleware) consumer.Consumer`
+`(b BatchConsumer) DefaultConsumer(handler batch_handler.SyncHandlerAdapter, restMiddlewares ...consumer.Middleware) consumer.Consumer`
 
 Создать батч-консумера с пакетной обработкой сообщений. Обработчик сообщений должен реализовывать интерфейс
-`batch_handler.BatchHandlerAdapter` или быть преобразованным к `batch_handler.BatchHandlerAdapterFunc`, 
+`batch_handler.SyncHandlerAdapter` или быть преобразованным к `batch_handler.SyncHandlerAdapterFunc`, 
 если это функция-обработчик.
 
 ### LogObserver
@@ -265,13 +265,9 @@ import (
 
 type batchHandler struct{}
 
-func (h batchHandler) Handle(batch []batch_handler.Item) *batch_handler.Result {
-	result := batch_handler.NewResult()
+func (h batchHandler) Handle(batch batch_handler.BatchItems) {
 	/* put here business logic */
-	for idx := range batch {
-		result.AddAck(idx)
-	}
-	return result
+	batch.AckAll()
 }
 
 func main() {
