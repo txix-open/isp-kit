@@ -11,10 +11,10 @@
 
 **Methods:**
 
-#### `New(adapter BatchHandlerAdapter, purgeInterval time.Duration, maxSize int) *Handler`
+#### `New(adapter SyncHandlerAdapter, purgeInterval time.Duration, maxSize int) *Handler`
 
-Конструктор обработчика. Принимает адаптер бизнес-логики, который должен реализовывать интерфейс `BatchHandlerAdapter`
-или быть преобразованным к `BatchHandlerAdapterFunc`, если это функция-обработчик. Также принимает интервал очистки
+Конструктор обработчика. Принимает адаптер бизнес-логики, который должен реализовывать интерфейс `SyncHandlerAdapter`
+или быть преобразованным к `SyncHandlerAdapterFunc`, если это функция-обработчик. Также принимает интервал очистки
 очереди и максимальный ее размер.
 
 #### `(r *Handler) Handle(ctx context.Context, delivery *consumer.Delivery)`
@@ -40,38 +40,53 @@
 Опциональные middleware:
 
 - `Metrics(metricStorage ConsumerMetricStorage) Middleware` – middleware для сбора метрик, регистрирующая время
-  обработки, размер сообщения, статусы (Ack/Requeue/Retry/DLQ). Принимает на вход хранилище метрик, реализующее
+  обработки, размер сообщения, статусы (Ack/Retry/DLQ). Принимает на вход хранилище метрик, реализующее
   интерфейс `ConsumerMetricStorage`.
 - `Log(logger log.Logger) Middleware` – логирования событий обработки.
-- `Recovery(logger log.Logger) Middleware` – предотвращает падение сервиса при панике в обработчике, преобразуя ее в ошибку.
+- `Recovery(logger log.Logger) Middleware` – предотвращает падение сервиса при панике в обработчике, логируя ее в ошибку.
 
 #### `(r Sync) Handle(items []Item)`
 
-Выполняет обработку пакета сообщений и применяет результат (Ack/Requeue/Retry/MoveToDlq) для каждого из них. 
+Выполняет обработку пакета сообщений и применяет установленный результат (Ack/Retry/MoveToDlq) для каждого из них. 
 Логирует ошибки при выполнении операций с брокером.
 
 ### Result
 
-Структура `Result` содержит результаты пакетной обработки сообщений и предоставляет методы добавления индексов обработанных
-сообщений к результату обработки.
+Структура `Result` содержит результат обработки сообщения.
 
-**Methods:**
+### BatchItem
 
-#### `NewResult() *Result`
+Структура `BatchItem` содержит обрабатываемое сообщение из принятого на обработку пакета, позволяет устанавливать 
+и управлять результатом обработки сообщения.
 
-Конструктор результата обработки.
+#### `(b *BatchItem) Ack()`
 
-#### `(r *Result) AddAck(idx int)`
+Установка результата сообщения как успешно обработанного.
 
-Добавление индекса сообщения к результату как успешно обработанного.
+#### `(b *BatchItem) MoveToDlq(err error)`
 
-#### `(r *Result) AddRetry(idx int, err error)`
+Установка результата сообщения как требующего повторной обработки, с логированием ошибки.
 
-Добавление индекса сообщения к результату как требующего повторной обработки, с логированием ошибки.
+#### `(b *BatchItem) Retry(err error)`
 
-#### `(r *Result) AddDlq(idx int, err error)`
+Установка результата сообщения как неуспешно обработанного, с отправкой в DLQ и логированием ошибки.
 
-Добавление индекса сообщения к результату как неуспешно обработанного, с отправкой в DLQ и логированием ошибки.
+### BatchItem
+
+Структура `BatchItems` содержит принятый на обработку пакет сообщений, позволяет устанавливать
+и управлять результатом обработки всех сообщений пакета.
+
+#### `(bs BatchItems) AckAll()`
+
+Установка результата сообщений как успешно обработанных.
+
+#### `(bs BatchItems) MoveToDlqAll(err error)`
+
+Установка результата сообщений как требующих повторной обработки, с логированием ошибки.
+
+#### `(bs BatchItems) RetryAll(err error)`
+
+Установка результата сообщений как неуспешно обработанных, с отправкой в DLQ и логированием ошибки.
 
 ## Usage
 
@@ -91,18 +106,16 @@ import (
 
 type customHandler struct{}
 
-func (h customHandler) Handle(items []batch_handler.Item) *batch_handler.Result {
-	result := batch_handler.NewResult()
-	for idx, item := range items {
+func (h customHandler) Handle(batch batch_handler.BatchItems) {
+	for _, item := range batch {
 		/* put here business logic */
-		result.AddAck(idx)
+		item.Ack()
 		/*
 			if err != nil {
-			    result.AddDlq(idx, err)
+			    item.MoveToDlq(err)
 			}
 		*/
 	}
-	return result
 }
 
 func main() {
@@ -122,7 +135,7 @@ func main() {
 	}...)
 
 	/* handler's call for example */
-	batch := make([]batch_handler.Item, 0) /* placeholder for example */
+	batch := make([]*batch_handler.BatchItem, 0) /* placeholder for example */
 	handler.Handle(batch)
 }
 
