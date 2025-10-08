@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/panic_recovery"
 )
@@ -18,11 +19,11 @@ type ConsumerMetricStorage interface {
 
 func Metrics(metricStorage ConsumerMetricStorage) Middleware {
 	return func(next SyncHandlerAdapter) SyncHandlerAdapter {
-		return SyncHandlerAdapterFunc(func(items []*BatchItem) {
+		return SyncHandlerAdapterFunc(func(batch BatchItems) {
 			start := time.Now()
-			next.Handle(items)
+			next.Handle(batch)
 
-			for _, item := range items {
+			for _, item := range batch {
 				exchange := item.Delivery.Source().Exchange
 				routingKey := item.Delivery.Source().RoutingKey
 				metricStorage.ObserveConsumeDuration(exchange, routingKey, time.Since(start))
@@ -43,10 +44,10 @@ func Metrics(metricStorage ConsumerMetricStorage) Middleware {
 
 func Log(logger log.Logger) Middleware {
 	return func(next SyncHandlerAdapter) SyncHandlerAdapter {
-		return SyncHandlerAdapterFunc(func(items []*BatchItem) {
-			next.Handle(items)
+		return SyncHandlerAdapterFunc(func(batch BatchItems) {
+			next.Handle(batch)
 
-			for _, item := range items {
+			for _, item := range batch {
 				exchange := item.Delivery.Source().Exchange
 				routingKey := item.Delivery.Source().RoutingKey
 
@@ -68,6 +69,12 @@ func Log(logger log.Logger) Middleware {
 						log.String("routingKey", routingKey),
 						log.Any("error", item.Result.Err),
 					)
+				default:
+					logger.Error(item.Context, "rmq client: batch message will be moved to DLQ or dropped",
+						log.String("exchange", exchange),
+						log.String("routingKey", routingKey),
+						log.Any("error", errors.New("unexpected message result")),
+					)
 				}
 			}
 		})
@@ -77,11 +84,11 @@ func Log(logger log.Logger) Middleware {
 // nolint:nonamedreturns
 func Recovery(logger log.Logger) Middleware {
 	return func(next SyncHandlerAdapter) SyncHandlerAdapter {
-		return SyncHandlerAdapterFunc(func(items []*BatchItem) {
+		return SyncHandlerAdapterFunc(func(batch BatchItems) {
 			defer panic_recovery.Recover(func(err error) {
 				logger.Error(context.Background(), "rmq client: handle batch", log.Any("panic", err))
 			})
-			next.Handle(items)
+			next.Handle(batch)
 		})
 	}
 }

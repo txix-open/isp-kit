@@ -5,15 +5,15 @@ import (
 )
 
 type SyncHandlerAdapter interface {
-	Handle(items []*BatchItem)
+	Handle(batch BatchItems)
 }
 
 type Middleware func(next SyncHandlerAdapter) SyncHandlerAdapter
 
-type SyncHandlerAdapterFunc func(items []*BatchItem)
+type SyncHandlerAdapterFunc func(batch BatchItems)
 
-func (a SyncHandlerAdapterFunc) Handle(items []*BatchItem) {
-	a(items)
+func (a SyncHandlerAdapterFunc) Handle(batch BatchItems) {
+	a(batch)
 }
 
 type Sync struct {
@@ -32,14 +32,14 @@ func NewSync(logger log.Logger, adapter SyncHandlerAdapter, middlewares ...Middl
 	return s
 }
 
-func (r Sync) Handle(items []*BatchItem) {
-	if len(items) == 0 {
+func (r Sync) Handle(batch BatchItems) {
+	if len(batch) == 0 {
 		return
 	}
 
-	r.handler.Handle(items)
+	r.handler.Handle(batch)
 
-	for _, item := range items {
+	for _, item := range batch {
 		switch {
 		case item.Result.Ack:
 			err := item.Delivery.Ack()
@@ -52,6 +52,11 @@ func (r Sync) Handle(items []*BatchItem) {
 				r.logger.Error(item.Context, "rmq client: retry message error", log.Any("error", err))
 			}
 		case item.Result.MoveToDlq:
+			err := item.Delivery.Nack(false)
+			if err != nil {
+				r.logger.Error(item.Context, "rmq client: nack message error", log.Any("error", err))
+			}
+		default:
 			err := item.Delivery.Nack(false)
 			if err != nil {
 				r.logger.Error(item.Context, "rmq client: nack message error", log.Any("error", err))

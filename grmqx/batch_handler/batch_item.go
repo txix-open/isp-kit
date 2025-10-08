@@ -32,3 +32,31 @@ func (b *BatchItem) Retry(err error) {
 		Err:   err,
 	}
 }
+
+type BatchItems []*BatchItem
+
+func (bs BatchItems) AckAll() {
+	for _, b := range bs {
+		b.Result = Result{
+			Ack: true,
+		}
+	}
+}
+
+func (bs BatchItems) MoveToDlqAll(err error) {
+	for _, b := range bs {
+		b.Result = Result{
+			MoveToDlq: true,
+			Err:       err,
+		}
+	}
+}
+
+func (bs BatchItems) RetryAll(err error) {
+	for _, b := range bs {
+		b.Result = Result{
+			Retry: true,
+			Err:   err,
+		}
+	}
+}
