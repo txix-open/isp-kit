@@ -6,13 +6,14 @@ import (
 
 	"github.com/txix-open/isp-kit/http/endpoint"
 	"github.com/txix-open/isp-kit/http/endpoint/httplog"
+	endpoint2 "github.com/txix-open/isp-kit/http/endpoint/v2"
 	"github.com/txix-open/isp-kit/http/httpcli"
 	"github.com/txix-open/isp-kit/http/router"
 	"github.com/txix-open/isp-kit/test"
 )
 
 type MockServer struct {
-	Wrapper endpoint.Wrapper
+	Wrapper endpoint2.Wrapper
 	srv     *httptest.Server
 	router  *router.Router
 }
@@ -41,15 +42,15 @@ func (m *MockServer) BaseURL() string {
 	return m.srv.URL
 }
 
-func (m *MockServer) POST(path string, handler any) *MockServer {
+func (m *MockServer) POST(path string, handler endpoint2.Wrappable) *MockServer {
 	return m.Mock(http.MethodPost, path, handler)
 }
 
-func (m *MockServer) GET(path string, handler any) *MockServer {
+func (m *MockServer) GET(path string, handler endpoint2.Wrappable) *MockServer {
 	return m.Mock(http.MethodGet, path, handler)
 }
 
-func (m *MockServer) Mock(method string, path string, handler any) *MockServer {
-	m.router.Handler(method, path, m.Wrapper.Endpoint(handler))
+func (m *MockServer) Mock(method string, path string, handler endpoint2.Wrappable) *MockServer {
+	m.router.Handler(method, path, handler.Wrap(m.Wrapper))
 	return m
 }

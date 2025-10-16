@@ -1,7 +1,11 @@
 package endpoint
 
 import (
+	"context"
+	"io"
+
 	"github.com/txix-open/isp-kit/http"
+	v2 "github.com/txix-open/isp-kit/http/endpoint/v2"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/metrics"
 	"github.com/txix-open/isp-kit/metrics/http_metrics"
@@ -9,12 +13,7 @@ import (
 	"github.com/txix-open/isp-kit/validator"
 )
 
-func DefaultWrapper(logger log.Logger, logMiddleware LogMiddleware, restMiddlewares ...http.Middleware) Wrapper {
-	paramMappers := []ParamMapper{
-		ContextParam(),
-		ResponseWriterParam(),
-		RequestParam(),
-	}
+func DefaultWrapper(logger log.Logger, logMiddleware LogMiddleware, restMiddlewares ...http.Middleware) v2.Wrapper {
 	middlewares := append(
 		[]http.Middleware{
 			MaxRequestBodySize(defaultMaxRequestBodySize),
@@ -28,10 +27,21 @@ func DefaultWrapper(logger log.Logger, logMiddleware LogMiddleware, restMiddlewa
 		restMiddlewares...,
 	)
 
-	return NewWrapper(
-		paramMappers,
-		JsonRequestExtractor{Validator: validator.Default},
+	return v2.NewWrapper(
+		extractorWrapper{inner: JsonRequestExtractor{Validator: validator.Default}},
 		JsonResponseMapper{},
 		logger,
 	).WithMiddlewares(middlewares...)
+}
+
+type extractorWrapper struct {
+	inner JsonRequestExtractor
+}
+
+func (e extractorWrapper) Extract(_ context.Context, reader io.Reader, ptr any) error {
+	err := e.inner.extract(reader, ptr)
+	if err != nil {
+		return err
+	}
+	return e.inner.validate(ptr)
 }

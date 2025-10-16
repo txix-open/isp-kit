@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/http/apierrors"
+	endpoint2 "github.com/txix-open/isp-kit/http/endpoint/v2"
 	"github.com/txix-open/isp-kit/http/httpcli"
 	"github.com/txix-open/isp-kit/http/httpclix"
 	"github.com/txix-open/isp-kit/log"
@@ -28,8 +29,9 @@ func TestDefault(t *testing.T) {
 	ctx := requestid.ToContext(t.Context(), expectedId)
 	ctx = log.ToContext(ctx, log.String(requestid.LogKey, expectedId))
 
+	srv := httpt.NewMock(test)
 	invokeNumber := 0
-	url := httpt.NewMock(test).POST("/api/save", func(ctx context.Context, req example) (*example, error) {
+	url := srv.POST("/api/save", endpoint2.New(func(ctx context.Context, req example) (*example, error) {
 		require.EqualValues(expectedId, requestid.FromContext(ctx))
 
 		invokeNumber++
@@ -37,7 +39,7 @@ func TestDefault(t *testing.T) {
 			return nil, apierrors.NewBusinessError(http.StatusBadRequest, "test error", errors.New("test error"))
 		}
 		return &req, nil
-	}).BaseURL()
+	})).BaseURL()
 
 	cli := httpclix.Default(httpcli.WithMiddlewares(httpclix.Log(test.Logger())))
 	exp := example{}
@@ -66,9 +68,10 @@ func TestLogHeaders(t *testing.T) {
 	ctx := requestid.ToContext(t.Context(), expectedId)
 	ctx = log.ToContext(ctx, log.String(requestid.LogKey, expectedId))
 
-	url := httpt.NewMock(testEnv).POST("/api/save", func(ctx context.Context, req example) (*example, error) {
+	srv := httpt.NewMock(testEnv)
+	url := srv.POST("/api/save", endpoint2.New(func(ctx context.Context, req example) (*example, error) {
 		return &req, nil
-	}).BaseURL()
+	})).BaseURL()
 
 	cli := httpclix.Default(httpcli.WithMiddlewares(httpclix.Log(testEnv.Logger())))
 
