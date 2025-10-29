@@ -10,6 +10,7 @@ import (
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/metrics"
 	"github.com/txix-open/isp-kit/metrics/bgjob_metrics"
+	"github.com/txix-open/isp-kit/requestid"
 )
 
 type DBProvider interface {
@@ -41,7 +42,11 @@ func (c *Client) Upgrade(ctx context.Context, workerConfigs []WorkerConfig) erro
 	if err != nil {
 		return errors.WithMessage(err, "get db")
 	}
-	cli := bgjob.NewClient(bgjob.NewPgStore(db.DB.DB))
+	store, err := bgjob.NewPgStoreV2(ctx, db.DB.DB)
+	if err != nil {
+		return errors.WithMessage(err, "create bgjob store")
+	}
+	cli := bgjob.NewClient(store)
 
 	workers := make([]*bgjob.Worker, 0)
 	metricStorage := bgjob_metrics.NewStorage(metrics.DefaultRegistry)
@@ -70,6 +75,17 @@ func (c *Client) Enqueue(ctx context.Context, req bgjob.EnqueueRequest) error {
 	if err != nil {
 		return errors.WithMessage(err, "get db")
 	}
+
+	requestId := req.RequestId
+
+	if requestId == "" {
+		requestId = requestid.FromContext(ctx)
+	}
+	if requestId == "" {
+		requestId = requestid.Next()
+	}
+	req.RequestId = requestId
+
 	return bgjob.Enqueue(ctx, db, req)
 }
 
@@ -77,6 +93,17 @@ func (c *Client) BulkEnqueue(ctx context.Context, list []bgjob.EnqueueRequest) e
 	db, err := c.db.DB()
 	if err != nil {
 		return errors.WithMessage(err, "get db")
+	}
+
+	mainRequestId := requestid.FromContext(ctx)
+	if mainRequestId == "" {
+		mainRequestId = requestid.Next()
+	}
+
+	for i := range list {
+		if list[i].RequestId == "" {
+			list[i].RequestId = mainRequestId
+		}
 	}
 	return bgjob.BulkEnqueue(ctx, db, list)
 }

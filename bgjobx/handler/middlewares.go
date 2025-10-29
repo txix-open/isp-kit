@@ -5,7 +5,9 @@ import (
 	"time"
 
 	"github.com/txix-open/bgjob"
+	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/panic_recovery"
+	"github.com/txix-open/isp-kit/requestid"
 )
 
 type MetricStorage interface {
@@ -16,7 +18,7 @@ type MetricStorage interface {
 	IncInternalErrorCount()
 }
 
-func WithDurationMeasure(storage MetricStorage) Middleware {
+func Metrics(storage MetricStorage) Middleware {
 	return func(next SyncHandlerAdapter) SyncHandlerAdapter {
 		return SyncHandlerAdapterFunc(func(ctx context.Context, job bgjob.Job) Result {
 			start := time.Now()
@@ -35,6 +37,24 @@ func Recovery() Middleware {
 				res.MoveToDlq = true
 				res.Err = err
 			})
+			return next.Handle(ctx, job)
+		})
+	}
+}
+
+func RequestId() Middleware {
+	return func(next SyncHandlerAdapter) SyncHandlerAdapter {
+		return SyncHandlerAdapterFunc(func(ctx context.Context, job bgjob.Job) Result {
+			requestId := job.RequestId
+
+			if requestId == "" {
+				requestId = requestid.Next()
+				job.RequestId = requestId
+			}
+
+			ctx = requestid.ToContext(ctx, requestId)
+			ctx = log.ToContext(ctx, log.String(requestid.LogKey, requestId))
+
 			return next.Handle(ctx, job)
 		})
 	}

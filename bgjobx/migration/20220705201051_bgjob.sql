@@ -9,7 +9,8 @@ create table bgjob_job
     last_error  text,
     next_run_at int8      not null,
     created_at  timestamp not null,
-    updated_at  timestamp not null
+    updated_at  timestamp not null,
+    request_id  text      not null default ''
 );
 
 create index ix_bgjob_job__queue_next_run_at_created_at on bgjob_job (queue, next_run_at, created_at);
@@ -26,7 +27,8 @@ create table bgjob_dead_job
     next_run_at    int8      not null,
     job_created_at timestamp not null,
     job_updated_at timestamp not null,
-    moved_at       timestamp not null
+    moved_at       timestamp not null,
+    request_id     text      not null default ''
 );
 
 -- +goose Down
