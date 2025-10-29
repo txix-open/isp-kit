@@ -7,7 +7,8 @@ import (
 func NewDefaultHandler(adapter handler.SyncHandlerAdapter, metricStorage handler.MetricStorage) handler.Sync {
 	return handler.NewSync(
 		adapter,
-		handler.WithDurationMeasure(metricStorage),
+		handler.Metrics(metricStorage),
 		handler.Recovery(),
+		handler.RequestId(),
 	)
 }

@@ -18,10 +18,10 @@
 
 Стандартные Middleware:
 
-- `WithDurationMeasure(storage MetricStorage) Middleware` – middleware для сбора метрик, регистрирующая время
+- `Metrics(storage MetricStorage) Middleware` – middleware для сбора метрик, регистрирующая время
   обработки. Принимает на вход хранилище метрик, реализующее интерфейс `MetricStorage`.
 - `Recovery() Middleware` – предотвращает падение сервиса при панике в обработчике, преобразуя ее в ошибку.
-
+- `RequestId() Middleware` – обеспечивает трассировку, берёт `requestId` из `job.RequestId`.
 #### `(r Sync) Handle(ctx context.Context, job bgjob.Job) bgjob.Result`
 
 Выполняет обработку сообщения.
@@ -74,8 +74,9 @@ func main() {
   )
 
   syncHandler := handler.NewSync(adapter, []handler.Middleware{
-    handler.WithDurationMeasure(metricStorage),
+    handler.Metrics(metricStorage),
     handler.Recovery(),
+    handler.RequestId(),
   }...)
 
   /* handler's call for example */

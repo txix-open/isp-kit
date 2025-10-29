@@ -159,8 +159,8 @@ github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/txix-open/bellows v1.2.0 h1:CXv8nQaZtB/micraeRilYyj/gtfv+bqBgP5aPYQgjeY=
 github.com/txix-open/bellows v1.2.0/go.mod h1:qbKCy+RTgD30Qpw1fyb3y3jp5Y9mGhLLxgae1l0W92o=
-github.com/txix-open/bgjob v1.5.0 h1:/ZbHzb3EZDZSzaUxA7xfuYt9CS/hmXC33mJ4Z4Lvkhc=
-github.com/txix-open/bgjob v1.5.0/go.mod h1:aKbwpVclWmq82s7fchazp099yWjEpVKFkxT85i4hARM=
+github.com/txix-open/bgjob v1.6.0 h1:Vwj9cAsIhMrHPKRZVxfg6mHqE9LI/atDCq1aeihH3+I=
+github.com/txix-open/bgjob v1.6.0/go.mod h1:aKbwpVclWmq82s7fchazp099yWjEpVKFkxT85i4hARM=
 github.com/txix-open/etp/v4 v4.0.1 h1:5VSYgGsvnMz0tvUHsjVWFETI0qWBTCF1O3ARCHaCIgA=
 github.com/txix-open/etp/v4 v4.0.1/go.mod h1:FIu7TUDdwcgmtmF6tFTV1bGA2fRY/iVaPQdsGzvqYc8=
 github.com/txix-open/grmq v1.9.0 h1:ArDbJJcFX9zXKEcPf49rp9nYiRyGMJxGKJAxdbSsfaM=

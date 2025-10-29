@@ -27,7 +27,7 @@ require (
 	github.com/segmentio/kafka-go v0.4.49
 	github.com/stretchr/testify v1.11.1
 	github.com/txix-open/bellows v1.2.0
-	github.com/txix-open/bgjob v1.5.0
+	github.com/txix-open/bgjob v1.6.0
 	github.com/txix-open/etp/v4 v4.0.1
 	github.com/txix-open/grmq v1.9.0
 	github.com/txix-open/jsonschema v1.3.0
