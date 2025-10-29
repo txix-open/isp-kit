@@ -73,9 +73,9 @@ func (c *Consumer) Run(ctx context.Context) {
 
 func (c *Consumer) Close() error {
 	defer func() {
-		c.deliveryWg.Wait()
-		close(c.deliveries)
 		c.workersWg.Wait()
+		c.deliveryWg.Wait()
+
 		c.alive.Store(false)
 
 		if c.metrics != nil {
@@ -108,6 +108,7 @@ func (c *Consumer) run(ctx context.Context) {
 	for {
 		msg, err := c.reader.FetchMessage(ctx)
 		if errors.Is(err, io.EOF) {
+			close(c.deliveries)
 			return
 		}
 		if err != nil {
