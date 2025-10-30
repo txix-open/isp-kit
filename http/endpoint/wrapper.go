@@ -61,6 +61,11 @@ func NewWrapper(
 // DEPRECATED
 // Use reflection free version EndpointV2 with New, NewWithoutResponse, NewWithRequest, NewDefaultHttp
 func (m Wrapper) Endpoint(f any) http.HandlerFunc {
+	w, isWrappable := f.(Wrappable)
+	if isWrappable {
+		return m.EndpointV2(w)
+	}
+
 	caller, err := NewCaller(f, m.BodyExtractor, m.BodyMapper, m.ParamMappers)
 	if err != nil {
 		panic(err)
@@ -79,7 +84,8 @@ func (m Wrapper) Endpoint(f any) http.HandlerFunc {
 	}
 }
 
-func (m Wrapper) EndpointV2(handler http2.HandlerFunc) http.HandlerFunc {
+func (m Wrapper) EndpointV2(w Wrappable) http.HandlerFunc {
+	handler := w.Wrap(m)
 	for i := range slices.Backward(m.Middlewares) {
 		handler = m.Middlewares[i](handler)
 	}

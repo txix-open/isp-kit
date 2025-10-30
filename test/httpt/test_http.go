@@ -50,6 +50,6 @@ func (m *MockServer) GET(path string, handler endpoint.Wrappable) *MockServer {
 }
 
 func (m *MockServer) Mock(method string, path string, handler endpoint.Wrappable) *MockServer {
-	m.router.Handler(method, path, handler.Wrap(m.Wrapper))
+	m.router.Handler(method, path, m.Wrapper.EndpointV2(handler))
 	return m
 }

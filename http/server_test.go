@@ -128,7 +128,7 @@ func prepareServer(t *testing.T) string {
 	mapper := endpoint.DefaultWrapper(logger, httplog.Log(logger, true))
 	muxer := http.NewServeMux()
 	for _, descriptor := range endpoints {
-		muxer.Handle(descriptor.Path, descriptor.Handler.Wrap(mapper))
+		muxer.Handle(descriptor.Path, mapper.EndpointV2(descriptor.Handler))
 	}
 
 	var lc net.ListenConfig

@@ -7,7 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/http/apierrors"
-	endpoint2 "github.com/txix-open/isp-kit/http/endpoint"
+	"github.com/txix-open/isp-kit/http/endpoint"
 	"github.com/txix-open/isp-kit/http/httpcli"
 	"github.com/txix-open/isp-kit/http/httpclix"
 	"github.com/txix-open/isp-kit/log"
@@ -31,7 +31,7 @@ func TestDefault(t *testing.T) {
 
 	srv := httpt.NewMock(test)
 	invokeNumber := 0
-	url := srv.POST("/api/save", endpoint2.New(func(ctx context.Context, req example) (*example, error) {
+	url := srv.POST("/api/save", endpoint.New(func(ctx context.Context, req example) (*example, error) {
 		require.EqualValues(expectedId, requestid.FromContext(ctx))
 
 		invokeNumber++
@@ -69,7 +69,7 @@ func TestLogHeaders(t *testing.T) {
 	ctx = log.ToContext(ctx, log.String(requestid.LogKey, expectedId))
 
 	srv := httpt.NewMock(testEnv)
-	url := srv.POST("/api/save", endpoint2.New(func(ctx context.Context, req example) (*example, error) {
+	url := srv.POST("/api/save", endpoint.New(func(ctx context.Context, req example) (*example, error) {
 		return &req, nil
 	})).BaseURL()
 

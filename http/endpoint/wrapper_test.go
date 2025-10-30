@@ -41,10 +41,10 @@ func (s *endpointTestSuite) SetupTest() {
 	c := newController(s.noRespCounter, s.withHttpReqCounter)
 
 	r := router.New()
-	r.POST("/basic", endpoint.New(c.Basic).Wrap(w))
-	r.POST("/without-resp", endpoint.NewWithoutResponse(c.WithoutResponse).Wrap(w))
-	r.POST("/with-http-req", endpoint.NewWithRequest(c.WithHttpRequest).Wrap(w))
-	r.POST("/default", endpoint.NewDefaultHttp(c.DefaultHttp).Wrap(w))
+	r.POST("/basic", w.EndpointV2(endpoint.New(c.Basic)))
+	r.POST("/without-resp", w.EndpointV2(endpoint.NewWithoutResponse(c.WithoutResponse)))
+	r.POST("/with-http-req", w.EndpointV2(endpoint.NewWithRequest(c.WithHttpRequest)))
+	r.POST("/default", w.EndpointV2(endpoint.NewDefaultHttp(c.DefaultHttp)))
 
 	_, s.apiCli = httpt.TestServer(s.test, r, httpcli.WithMiddlewares(httpclix.Log(s.test.Logger())))
 }

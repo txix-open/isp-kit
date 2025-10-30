@@ -31,7 +31,7 @@ func TestClient_Invoke(t *testing.T) {
 		return &book, nil
 	}
 	wrapper := soap.DefaultWrapper(test.Logger(), httplog.Log(test.Logger(), true))
-	mux := soap.NewActionMux().Handle("test", endpoint.New(handler).Wrap(wrapper))
+	mux := soap.NewActionMux().Handle("test", wrapper.EndpointV2(endpoint.New(handler)))
 	srv := httptest.NewServer(mux)
 	cli := client.New(httpclix.Default())
 
