@@ -7,7 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/http/apierrors"
-	endpoint2 "github.com/txix-open/isp-kit/http/endpoint/v2"
+	endpoint2 "github.com/txix-open/isp-kit/http/endpoint"
 	"github.com/txix-open/isp-kit/http/httpcli"
 	"github.com/txix-open/isp-kit/http/httpclix"
 	"github.com/txix-open/isp-kit/log"

@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/suite"
 	"github.com/txix-open/isp-kit/http/endpoint"
 	"github.com/txix-open/isp-kit/http/endpoint/httplog"
-	endpoint2 "github.com/txix-open/isp-kit/http/endpoint/v2"
 	"github.com/txix-open/isp-kit/http/httpcli"
 	"github.com/txix-open/isp-kit/http/httpclix"
 	"github.com/txix-open/isp-kit/http/router"
@@ -42,10 +41,10 @@ func (s *endpointTestSuite) SetupTest() {
 	c := newController(s.noRespCounter, s.withHttpReqCounter)
 
 	r := router.New()
-	r.POST("/basic", endpoint2.New(c.Basic).Wrap(w))
-	r.POST("/without-resp", endpoint2.NewWithoutResponse(c.WithoutResponse).Wrap(w))
-	r.POST("/with-http-req", endpoint2.WithRequest(c.WithHttpRequest).Wrap(w))
-	r.POST("/default", endpoint2.DefaultHttp(c.DefaultHttp).Wrap(w))
+	r.POST("/basic", endpoint.New(c.Basic).Wrap(w))
+	r.POST("/without-resp", endpoint.NewWithoutResponse(c.WithoutResponse).Wrap(w))
+	r.POST("/with-http-req", endpoint.NewWithRequest(c.WithHttpRequest).Wrap(w))
+	r.POST("/default", endpoint.NewDefaultHttp(c.DefaultHttp).Wrap(w))
 
 	_, s.apiCli = httpt.TestServer(s.test, r, httpcli.WithMiddlewares(httpclix.Log(s.test.Logger())))
 }

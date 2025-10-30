@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"reflect"
+	"slices"
 
 	http2 "github.com/txix-open/isp-kit/http"
 	"github.com/txix-open/isp-kit/log"
@@ -16,6 +17,7 @@ type HttpError interface {
 
 type RequestBodyExtractor interface {
 	Extract(ctx context.Context, reader io.Reader, reqBodyType reflect.Type) (reflect.Value, error)
+	ExtractV2(ctx context.Context, reader io.Reader, ptr any) error
 }
 
 type ResponseBodyMapper interface {
@@ -55,6 +57,9 @@ func NewWrapper(
 	}
 }
 
+// Endpoint
+// DEPRECATED
+// Use reflection free version EndpointV2 with New, NewWithoutResponse, NewWithRequest, NewDefaultHttp
 func (m Wrapper) Endpoint(f any) http.HandlerFunc {
 	caller, err := NewCaller(f, m.BodyExtractor, m.BodyMapper, m.ParamMappers)
 	if err != nil {
@@ -62,10 +67,22 @@ func (m Wrapper) Endpoint(f any) http.HandlerFunc {
 	}
 
 	handler := caller.Handle
-	for i := len(m.Middlewares) - 1; i >= 0; i-- {
+	for i := range slices.Backward(m.Middlewares) {
 		handler = m.Middlewares[i](handler)
 	}
 
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := handler(r.Context(), w, r)
+		if err != nil {
+			m.Logger.Error(r.Context(), err)
+		}
+	}
+}
+
+func (m Wrapper) EndpointV2(handler http2.HandlerFunc) http.HandlerFunc {
+	for i := range slices.Backward(m.Middlewares) {
+		handler = m.Middlewares[i](handler)
+	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := handler(r.Context(), w, r)
 		if err != nil {

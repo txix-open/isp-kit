@@ -13,7 +13,6 @@ import (
 
 	"github.com/txix-open/isp-kit/http/endpoint"
 	"github.com/txix-open/isp-kit/http/endpoint/httplog"
-	endpoint2 "github.com/txix-open/isp-kit/http/endpoint/v2"
 	"github.com/txix-open/isp-kit/http/httpcli"
 	"github.com/txix-open/isp-kit/http/httpclix"
 	router2 "github.com/txix-open/isp-kit/http/router"
@@ -60,7 +59,7 @@ func BenchmarkHttp11Parallel(b *testing.B) {
 	test, _ := test.New(&testing.T{})
 	srv := httpt.NewMock(test)
 	srv.Wrapper = endpoint.DefaultWrapper(test.Logger(), httplog.Noop())
-	srv.POST("/echo", endpoint2.New(handler))
+	srv.POST("/echo", endpoint.New(handler))
 	cli := srv.Client(httpcli.WithMiddlewares(httpclix.DefaultMiddlewares()...))
 	cli.GlobalRequestConfig().Timeout = 15 * time.Second
 
@@ -84,7 +83,7 @@ func BenchmarkHttp2H2CParallel(b *testing.B) {
 	test, _ := test.New(&testing.T{})
 	h2s := &http2.Server{}
 	wrapper := endpoint.DefaultWrapper(test.Logger(), httplog.Noop())
-	router := router2.New().POST("/echo", endpoint2.New(handler).Wrap(wrapper))
+	router := router2.New().POST("/echo", endpoint.New(handler).Wrap(wrapper))
 	server := &http.Server{
 		Handler: h2c.NewHandler(router, h2s),
 	}
@@ -136,7 +135,7 @@ func BenchmarkHttp2H2CParallel(b *testing.B) {
 func BenchmarkHttp2Parallel(b *testing.B) {
 	test, _ := test.New(&testing.T{})
 	wrapper := endpoint.DefaultWrapper(test.Logger(), httplog.Noop())
-	router := router2.New().POST("/echo", endpoint2.New(handler).Wrap(wrapper))
+	router := router2.New().POST("/echo", endpoint.New(handler).Wrap(wrapper))
 	server := &http.Server{
 		Addr:    ":8080",
 		Handler: router,

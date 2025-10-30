@@ -14,7 +14,6 @@ import (
 	"github.com/txix-open/isp-kit/http/apierrors"
 	"github.com/txix-open/isp-kit/http/endpoint"
 	"github.com/txix-open/isp-kit/http/endpoint/httplog"
-	endpoint2 "github.com/txix-open/isp-kit/http/endpoint/v2"
 	"github.com/txix-open/isp-kit/json"
 	"github.com/txix-open/isp-kit/log"
 )
@@ -94,7 +93,7 @@ func TestRecover(t *testing.T) {
 
 type endpointDescriptor struct {
 	Path    string
-	Handler endpoint2.Wrappable
+	Handler endpoint.Wrappable
 }
 
 func prepareServer(t *testing.T) string {
@@ -105,23 +104,23 @@ func prepareServer(t *testing.T) string {
 
 	endpoints := []endpointDescriptor{{
 		Path: "/getId",
-		Handler: endpoint2.New(func(ctx context.Context, req Request) (*Response, error) {
+		Handler: endpoint.New(func(ctx context.Context, req Request) (*Response, error) {
 			return &Response{Result: "Hello_" + req.Id}, nil
 		}),
 	}, {
 		Path: "/badGetId",
-		Handler: endpoint2.New(func(ctx context.Context, req Request) (*Response, error) {
+		Handler: endpoint.New(func(ctx context.Context, req Request) (*Response, error) {
 			return &Response{}, apierrors.New(http.StatusNotFound, http.StatusNotFound, "not found", errors.New("Not Found"))
 		}),
 	}, {
 		Path: "/noBody",
-		Handler: endpoint2.DefaultHttp(func(ctx context.Context, w http.ResponseWriter, _ *http.Request) error {
+		Handler: endpoint.NewDefaultHttp(func(ctx context.Context, w http.ResponseWriter, _ *http.Request) error {
 			w.Header().Set("content-type", "application/json")
 			return json.EncodeInto(w, Response{Result: "Test"})
 		}),
 	}, {
 		Path: "/recover",
-		Handler: endpoint2.WithRequest(func(ctx context.Context, _ *http.Request) error {
+		Handler: endpoint.NewWithRequest(func(ctx context.Context, _ *http.Request) error {
 			panic(errors.New("test panic error"))
 		}),
 	}}

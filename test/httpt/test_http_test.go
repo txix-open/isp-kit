@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	endpoint2 "github.com/txix-open/isp-kit/http/endpoint/v2"
+	endpoint2 "github.com/txix-open/isp-kit/http/endpoint"
 	"github.com/txix-open/isp-kit/json"
 	"github.com/txix-open/isp-kit/test"
 	"github.com/txix-open/isp-kit/test/httpt"
@@ -19,10 +19,10 @@ func Test(t *testing.T) {
 	t.Parallel()
 	test, assert := test.New(t)
 	mock := httpt.NewMock(test)
-	mock.POST("/endpoint1", endpoint2.DefaultHttp(func(ctx context.Context, w http.ResponseWriter, _ *http.Request) error {
+	mock.POST("/endpoint1", endpoint2.NewDefaultHttp(func(ctx context.Context, w http.ResponseWriter, _ *http.Request) error {
 		return json.NewEncoder(w).Encode(resp{Ok: true})
 	}))
-	mock.GET("/endpoint2", endpoint2.DefaultHttp(func(ctx context.Context, w http.ResponseWriter, _ *http.Request) error {
+	mock.GET("/endpoint2", endpoint2.NewDefaultHttp(func(ctx context.Context, w http.ResponseWriter, _ *http.Request) error {
 		return json.NewEncoder(w).Encode(resp{Ok: false})
 	}))
 

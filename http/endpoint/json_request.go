@@ -36,6 +36,14 @@ func (j JsonRequestExtractor) Extract(ctx context.Context, reader io.Reader, req
 	return elem, nil
 }
 
+func (j JsonRequestExtractor) ExtractV2(_ context.Context, reader io.Reader, ptr any) error {
+	err := j.extract(reader, ptr)
+	if err != nil {
+		return err
+	}
+	return j.validate(ptr)
+}
+
 func (j JsonRequestExtractor) extract(reader io.Reader, ptr any) error {
 	err := json.NewDecoder(reader).Decode(ptr)
 	if err != nil {

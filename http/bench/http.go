@@ -15,7 +15,6 @@ import (
 	"github.com/txix-open/isp-kit/http"
 	"github.com/txix-open/isp-kit/http/endpoint"
 	"github.com/txix-open/isp-kit/http/endpoint/httplog"
-	endpoint2 "github.com/txix-open/isp-kit/http/endpoint/v2"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/validator"
 )
@@ -170,7 +169,7 @@ func ServeIspHttpGenericEndpoint() {
 	}
 	wrapper := endpoint.DefaultWrapper(logger, httplog.Noop()).WithMiddlewares()
 	mux := httprouter.New()
-	mux.Handler(stdHttp.MethodPost, "/post", endpoint2.New(handler).Wrap(wrapper))
+	mux.Handler(stdHttp.MethodPost, "/post", endpoint.New(handler).Wrap(wrapper))
 	s.Upgrade(mux)
 }
 
