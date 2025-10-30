@@ -71,7 +71,7 @@ func (fn defaultHttp) Wrap(wrapper Wrapper) http2.HandlerFunc {
 	return http2.HandlerFunc(fn)
 }
 
-// nolint:ireturn
+//nolint:ireturn
 func extractBody[T any](ctx context.Context, w Wrapper, r *http.Request) (T, error) {
 	var req T
 	err := w.BodyExtractor.ExtractV2(ctx, r.Body, &req)

@@ -41,15 +41,15 @@ func (m *MockServer) BaseURL() string {
 	return m.srv.URL
 }
 
-func (m *MockServer) POST(path string, handler endpoint.Wrappable) *MockServer {
+func (m *MockServer) POST(path string, handler any) *MockServer {
 	return m.Mock(http.MethodPost, path, handler)
 }
 
-func (m *MockServer) GET(path string, handler endpoint.Wrappable) *MockServer {
+func (m *MockServer) GET(path string, handler any) *MockServer {
 	return m.Mock(http.MethodGet, path, handler)
 }
 
-func (m *MockServer) Mock(method string, path string, handler endpoint.Wrappable) *MockServer {
-	m.router.Handler(method, path, m.Wrapper.EndpointV2(handler))
+func (m *MockServer) Mock(method string, path string, handler any) *MockServer {
+	m.router.Handler(method, path, m.Wrapper.Endpoint(handler))
 	return m
 }
