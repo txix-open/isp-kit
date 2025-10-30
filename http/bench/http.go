@@ -14,6 +14,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/txix-open/isp-kit/http"
 	"github.com/txix-open/isp-kit/http/endpoint"
+	"github.com/txix-open/isp-kit/http/endpoint/httplog"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/validator"
 )
@@ -29,6 +30,7 @@ type Response struct {
 
 func main() {
 	ServeIspHttp()
+	ServeIspHttpGenericEndpoint()
 	ServeEchoHttp()
 	ServeGinHttp()
 
@@ -60,7 +62,7 @@ func ServeIspHttp() {
 			Resp:    uuid.New().String(),
 		}, nil
 	}
-	httpHandler := endpoint.DefaultWrapper(logger).Endpoint(handler)
+	httpHandler := defaultWrapper(logger).Endpoint(handler)
 	mux := httprouter.New()
 	mux.Handler(stdHttp.MethodPost, "/post", httpHandler)
 	s.Upgrade(mux)
@@ -140,4 +142,47 @@ func ServeGinHttp() {
 			panic(err)
 		}
 	}()
+}
+
+func ServeIspHttpGenericEndpoint() {
+	logger, err := log.New()
+	if err != nil {
+		panic(err)
+	}
+	listener, err := net.Listen("tcp", "127.0.0.1:8003")
+	if err != nil {
+		panic(err)
+	}
+	s := http.NewServer(logger)
+	go func() {
+		err := s.Serve(listener)
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	handler := func(ctx context.Context, req Request) (*Response, error) {
+		return &Response{
+			FromReq: req.S,
+			Resp:    uuid.New().String(),
+		}, nil
+	}
+	wrapper := endpoint.DefaultWrapper(logger, httplog.Noop()).WithMiddlewares()
+	mux := httprouter.New()
+	mux.Handler(stdHttp.MethodPost, "/post", endpoint.New(handler).Wrap(wrapper))
+	s.Upgrade(mux)
+}
+
+func defaultWrapper(logger log.Logger) endpoint.Wrapper {
+	paramMappers := []endpoint.ParamMapper{
+		endpoint.ContextParam(),
+		endpoint.ResponseWriterParam(),
+		endpoint.RequestParam(),
+	}
+	return endpoint.NewWrapper(
+		paramMappers,
+		endpoint.JsonRequestExtractor{Validator: validator.Default},
+		endpoint.JsonResponseMapper{},
+		logger,
+	)
 }

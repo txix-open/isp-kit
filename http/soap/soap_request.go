@@ -20,13 +20,9 @@ type RequestExtractor struct {
 func (j RequestExtractor) Extract(_ context.Context, reader io.Reader, reqBodyType reflect.Type) (reflect.Value, error) {
 	instance := reflect.New(reqBodyType)
 
-	env := Envelope{Body: Body{Content: instance.Interface()}}
-	err := xml.NewDecoder(reader).Decode(&env)
+	err := j.parseEnvelope(reader, instance.Interface())
 	if err != nil {
-		return reflect.Value{}, Fault{
-			Code:   "Client",
-			String: errors.WithMessage(err, "xml decode envelope").Error(),
-		}
+		return reflect.Value{}, err
 	}
 
 	elem := instance.Elem()
@@ -40,4 +36,33 @@ func (j RequestExtractor) Extract(_ context.Context, reader io.Reader, reqBodyTy
 	}
 
 	return elem, nil
+}
+
+func (j RequestExtractor) ExtractV2(ctx context.Context, reader io.Reader, ptr any) error {
+	err := j.parseEnvelope(reader, ptr)
+	if err != nil {
+		return err
+	}
+
+	err = j.Validator.ValidateToError(ptr)
+	if err != nil {
+		return Fault{
+			Code:   "Client",
+			String: errors.WithMessage(err, "invalid request body").Error(),
+		}
+	}
+
+	return nil
+}
+
+func (j RequestExtractor) parseEnvelope(reader io.Reader, content any) error {
+	env := Envelope{Body: Body{Content: content}}
+	err := xml.NewDecoder(reader).Decode(&env)
+	if err != nil {
+		return Fault{
+			Code:   "Client",
+			String: errors.WithMessage(err, "xml decode envelope").Error(),
+		}
+	}
+	return nil
 }

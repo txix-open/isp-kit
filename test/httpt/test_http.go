@@ -32,7 +32,7 @@ func NewMock(t *test.Test) *MockServer {
 }
 
 func (m *MockServer) Client(opts ...httpcli.Option) *httpcli.Client {
-	cli := httpcli.NewWithClient(m.srv.Client(), opts...)
+	cli := httpcli.New(opts...)
 	cli.GlobalRequestConfig().BaseUrl = m.BaseURL()
 	return cli
 }
