@@ -11,13 +11,15 @@ type Wrappable interface {
 	Wrap(wrapper Wrapper) http2.HandlerFunc
 }
 
-type basic[T, U any] func(ctx context.Context, req T) (U, error)
+type basic[Req any, Res any] func(ctx context.Context, req Req) (Res, error)
 
-func New[T, U any](fn func(ctx context.Context, req T) (U, error)) basic[T, U] { return fn }
+func New[Req any, Res any](fn func(ctx context.Context, req Req) (Res, error)) basic[Req, Res] {
+	return fn
+}
 
-func (fn basic[T, U]) Wrap(wrapper Wrapper) http2.HandlerFunc {
+func (fn basic[Req, Res]) Wrap(wrapper Wrapper) http2.HandlerFunc {
 	return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-		req, err := extractBody[T](ctx, wrapper, r)
+		req, err := extractBody[Req](ctx, wrapper, r)
 		if err != nil {
 			return err
 		}
@@ -31,15 +33,15 @@ func (fn basic[T, U]) Wrap(wrapper Wrapper) http2.HandlerFunc {
 	}
 }
 
-type withoutResponseBody[T any] func(ctx context.Context, req T) error
+type withoutResponseBody[Req any] func(ctx context.Context, req Req) error
 
-func NewWithoutResponse[T any](fn func(ctx context.Context, req T) error) withoutResponseBody[T] {
+func NewWithoutResponse[Req any](fn func(ctx context.Context, req Req) error) withoutResponseBody[Req] {
 	return fn
 }
 
-func (fn withoutResponseBody[T]) Wrap(wrapper Wrapper) http2.HandlerFunc {
+func (fn withoutResponseBody[Req]) Wrap(wrapper Wrapper) http2.HandlerFunc {
 	return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-		req, err := extractBody[T](ctx, wrapper, r)
+		req, err := extractBody[Req](ctx, wrapper, r)
 		if err != nil {
 			return err
 		}
