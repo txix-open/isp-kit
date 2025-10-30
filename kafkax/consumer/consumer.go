@@ -32,7 +32,6 @@ type Consumer struct {
 	observer    Observer
 
 	deliveryWg *sync.WaitGroup
-	workersWg  *sync.WaitGroup
 	deliveries chan Delivery
 	alive      *atomic.Bool
 	metrics    *Metrics
@@ -48,7 +47,6 @@ func New(reader *kafka.Reader, handler Handler, concurrency int, metrics *Metric
 		concurrency: concurrency,
 		handler:     handler,
 		deliveryWg:  &sync.WaitGroup{},
-		workersWg:   &sync.WaitGroup{},
 		deliveries:  make(chan Delivery),
 		alive:       atomic.NewBool(true),
 		metrics:     metrics,
@@ -73,7 +71,6 @@ func (c *Consumer) Run(ctx context.Context) {
 
 func (c *Consumer) Close() error {
 	defer func() {
-		c.workersWg.Wait()
 		c.deliveryWg.Wait()
 
 		c.alive.Store(false)
@@ -101,8 +98,11 @@ func (c *Consumer) Healthcheck(ctx context.Context) error {
 
 func (c *Consumer) run(ctx context.Context) {
 	for range c.concurrency {
-		c.workersWg.Add(1)
 		go c.runWorker(ctx)
+	}
+
+	if c.metrics != nil {
+		go c.metrics.Run()
 	}
 
 	for {
@@ -125,25 +125,20 @@ func (c *Consumer) run(ctx context.Context) {
 
 		c.alive.Store(true)
 		delivery := NewDelivery(c.deliveryWg, c.reader, &msg, c.reader.Config().GroupID)
+		c.deliveryWg.Add(1)
 		c.deliveries <- *delivery
 	}
 }
 
 //nolint:gosimple
 func (c *Consumer) runWorker(ctx context.Context) {
-	defer c.workersWg.Done()
-
-	if c.metrics != nil {
-		go c.metrics.Run()
-	}
-
 	for {
 		select {
 		case delivery, isOpen := <-c.deliveries:
 			if !isOpen { // normal close
 				return
 			}
-			c.deliveryWg.Add(1)
+
 			c.handleMessage(ctx, &delivery)
 		}
 	}
