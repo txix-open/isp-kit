@@ -29,8 +29,8 @@ type Data struct {
 
 // nolint:gochecknoglobals
 var (
-	handler = func(ctx context.Context, req Data) *Data {
-		return &Data{Value: req.Value}
+	handler = func(ctx context.Context, req Data) (*Data, error) {
+		return &Data{Value: req.Value}, nil
 	}
 )
 
@@ -59,7 +59,7 @@ func BenchmarkHttp11Parallel(b *testing.B) {
 	test, _ := test.New(&testing.T{})
 	srv := httpt.NewMock(test)
 	srv.Wrapper = endpoint.DefaultWrapper(test.Logger(), httplog.Noop())
-	srv.POST("/echo", handler)
+	srv.POST("/echo", endpoint.New(handler))
 	cli := srv.Client(httpcli.WithMiddlewares(httpclix.DefaultMiddlewares()...))
 	cli.GlobalRequestConfig().Timeout = 15 * time.Second
 
@@ -83,7 +83,7 @@ func BenchmarkHttp2H2CParallel(b *testing.B) {
 	test, _ := test.New(&testing.T{})
 	h2s := &http2.Server{}
 	wrapper := endpoint.DefaultWrapper(test.Logger(), httplog.Noop())
-	router := router2.New().POST("/echo", wrapper.Endpoint(handler))
+	router := router2.New().POST("/echo", wrapper.EndpointV2(endpoint.New(handler)))
 	server := &http.Server{
 		Handler: h2c.NewHandler(router, h2s),
 	}
@@ -135,7 +135,7 @@ func BenchmarkHttp2H2CParallel(b *testing.B) {
 func BenchmarkHttp2Parallel(b *testing.B) {
 	test, _ := test.New(&testing.T{})
 	wrapper := endpoint.DefaultWrapper(test.Logger(), httplog.Noop())
-	router := router2.New().POST("/echo", wrapper.Endpoint(handler))
+	router := router2.New().POST("/echo", wrapper.EndpointV2(endpoint.New(handler)))
 	server := &http.Server{
 		Addr:    ":8080",
 		Handler: router,
