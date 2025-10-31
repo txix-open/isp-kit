@@ -17,7 +17,7 @@
 
 Обработать критические ошибки с уведомлением в Sentry
 
-#### `NewClustered(moduleVersion string, remoteConfig any, endpoints []cluster.EndpointDescriptor) *Bootstrap`
+#### `New(moduleVersion string, remoteConfig any, endpoints []cluster.EndpointDescriptor) *Bootstrap`
 
 Конструктор с параметрами:
 
@@ -90,7 +90,7 @@ func main() {
 		Inner:   false,
 		Handler: noopHandler,
 	}}
-	boot := bootstrap.NewClustered("1.0.0", remoteConfig{}, endpoints)
+	boot := bootstrap.New("1.0.0", remoteConfig{}, endpoints)
 
 	shutdown.On(func() { /* waiting for SIGINT & SIGTERM signals */
 		log.Println("shutting down...")

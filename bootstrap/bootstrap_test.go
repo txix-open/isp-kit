@@ -22,11 +22,11 @@ type TestAppConfig struct {
 	Field2 int
 }
 
-func TestNewClustered(t *testing.T) {
+func TestNew(t *testing.T) {
 	t.Setenv("APP_CONFIG_PATH", "test_data/config_test.yml")
 	t.Setenv("DefaultRemoteConfigPath", "test_data/default_remote_config_test.json")
 
-	_ = bootstrap.NewClustered("test", RemoteConfig{}, []cluster.EndpointDescriptor{{
+	_ = bootstrap.New("test", RemoteConfig{}, []cluster.EndpointDescriptor{{
 		Path:             "test/endpoint",
 		Inner:            true,
 		UserAuthRequired: false,
@@ -47,11 +47,11 @@ func (m *mockConfigReceiver) ReceiveConfig(_ context.Context, remoteConfig []byt
 	return nil
 }
 
-func TestNewClustered_Offline(t *testing.T) {
+func TestNew_Offline(t *testing.T) {
 	t.Setenv("CLUSTER_MODE", "offline")
 	t.Setenv("APP_CONFIG_PATH", "test_data/config_offline_test.yml")
 
-	boot := bootstrap.NewClustered("test", RemoteConfig{}, []cluster.EndpointDescriptor{{
+	boot := bootstrap.New("test", RemoteConfig{}, []cluster.EndpointDescriptor{{
 		Path:             "test/endpoint",
 		Inner:            true,
 		UserAuthRequired: false,

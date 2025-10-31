@@ -31,7 +31,7 @@ type Bootstrap struct {
 	RemoteConfig *rc.Config
 }
 
-func NewClustered(moduleVersion string, remoteConfig any, endpoints []cluster.EndpointDescriptor) *Bootstrap {
+func New(moduleVersion string, remoteConfig any, endpoints []cluster.EndpointDescriptor) *Bootstrap {
 	isDev := isOnDevMode()
 	app, err := initApp(isDev)
 	if err != nil {
