@@ -1,3 +1,5 @@
+## v1.62.0
+* Добавлен standalone `bootstrap`
 ## v1.61.0
 * добавлен пакет `endpoint/v2` с функциями, реализованными на дженериках
 * `endpoint.DefaultWrapper` теперь возвращает `Wrapper` из пакета `endpoint/v2`
