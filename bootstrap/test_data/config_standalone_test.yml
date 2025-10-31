@@ -7,7 +7,7 @@ grpcInnerAddress:
 moduleName: isp-test-service
 
 infraServerPort: 9553
-configPath: test_data/config_test.json
+remoteConfigPath: test_data/config_test.json
 logfile:
   maxSizeMb: 512
   maxBackups: 4

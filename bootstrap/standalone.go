@@ -24,7 +24,7 @@ func NewStandalone(moduleVersion string) *StandaloneBootstrap {
 		stdlog.Fatal(err)
 	}
 
-	localCfg, err := localConfig[StandaloneConfig](app.Config())
+	localCfg, err := localConfig[LocalConfig](app.Config())
 	if err != nil {
 		app.Logger().Fatal(app.Context(), errors.WithMessage(err, "create local config"))
 	}
@@ -41,7 +41,7 @@ func NewStandalone(moduleVersion string) *StandaloneBootstrap {
 		app.Logger().Fatal(app.Context(), errors.WithMessage(err, "create sentry error reporter"))
 	}
 
-	appConfigPath, err := configPath(isDev, localCfg.ConfigPath)
+	appConfigPath, err := configPath(isDev, localCfg.RemoteConfigPath)
 	if err != nil {
 		app.Logger().Fatal(app.Context(), errors.WithMessage(err, "get config path"))
 	}
@@ -50,7 +50,7 @@ func NewStandalone(moduleVersion string) *StandaloneBootstrap {
 		isDev,
 		app,
 		sentryHub,
-		localCfg.LocalConfig,
+		localCfg,
 		moduleVersion,
 		localCfg.GrpcOuterAddress.IP,
 	)

@@ -13,24 +13,17 @@ type LocalConfig struct {
 	Observability             Observability
 	InfraServerPort           int
 	HealthcheckHandlerTimeout time.Duration
+	// Path to the application configuration
+	RemoteConfigPath string
 }
 
 type ClusteredLocalConfig struct {
 	LocalConfig
 
-	ConfigServiceAddress    ConfigServiceAddr
-	DefaultRemoteConfigPath string
-	// Path to the application configuration, used on offline mode
-	RemoteConfigPath            string
+	ConfigServiceAddress        ConfigServiceAddr
+	DefaultRemoteConfigPath     string
 	RemoteConfigReceiverTimeout time.Duration
 	MetricsAutodiscovery        MetricsAutodiscovery
-}
-
-type StandaloneConfig struct {
-	LocalConfig
-
-	// Path to the application configuration
-	ConfigPath string
 }
 
 type Logs struct {
