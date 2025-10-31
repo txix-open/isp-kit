@@ -13,6 +13,10 @@
 
 **Методы:**
 
+#### `(b *BaseBootstrap) Fatal(err error)`
+
+Обработать критические ошибки с уведомлением в Sentry
+
 #### `New(moduleVersion string, remoteConfig any, endpoints []cluster.EndpointDescriptor) *Bootstrap`
 
 Конструктор с параметрами:
@@ -21,9 +25,15 @@
 - `remoteConfig` - структура для динамической конфигурации
 - `endpoints` - список эндпоинтов модуля
 
-#### `(b *Bootstrap) Fatal(err error)`
+#### `NewStandalone(moduleVersion string) *StandaloneBootstrap`
 
-Обработать критические ошибки с уведомлением в Sentry
+Конструктор с параметрами:
+
+- `moduleVersion` - версия модуля
+
+#### `func (b *StandaloneBootstrap) ReadConfig(destPtr any) error`
+
+Прочитать локальную `json` конфигурацию, путь до конфигурации определяется настройкой в локальном конфиге `remoteConfigPath`, по умолчанию путь `./conf/config.json` (либо относительно бинарника, если запуск не в `dev` режиме)
 
 ## Конфигурация
 
@@ -37,19 +47,20 @@
 - `APP_MODE=dev` — режим разработки
 - `APP_CONFIG_PATH` — кастомный путь к конфигу
 - `APP_CONFIG_ENV_PREFIX` — префикс для env variables
+- `CLUSTER_MODE=offline` — режим, при котором будет использоваться заглушка для конфиг сервиса
 
 ## Инфраструктурные эндпоинты
 
 По умолчанию доступны:
 
 - `/internal/metrics` — prometheus метрики
-- `/internal/metrics/descriptions` – описание метрик
+- `/internal/metrics/descriptions` — описание метрик
 - `/internal/health` — healthcheck статус
 - `/internal/debug/pprof/` — профилирование
 
 ## Usage
 
-### Default usage flow
+### Default usage flow for clustered
 
 ```go
 package main
@@ -88,6 +99,47 @@ func main() {
 	})
 
 	err := boot.App.Run()
+	if err != nil {
+		boot.Fatal(err)
+	}
+}
+
+```
+
+### Default usage flow for standalone
+
+```go
+package main
+
+import (
+	"log"
+
+	"github.com/txix-open/isp-kit/bootstrap"
+	"github.com/txix-open/isp-kit/cluster"
+	"github.com/txix-open/isp-kit/shutdown"
+)
+
+type config struct {
+	Foo string `validate:"required"`
+	Bar int
+}
+
+func main() {
+	boot := bootstrap.NewStandalone("1.0.0")
+
+	shutdown.On(func() { /* waiting for SIGINT & SIGTERM signals */
+		log.Println("shutting down...")
+		boot.App.Shutdown()
+		log.Println("shutdown completed")
+	})
+
+	cfg := config{}
+	err := boot.ReadConfig(&cfg)
+	if err != nil {
+		boot.Fatal(err)
+	}
+
+	err = boot.App.Run()
 	if err != nil {
 		boot.Fatal(err)
 	}
