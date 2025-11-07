@@ -44,6 +44,28 @@
 
 Выполняет вызов обработчика задачи в зависимости от типа задачи. Если обработчик не зарегистрирован, отправляет задачу в DLQ с ошибкой `bgjob.ErrUnknownType`.
 
+## Functions
+
+### Reschedule(by RescheduleBy, opts ...RescheduleOption) Result
+
+Отдает результат перепланировки задачи:
+
+**Методы перепланировки задач:**
+
+#### ByAfterTime(after time.Duration, currentTime time.Time) AfterTime
+
+Перепланировка задачи на дату спустя указанное время.
+
+#### ByCron(cronExpression string, currentTime time.Time) Cron
+
+Перепланировка задачи по cron-выражению.
+
+**Опции перепланирования:**
+
+#### WithArg(arg []byte) RescheduleOption
+
+Опция для указания аргумента при перепланировании.
+
 ## Usage
 
 ### Custom handler
@@ -64,7 +86,7 @@ type customHandler struct{}
 
 func (h customHandler) Handle(ctx context.Context, job bgjob.Job) handler.Result {
   /* put here business logic */
-  return handler.Reschedule(time.Duration(10) * time.Minute)
+  return handler.Reschedule(handler.ByAfterTime(10*time.Minutes, time.Now()))
 }
 
 func main() {
