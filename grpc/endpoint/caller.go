@@ -22,6 +22,10 @@ type Caller struct {
 	params       []param
 	reqBodyIndex int
 	reqBodyType  reflect.Type
+
+	hasResult  bool
+	hasError   bool
+	errorIndex int
 }
 
 func NewCaller(
@@ -34,11 +38,12 @@ func NewCaller(
 	if rt.Kind() != reflect.Func {
 		return nil, errors.New("function expected")
 	}
+
 	paramsCount := rt.NumIn()
 	reqBodyIndex := -1
 	handler := reflect.ValueOf(f)
 	var reqBodyType reflect.Type
-	params := make([]param, 0)
+	params := make([]param, 0, paramsCount)
 
 	for i := range paramsCount {
 		p := rt.In(i)
@@ -58,6 +63,10 @@ func NewCaller(
 		params = append(params, param{index: i, builder: mapper.Builder})
 	}
 
+	numOut := rt.NumOut()
+	hasResult := numOut > 0 && rt.Out(0) != reflect.TypeOf((*error)(nil)).Elem()
+	hasError := numOut > 0 && rt.Out(numOut-1) == reflect.TypeOf((*error)(nil)).Elem()
+
 	return &Caller{
 		bodyExtractor: bodyExtractor,
 		bodyMapper:    bodyMapper,
@@ -66,6 +75,9 @@ func NewCaller(
 		params:        params,
 		reqBodyIndex:  reqBodyIndex,
 		reqBodyType:   reqBodyType,
+		hasResult:     hasResult,
+		hasError:      hasError,
+		errorIndex:    numOut - 1,
 	}, nil
 }
 
@@ -88,24 +100,21 @@ func (h *Caller) Handle(ctx context.Context, message *isp.Message) (*isp.Message
 		args[p.index] = reflect.ValueOf(value)
 	}
 
-	returned := h.handler.Call(args)
+	out := h.handler.Call(args)
 
-	var result any
-	var err error
-	for i := range returned {
-		v := returned[i]
-		if e, ok := v.Interface().(error); ok && err == nil {
-			err = e
-			continue
-		}
-		if result == nil && v.IsValid() {
-			result = v.Interface()
-			continue
+	if h.hasError {
+		errVal := out[h.errorIndex]
+		if !errVal.IsNil() {
+			// Приведение к error безопасно:
+			// 1) hasError == true → функция возвращает последним аргументом error
+			// 2) проверка errVal != nil исключает typed-nil
+			return nil, errVal.Interface().(error) // nolint:forcetypeassert
 		}
 	}
-	if err != nil {
-		return nil, err
+
+	if h.hasResult {
+		return h.bodyMapper.Map(out[0].Interface())
 	}
 
-	return h.bodyMapper.Map(result)
+	return nil, nil // nolint:nilnil
 }
