@@ -59,7 +59,7 @@ func ServeIspHttp() {
 	handler := func(ctx context.Context, req Request) (*Response, error) {
 		return &Response{
 			FromReq: req.S,
-			Resp:    uuid.New().String(),
+			Resp:    uuid.NewString(),
 		}, nil
 	}
 	httpHandler := defaultWrapper(logger).Endpoint(handler)
@@ -164,12 +164,13 @@ func ServeIspHttpGenericEndpoint() {
 	handler := func(ctx context.Context, req Request) (*Response, error) {
 		return &Response{
 			FromReq: req.S,
-			Resp:    uuid.New().String(),
+			Resp:    uuid.NewString(),
 		}, nil
 	}
-	wrapper := endpoint.DefaultWrapper(logger, httplog.Noop()).WithMiddlewares()
+	wrapper := endpoint.DefaultWrapper(logger, httplog.Noop())
+	wrapper.Middlewares = nil
 	mux := httprouter.New()
-	mux.Handler(stdHttp.MethodPost, "/post", endpoint.New(handler).Wrap(wrapper))
+	mux.Handler(stdHttp.MethodPost, "/post", wrapper.EndpointV2(endpoint.New(handler)))
 	s.Upgrade(mux)
 }
 
