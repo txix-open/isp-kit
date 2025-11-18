@@ -89,7 +89,7 @@ func main() {
 	db := dbrx.New(application.Logger())
 	err = db.Upgrade(application.Context(), dbx.Config{
 		Host:     "127.0.0.1",
-		Port:     "5432",
+		Port:     5432,
 		Database: "test",
 		Username: "test",
 		Password: "test",

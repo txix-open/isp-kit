@@ -50,7 +50,7 @@ func main() {
 	ctx := context.Background()
 	cfg := dbx.Config{
 		Host:     "127.0.0.1",
-		Port:     "5432",
+		Port:     5432,
 		Database: "test",
 		Username: "test",
 		Password: "test", 
@@ -94,7 +94,7 @@ func main() {
 	/* create client with migrations */
 	cli, err := dbx.Open(context.Background(), dbx.Config{
       Host:     "127.0.0.1",
-      Port:     "5432",
+      Port:     5432,
       Database: "test",
       Username: "test",
       Password: "test",
