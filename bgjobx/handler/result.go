@@ -17,11 +17,10 @@ type Result struct {
 	RescheduleDelay   time.Duration
 	RescheduleWithArg bool
 	Arg               []byte
-	NextRunAt         time.Time
 }
 
 type RescheduleBy interface {
-	Reschedule() (time.Time, error)
+	Reschedule() (time.Duration, error)
 }
 
 func Complete() Result {
@@ -48,16 +47,17 @@ func ByCron(cronExpression string, currentTime time.Time) Cron {
 	}
 }
 
-func (b Cron) Reschedule() (time.Time, error) {
+func (b Cron) Reschedule() (time.Duration, error) {
 	return rescheduleByCron(b.cronExpression, b.currentTime)
 }
 
-func rescheduleByCron(cronExpression string, currentTime time.Time) (time.Time, error) {
+func rescheduleByCron(cronExpression string, currentTime time.Time) (time.Duration, error) {
 	schedule, err := cron.ParseStandard(cronExpression)
 	if err != nil {
-		return time.Time{}, err
+		return 0, err
 	}
-	return schedule.Next(currentTime), nil
+	nextRunAt := schedule.Next(currentTime)
+	return nextRunAt.Sub(currentTime), nil
 }
 
 type AfterTime struct {
@@ -72,8 +72,8 @@ func ByAfterTime(after time.Duration, currentTime time.Time) AfterTime {
 	}
 }
 
-func (b AfterTime) Reschedule() (time.Time, error) {
-	return b.currentTime.Add(b.after), nil
+func (b AfterTime) Reschedule() (time.Duration, error) {
+	return b.after, nil
 }
 
 type RescheduleOption func(opt *rescheduleOptions)
@@ -98,7 +98,7 @@ func Reschedule(by RescheduleBy, opts ...RescheduleOption) Result {
 		opt(options)
 	}
 
-	nextRunAt, err := by.Reschedule()
+	rescheduleDelay, err := by.Reschedule()
 	if err != nil {
 		return MoveToDlq(errors.WithMessage(err, "failed to reschedule"))
 	}
@@ -107,6 +107,6 @@ func Reschedule(by RescheduleBy, opts ...RescheduleOption) Result {
 		Reschedule:        !options.RescheduleWithArg,
 		RescheduleWithArg: options.RescheduleWithArg,
 		Arg:               options.Arg,
-		NextRunAt:         nextRunAt,
+		RescheduleDelay:   rescheduleDelay,
 	}
 }

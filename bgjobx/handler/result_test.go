@@ -14,8 +14,8 @@ func TestReschedule_ByAfterTime(t *testing.T) {
 
 	baseTime := time.Date(2001, 1, 1, 0, 0, 0, 0, time.UTC)
 	expected := handler.Result{
-		Reschedule: true,
-		NextRunAt:  baseTime.Add(24 * time.Hour),
+		Reschedule:      true,
+		RescheduleDelay: 24 * time.Hour,
 	}
 
 	result := handler.Reschedule(handler.ByAfterTime(24*time.Hour, baseTime))
@@ -29,10 +29,10 @@ func TestReschedule_ByCron(t *testing.T) {
 	_, assert := test.New(t)
 
 	testTime := time.Date(2001, 01, 01, 0, 0, 0, 0, time.UTC)
-	cronExpression := "0 0 * * *"
+	cronExpression := "* * * * *"
 	expected := handler.Result{
-		Reschedule: true,
-		NextRunAt:  time.Date(2001, 01, 02, 0, 0, 0, 0, time.UTC),
+		Reschedule:      true,
+		RescheduleDelay: 1 * time.Minute,
 	}
 
 	result := handler.Reschedule(handler.ByCron(cronExpression, testTime))
@@ -49,7 +49,7 @@ func TestReschedule_WithArg(t *testing.T) {
 	expected := handler.Result{
 		RescheduleWithArg: true,
 		Arg:               []byte("test"),
-		NextRunAt:         time.Date(2001, 01, 02, 0, 0, 0, 0, time.UTC),
+		RescheduleDelay:   24 * time.Hour,
 	}
 
 	result := handler.Reschedule(handler.ByAfterTime(24*time.Hour, testTime), handler.WithArg([]byte("test")))
