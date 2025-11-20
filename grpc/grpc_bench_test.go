@@ -55,12 +55,21 @@ func BenchmarkGrpcParallel(b *testing.B) {
 	})
 }
 
-func BenchmarkHttp11Parallel(b *testing.B) {
+func BenchmarkHttp11Parallel_V2(b *testing.B)    { runHTTPBenchmark(b, true, false, false) }
+func BenchmarkHttp11Parallel_Ref(b *testing.B)   { runHTTPBenchmark(b, false, false, false) }
+func BenchmarkHttp2H2CParallel_V2(b *testing.B)  { runHTTPBenchmark(b, true, true, false) }
+func BenchmarkHttp2H2CParallel_Ref(b *testing.B) { runHTTPBenchmark(b, false, true, false) }
+func BenchmarkHttp2Parallel_V2(b *testing.B)     { runHTTPBenchmark(b, true, true, true) }
+func BenchmarkHttp2Parallel_Ref(b *testing.B)    { runHTTPBenchmark(b, false, true, true) }
+
+// nolint:thelper
+func runHTTPBenchmark(b *testing.B, useV2, h2, tlsEnabled bool) {
 	test, _ := test.New(&testing.T{})
-	srv := httpt.NewMock(test)
-	srv.Wrapper = endpoint.DefaultWrapper(test.Logger(), httplog.Noop())
-	srv.POST("/echo", endpoint.New(handler))
-	cli := srv.Client(httpcli.WithMiddlewares(httpclix.DefaultMiddlewares()...))
+	wrapper := endpoint.DefaultWrapper(test.Logger(), httplog.Noop())
+
+	cli, baseURL := newHTTPClient(b, h2, useV2, tlsEnabled, wrapper, test)
+
+	cli.GlobalRequestConfig().BaseUrl = baseURL
 	cli.GlobalRequestConfig().Timeout = 15 * time.Second
 
 	b.ResetTimer()
@@ -79,29 +88,56 @@ func BenchmarkHttp11Parallel(b *testing.B) {
 	})
 }
 
-func BenchmarkHttp2H2CParallel(b *testing.B) {
-	test, _ := test.New(&testing.T{})
+func newHTTPClient(b *testing.B, h2, useV2, tlsEnabled bool, wrapper endpoint.Wrapper, test *test.Test) (*httpcli.Client, string) {
+	b.Helper()
+
+	if !h2 {
+		// HTTP/1.1 Mock server
+		srv := httpt.NewMock(test)
+		srv.Wrapper = wrapper
+		if useV2 {
+			srv.POST("/echo", wrapper.EndpointV2(endpoint.New(handler)))
+		} else {
+			srv.POST("/echo", wrapper.Endpoint(handler))
+		}
+		return srv.Client(httpcli.WithMiddlewares(httpclix.DefaultMiddlewares()...)), srv.BaseURL()
+	}
+
+	// HTTP/2 branch
 	h2s := &http2.Server{}
-	wrapper := endpoint.DefaultWrapper(test.Logger(), httplog.Noop())
-	router := router2.New().POST("/echo", wrapper.EndpointV2(endpoint.New(handler)))
-	server := &http.Server{
-		Handler: h2c.NewHandler(router, h2s),
+	var router http.Handler
+	if useV2 {
+		router = router2.New().POST("/echo", wrapper.EndpointV2(endpoint.New(handler)))
+	} else {
+		router = router2.New().POST("/echo", wrapper.Endpoint(handler))
 	}
-	err := http2.ConfigureServer(server, h2s)
-	if err != nil {
-		b.Fatal(err)
+
+	server := &http.Server{}
+	if tlsEnabled {
+		server.Addr = ":8443"
+		server.Handler = router
+		go func() {
+			_ = server.ListenAndServeTLS("_certificates/server.crt", "_certificates/server.key")
+		}()
+
+		transport := httpcli.StdClient.Transport.(*http.Transport).Clone()
+		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		cli := httpcli.NewWithClient(
+			&http.Client{Transport: transport},
+			httpcli.WithMiddlewares(httpclix.DefaultMiddlewares()...),
+		)
+		return cli, "https://localhost:8443"
 	}
+
+	// H2C (no TLS)
 	var lc net.ListenConfig
-	listener, err := lc.Listen(b.Context(), "tcp", "127.0.0.1:")
-	if err != nil {
-		b.Fatal(err)
-	}
+	listener, _ := lc.Listen(b.Context(), "tcp", "127.0.0.1:0")
+	server.Handler = h2c.NewHandler(router, h2s)
 	go func() {
 		_ = server.Serve(listener)
 	}()
-	time.Sleep(100 * time.Millisecond)
 
-	client := http.Client{
+	cli := &http.Client{
 		Transport: &http2.Transport{
 			// So http2.Transport doesn't complain the URL scheme isn't 'https'
 			AllowHTTP: true,
@@ -112,60 +148,5 @@ func BenchmarkHttp2H2CParallel(b *testing.B) {
 			},
 		},
 	}
-	cli := httpcli.NewWithClient(&client, httpcli.WithMiddlewares(httpclix.DefaultMiddlewares()...))
-	cli.GlobalRequestConfig().BaseUrl = "http://" + listener.Addr().String()
-	cli.GlobalRequestConfig().Timeout = 15 * time.Second
-
-	b.ResetTimer()
-	b.ReportAllocs()
-	b.SetParallelism(32)
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			data := make([]byte, 4200)
-			_, _ = rand.Read(data)
-			resp := Data{}
-			_ = cli.Post("/echo").
-				JsonRequestBody(Data{Value: hex.EncodeToString(data)}).
-				JsonResponseBody(&resp).
-				DoWithoutResponse(b.Context())
-		}
-	})
-}
-
-func BenchmarkHttp2Parallel(b *testing.B) {
-	test, _ := test.New(&testing.T{})
-	wrapper := endpoint.DefaultWrapper(test.Logger(), httplog.Noop())
-	router := router2.New().POST("/echo", wrapper.EndpointV2(endpoint.New(handler)))
-	server := &http.Server{
-		Addr:    ":8080",
-		Handler: router,
-	}
-	go func() {
-		_ = server.ListenAndServeTLS("_certificates/server.crt", "_certificates/server.key")
-	}()
-	time.Sleep(100 * time.Millisecond)
-
-	transport := httpcli.StdClient.Transport.(*http.Transport).Clone()
-	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	client := http.Client{
-		Transport: transport,
-	}
-	cli := httpcli.NewWithClient(&client, httpcli.WithMiddlewares(httpclix.DefaultMiddlewares()...))
-	cli.GlobalRequestConfig().BaseUrl = "https://localhost:8080"
-	cli.GlobalRequestConfig().Timeout = 15 * time.Second
-
-	b.ResetTimer()
-	b.ReportAllocs()
-	b.SetParallelism(32)
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			data := make([]byte, 4200)
-			_, _ = rand.Read(data)
-			resp := Data{}
-			_ = cli.Post("/echo").
-				JsonRequestBody(Data{Value: hex.EncodeToString(data)}).
-				JsonResponseBody(&resp).
-				DoWithoutResponse(b.Context())
-		}
-	})
+	return httpcli.NewWithClient(cli, httpcli.WithMiddlewares(httpclix.DefaultMiddlewares()...)), "http://" + listener.Addr().String()
 }
