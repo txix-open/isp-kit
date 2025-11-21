@@ -102,14 +102,11 @@ func (h *Caller) Handle(ctx context.Context, message *isp.Message) (*isp.Message
 
 	out := h.handler.Call(args)
 
-	if h.hasError {
-		errVal := out[h.errorIndex]
-		if !errVal.IsNil() {
-			// Приведение к error безопасно:
-			// 1) hasError == true → функция возвращает последним аргументом error
-			// 2) проверка errVal != nil исключает typed-nil
-			return nil, errVal.Interface().(error) // nolint:forcetypeassert
-		}
+	if h.hasError && !out[h.errorIndex].IsNil() {
+		// Приведение к error безопасно:
+		// 1) hasError == true → функция возвращает последним аргументом error
+		// 2) проверка errVal != nil исключает typed-nil
+		return nil, out[h.errorIndex].Interface().(error) // nolint:forcetypeassert
 	}
 
 	if h.hasResult {
