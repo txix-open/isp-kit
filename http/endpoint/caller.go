@@ -102,14 +102,11 @@ func (h *Caller) Handle(ctx context.Context, w http.ResponseWriter, r *http.Requ
 
 	out := h.handler.Call(args)
 
-	if h.hasError {
-		errVal := out[h.errorIndex]
-		if !errVal.IsNil() {
-			// Приведение к error безопасно:
-			// 1) hasError == true → функция возвращает последним аргументом error
-			// 2) проверка errVal != nil исключает typed-nil
-			return errVal.Interface().(error) // nolint:forcetypeassert
-		}
+	if h.hasError && !out[h.errorIndex].IsNil() {
+		// Приведение к error безопасно:
+		// 1) hasError == true → функция возвращает последним аргументом error
+		// 2) проверка errVal != nil исключает typed-nil
+		return out[h.errorIndex].Interface().(error) // nolint:forcetypeassert
 	}
 
 	if h.hasResult {
