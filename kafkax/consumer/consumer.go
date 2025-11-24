@@ -35,6 +35,8 @@ type Consumer struct {
 	deliveries chan Delivery
 	alive      *atomic.Bool
 	metrics    *Metrics
+
+	stopChan chan struct{}
 }
 
 func New(reader *kafka.Reader, handler Handler, concurrency int, metrics *Metrics, opts ...Option) *Consumer {
@@ -50,6 +52,7 @@ func New(reader *kafka.Reader, handler Handler, concurrency int, metrics *Metric
 		deliveries:  make(chan Delivery),
 		alive:       atomic.NewBool(true),
 		metrics:     metrics,
+		stopChan:    make(chan struct{}),
 	}
 
 	for _, opt := range opts {
@@ -71,8 +74,6 @@ func (c *Consumer) Run(ctx context.Context) {
 
 func (c *Consumer) Close() error {
 	defer func() {
-		c.deliveryWg.Wait()
-
 		c.alive.Store(false)
 
 		if c.metrics != nil {
@@ -81,6 +82,11 @@ func (c *Consumer) Close() error {
 		c.observer.CloseDone()
 	}()
 	c.observer.CloseStart()
+
+	close(c.stopChan)
+
+	c.deliveryWg.Wait()
+
 	err := c.reader.Close()
 	if err != nil {
 		return errors.WithMessage(err, "close kafka.reader")
@@ -105,10 +111,17 @@ func (c *Consumer) run(ctx context.Context) {
 		go c.metrics.Run()
 	}
 
+	defer close(c.deliveries)
+
 	for {
+		select {
+		case <-c.stopChan:
+			return
+		default:
+		}
+
 		msg, err := c.reader.FetchMessage(ctx)
 		if errors.Is(err, io.EOF) {
-			close(c.deliveries)
 			return
 		}
 		if err != nil {
