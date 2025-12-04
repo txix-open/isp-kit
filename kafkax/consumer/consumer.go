@@ -2,12 +2,11 @@ package consumer
 
 import (
 	"context"
-	"io"
+	"github.com/twmb/franz-go/pkg/kgo"
 	"sync"
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/segmentio/kafka-go"
 	"go.uber.org/atomic"
 )
 
@@ -24,35 +23,35 @@ func (f HandlerFunc) Handle(ctx context.Context, delivery *Delivery) {
 }
 
 type Consumer struct {
-	reader *kafka.Reader
+	client *kgo.Client
 
-	middlewares []Middleware
-	concurrency int
-	handler     Handler
-	observer    Observer
+	consumerGroupId string
+	middlewares     []Middleware
+	concurrency     int
+	handler         Handler
+	observer        Observer
 
 	deliveryWg *sync.WaitGroup
 	deliveries chan Delivery
 	alive      *atomic.Bool
-	metrics    *Metrics
 
 	stopChan chan struct{}
 }
 
-func New(reader *kafka.Reader, handler Handler, concurrency int, metrics *Metrics, opts ...Option) *Consumer {
+func New(client *kgo.Client, consumerGroupId string, handler Handler, concurrency int, opts ...Option) *Consumer {
 	if concurrency <= 0 {
 		concurrency = 1
 	}
 
 	c := &Consumer{
-		reader:      reader,
-		concurrency: concurrency,
-		handler:     handler,
-		deliveryWg:  &sync.WaitGroup{},
-		deliveries:  make(chan Delivery),
-		alive:       atomic.NewBool(true),
-		metrics:     metrics,
-		stopChan:    make(chan struct{}),
+		client:          client,
+		consumerGroupId: consumerGroupId,
+		concurrency:     concurrency,
+		handler:         handler,
+		deliveryWg:      &sync.WaitGroup{},
+		deliveries:      make(chan Delivery),
+		alive:           atomic.NewBool(true),
+		stopChan:        make(chan struct{}),
 	}
 
 	for _, opt := range opts {
@@ -68,29 +67,28 @@ func New(reader *kafka.Reader, handler Handler, concurrency int, metrics *Metric
 }
 
 func (c *Consumer) Run(ctx context.Context) {
-	c.observer.BeginConsuming()
+	if c.observer != nil {
+		c.observer.BeginConsuming()
+	}
 	go c.run(ctx)
 }
 
 func (c *Consumer) Close() error {
 	defer func() {
 		c.alive.Store(false)
-
-		if c.metrics != nil {
-			c.metrics.Close()
+		if c.observer != nil {
+			c.observer.CloseDone()
 		}
-		c.observer.CloseDone()
 	}()
-	c.observer.CloseStart()
+	if c.observer != nil {
+		c.observer.CloseStart()
+	}
 
 	close(c.stopChan)
 
 	c.deliveryWg.Wait()
 
-	err := c.reader.Close()
-	if err != nil {
-		return errors.WithMessage(err, "close kafka.reader")
-	}
+	c.client.Close()
 
 	return nil
 }
@@ -107,10 +105,6 @@ func (c *Consumer) run(ctx context.Context) {
 		go c.runWorker(ctx)
 	}
 
-	if c.metrics != nil {
-		go c.metrics.Run()
-	}
-
 	defer close(c.deliveries)
 
 	for {
@@ -120,26 +114,39 @@ func (c *Consumer) run(ctx context.Context) {
 		default:
 		}
 
-		msg, err := c.reader.FetchMessage(ctx)
-		if errors.Is(err, io.EOF) {
+		fetches := c.client.PollFetches(ctx)
+		if fetches.IsClientClosed() {
 			return
 		}
-		if err != nil {
-			c.alive.Store(false)
-			c.observer.ConsumerError(err)
 
-			select {
-			case <-ctx.Done():
-			case <-time.After(1 * time.Second):
-			}
-
+		if errs := fetches.Errors(); len(errs) > 0 {
+			c.handleFetchErrors(ctx, errs)
 			continue
 		}
 
 		c.alive.Store(true)
-		delivery := NewDelivery(c.deliveryWg, c.reader, &msg, c.reader.Config().GroupID)
-		c.deliveryWg.Add(1)
-		c.deliveries <- *delivery
+
+		fetches.EachPartition(func(p kgo.FetchTopicPartition) {
+			for _, msg := range p.Records {
+				delivery := NewDelivery(c.deliveryWg, c.client, msg, c.consumerGroupId)
+				c.deliveryWg.Add(1)
+				c.deliveries <- *delivery
+			}
+		})
+	}
+}
+
+func (c *Consumer) handleFetchErrors(ctx context.Context, errs []kgo.FetchError) {
+	c.alive.Store(false)
+	if c.observer != nil {
+		for _, err := range errs {
+			c.observer.ConsumerError(err.Err)
+		}
+	}
+
+	select {
+	case <-ctx.Done():
+	case <-time.After(1 * time.Second):
 	}
 }
 
