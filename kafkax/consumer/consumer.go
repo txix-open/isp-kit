@@ -136,9 +136,17 @@ func (c *Consumer) run(ctx context.Context) {
 			continue
 		}
 
+		c.deliveryWg.Add(1)
+
+		select {
+		case <-c.stopChan:
+			c.deliveryWg.Done()
+			return
+		default:
+		}
+
 		c.alive.Store(true)
 		delivery := NewDelivery(c.deliveryWg, c.reader, &msg, c.reader.Config().GroupID)
-		c.deliveryWg.Add(1)
 		c.deliveries <- *delivery
 	}
 }
