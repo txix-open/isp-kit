@@ -143,7 +143,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/txix-open/isp-kit/kafka/handler"
+	"github.com/txix-open/isp-kit/kafkax/handler"
 	"github.com/txix-open/isp-kit/kafkax"
 	"github.com/txix-open/isp-kit/kafkax/consumer"
 	log2 "github.com/txix-open/isp-kit/log"

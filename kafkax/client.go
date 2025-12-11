@@ -2,19 +2,13 @@ package kafkax
 
 import (
 	"context"
-	"reflect"
-	"sync"
-	"time"
-
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/kafkax/consumer"
 	"github.com/txix-open/isp-kit/kafkax/publisher"
 	"github.com/txix-open/isp-kit/log"
 	"golang.org/x/sync/errgroup"
-)
-
-const (
-	sendMetricPeriod = 1 * time.Second
+	"reflect"
+	"sync"
 )
 
 type state struct {

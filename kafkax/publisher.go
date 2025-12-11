@@ -2,15 +2,16 @@ package kafkax
 
 import (
 	"context"
-	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/twmb/franz-go/plugin/kprom"
+	"github.com/txix-open/isp-kit/metrics"
+	"github.com/txix-open/isp-kit/metrics/kafka_metrics"
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/segmentio/kafka-go"
 	"github.com/txix-open/isp-kit/kafkax/publisher"
 	"github.com/txix-open/isp-kit/log"
-	"github.com/txix-open/isp-kit/metrics"
-	"github.com/txix-open/isp-kit/metrics/kafka_metrics"
 )
 
 const (
@@ -19,15 +20,12 @@ const (
 	defaultBatchSizePerPartition = 10
 	defaultBatchTimeoutMs        = 500
 	defaultDialTimeoutSec        = 5
-
-	validRequiredAckMin = -1
-	validRequiredAckMax = 1
 )
 
 type PublisherConfig struct {
 	Addresses                  []string `validate:"required" schema:"Список адресов брокеров для отправки сообщений"`
 	Topic                      string   `validate:"required" schema:"Топик для отправки сообщений описывается здесь либо в каждом сообщении"`
-	MaxMsgSizeMbPerPartition   int64    `schema:"Максимальный размер сообщений в Мб, по умолчанию 64 Мб"`
+	MaxMsgSizeMbPerPartition   int32    `schema:"Максимальный размер сообщений в Мб, по умолчанию 64 Мб"`
 	BatchSizePerPartition      int      `schema:"Количество буферизованных сообщений в пакетной отправке, по умолчанию 10"`
 	BatchTimeoutPerPartitionMs *int     `schema:"Периодичность записи батчей в кафку в мс, по умолчанию 500 мс"`
 	WriteTimeoutSec            *int     `schema:"Таймаут отправки сообщений, по умолчанию 10 секунд"`
@@ -38,6 +36,17 @@ type PublisherConfig struct {
 	MetricPublisherId          *string  `schema:"Идентификатор паблишера в метриках, при отсутствии метрики не отправляются"`
 }
 
+func (p PublisherConfig) GetRequiredAckLevel() kgo.Acks {
+	switch p.RequiredAckLevel {
+	case 1:
+		return kgo.LeaderAck()
+	case -1:
+		return kgo.AllISRAcks()
+	}
+
+	return kgo.NoAck()
+}
+
 func (p PublisherConfig) GetWriteTimeout() time.Duration {
 	if p.WriteTimeoutSec == nil {
 		return time.Duration(defaultWriteTimeoutSec) * time.Second
@@ -45,14 +54,7 @@ func (p PublisherConfig) GetWriteTimeout() time.Duration {
 	return time.Duration(*p.WriteTimeoutSec) * time.Second
 }
 
-func (p PublisherConfig) GetRequiredAckLevel() kafka.RequiredAcks {
-	if p.RequiredAckLevel >= validRequiredAckMin && p.RequiredAckLevel <= validRequiredAckMax {
-		return kafka.RequiredAcks(p.RequiredAckLevel)
-	}
-	return kafka.RequireNone
-}
-
-func (p PublisherConfig) GetMaxMessageSizePerPartition() int64 {
+func (p PublisherConfig) GetMaxMessageSizePerPartition() int32 {
 	if p.MaxMsgSizeMbPerPartition <= 0 {
 		return defaultMaxMsgSizeMb
 	}
@@ -92,22 +94,28 @@ func (p PublisherConfig) DefaultPublisher(
 		authMechanism = *p.Auth.Mechanism
 	}
 
-	transport, err := p.createTransport(authMechanism)
+	saslMechanism, err := setupSASLMechanism(authMechanism, p.Auth)
 	if err != nil {
-		logger.Error(logCtx, errors.WithMessage(err, "create kafka publisher transport"))
+		logger.Error(logCtx, errors.WithMessage(err, "failed to setup sasl mechanism"))
 	}
 
-	writer := kafka.Writer{
-		Addr:         kafka.TCP(p.Addresses...),
-		WriteTimeout: p.GetWriteTimeout(),
-		RequiredAcks: p.GetRequiredAckLevel(),
-		BatchBytes:   p.GetMaxMessageSizePerPartition() * bytesInMb,
-		BatchSize:    p.GetBatchSizePerPartition(),
-		BatchTimeout: p.GetBatchTimeoutPerPartition(),
-		Transport:    transport,
-		ErrorLogger: kafka.LoggerFunc(func(s string, i ...any) {
-			logger.Error(logCtx, "kafka publisher: "+fmt.Sprintf(s, i...))
-		}),
+	tls, err := setupTLS(p.TLS)
+	if err != nil {
+		logger.Error(logCtx, errors.WithMessage(err, "failed to setup tls"))
+	}
+
+	opts := []kgo.Opt{
+		kgo.SeedBrokers(p.Addresses...),
+		kgo.ProduceRequestTimeout(p.GetWriteTimeout()),
+		kgo.DisableIdempotentWrite(),
+		kgo.RequiredAcks(p.GetRequiredAckLevel()),
+		kgo.ProducerBatchMaxBytes(p.GetMaxMessageSizePerPartition() * bytesInMb),
+		kgo.MaxBufferedRecords(p.GetBatchSizePerPartition()),
+		kgo.ProducerLinger(p.GetBatchTimeoutPerPartition()),
+		kgo.DialTimeout(p.GetDialTimeout()),
+		kgo.SASL(saslMechanism),
+		kgo.DialTLSConfig(tls),
+		kgo.WithLogger(NewLogger(logCtx, "kafka publisher", kgo.LogLevelError, logger)),
 	}
 
 	middlewares := []publisher.Middleware{
@@ -116,38 +124,29 @@ func (p PublisherConfig) DefaultPublisher(
 	}
 	middlewares = append(middlewares, restMiddlewares...)
 
-	var metrics *publisher.Metrics
-
 	if p.MetricPublisherId != nil {
-		metrics = publisher.NewMetrics(sendMetricPeriod, &writer, *p.MetricPublisherId)
+		labels := prometheus.Labels{
+			"publisherId": *p.MetricPublisherId,
+		}
+		publisherMetrics := kprom.NewMetrics(
+			"kafka_publisher",
+			kprom.WithStaticLabel(labels),
+		)
+		opts = append(opts, kgo.WithHooks(publisherMetrics))
+		defaultRegistry := metrics.DefaultRegistry
+		defaultRegistry.GetOrRegister(publisherMetrics)
+	}
+
+	client, err := kgo.NewClient(opts...)
+	if err != nil {
+		logger.Error(logCtx, errors.WithMessage(err, "create kafka client"))
 	}
 
 	pub := publisher.New(
-		&writer,
+		client,
 		p.Topic,
-		metrics,
 		publisher.WithMiddlewares(middlewares...),
 	)
 
 	return pub
-}
-
-func (p PublisherConfig) createTransport(mechanismType string) (*kafka.Transport, error) {
-	saslMechanism, err := setupSASLMechanism(mechanismType, p.Auth)
-	if err != nil {
-		return nil, errors.WithMessage(err, "failed to setup sasl mechanism")
-	}
-
-	tls, err := setupTLS(p.TLS)
-	if err != nil {
-		return nil, errors.WithMessage(err, "failed to setup tls")
-	}
-
-	transport := &kafka.Transport{
-		DialTimeout: p.GetDialTimeout(),
-		SASL:        saslMechanism,
-		TLS:         tls,
-	}
-
-	return transport, nil
 }

@@ -2,10 +2,9 @@ package kafkax
 
 import (
 	"context"
+	"github.com/twmb/franz-go/pkg/kgo"
 	"time"
 
-	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/kafka-go/protocol"
 	"github.com/txix-open/isp-kit/kafkax/consumer"
 	"github.com/txix-open/isp-kit/kafkax/publisher"
 	"github.com/txix-open/isp-kit/log"
@@ -20,15 +19,18 @@ type PublisherMetricStorage interface {
 
 func PublisherMetrics(storage PublisherMetricStorage) publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
-		return publisher.RoundTripperFunc(func(ctx context.Context, msgs ...kafka.Message) error {
-			topic := msgs[0].Topic
+		return publisher.RoundTripperFunc(func(ctx context.Context, rs ...*kgo.Record) error {
+			if len(rs) < 1 {
+				return nil
+			}
+			topic := rs[0].Topic
 
-			for _, msg := range msgs {
-				storage.ObservePublishMsgSize(msg.Topic, len(msg.Value))
+			for _, r := range rs {
+				storage.ObservePublishMsgSize(r.Topic, len(r.Value))
 			}
 			start := time.Now()
 
-			err := next.Publish(ctx, msgs...)
+			err := next.Publish(ctx, rs...)
 			if err != nil {
 				storage.IncPublishError(topic)
 			}
@@ -42,15 +44,15 @@ func PublisherMetrics(storage PublisherMetricStorage) publisher.Middleware {
 
 func PublisherLog(logger log.Logger, logBody bool) publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
-		return publisher.RoundTripperFunc(func(ctx context.Context, msgs ...kafka.Message) error {
-			for _, msg := range msgs {
+		return publisher.RoundTripperFunc(func(ctx context.Context, rs ...*kgo.Record) error {
+			for _, r := range rs {
 				fields := []log.Field{
-					log.String("topic", msg.Topic),
-					log.Int("partition", msg.Partition),
-					log.ByteString("messageKey", msg.Key),
+					log.String("topic", r.Topic),
+					log.Int32("partition", r.Partition),
+					log.ByteString("messageKey", r.Key),
 				}
 				if logBody {
-					fields = append(fields, log.ByteString("body", msg.Value))
+					fields = append(fields, log.ByteString("body", r.Value))
 				}
 				logger.Debug(
 					ctx,
@@ -59,14 +61,14 @@ func PublisherLog(logger log.Logger, logBody bool) publisher.Middleware {
 				)
 			}
 
-			return next.Publish(ctx, msgs...)
+			return next.Publish(ctx, rs...)
 		})
 	}
 }
 
 func PublisherRequestId() publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
-		return publisher.RoundTripperFunc(func(ctx context.Context, msgs ...kafka.Message) error {
+		return publisher.RoundTripperFunc(func(ctx context.Context, msgs ...*kgo.Record) error {
 			for i := range msgs {
 				requestId := requestid.FromContext(ctx)
 
@@ -74,7 +76,7 @@ func PublisherRequestId() publisher.Middleware {
 					requestId = requestid.Next()
 				}
 
-				msgs[i].Headers = append(msgs[i].Headers, protocol.Header{
+				msgs[i].Headers = append(msgs[i].Headers, kgo.RecordHeader{
 					Key:   requestid.Header,
 					Value: []byte(requestId),
 				})
@@ -94,9 +96,9 @@ type Retrier interface {
 // to avoid duplicate logging of publication attempts.
 func PublisherRetry(retrier Retrier) publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
-		return publisher.RoundTripperFunc(func(ctx context.Context, msgs ...kafka.Message) error {
+		return publisher.RoundTripperFunc(func(ctx context.Context, rs ...*kgo.Record) error {
 			return retrier.Do(ctx, func() error {
-				return next.Publish(ctx, msgs...)
+				return next.Publish(ctx, rs...)
 			})
 		})
 	}
@@ -107,7 +109,7 @@ func ConsumerLog(logger log.Logger, logBody bool) consumer.Middleware {
 		return consumer.HandlerFunc(func(ctx context.Context, delivery *consumer.Delivery) {
 			fields := []log.Field{
 				log.String("topic", delivery.Source().Topic),
-				log.Int("partition", delivery.Source().Partition),
+				log.Int32("partition", delivery.Source().Partition),
 				log.Int64("offset", delivery.Source().Offset),
 				log.ByteString("messageKey", delivery.Source().Key),
 			}
@@ -140,7 +142,7 @@ func ConsumerRequestId() consumer.Middleware {
 	}
 }
 
-func GetHeaderValue(headers []kafka.Header, key string) string {
+func GetHeaderValue(headers []kgo.RecordHeader, key string) string {
 	for _, header := range headers {
 		if header.Key == key {
 			return string(header.Value)
