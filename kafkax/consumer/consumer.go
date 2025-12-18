@@ -2,9 +2,10 @@ package consumer
 
 import (
 	"context"
-	"github.com/twmb/franz-go/pkg/kgo"
 	"sync"
 	"time"
+
+	"github.com/twmb/franz-go/pkg/kgo"
 
 	"github.com/pkg/errors"
 	"go.uber.org/atomic"
@@ -83,7 +84,6 @@ func (c *Consumer) Close() error {
 	if c.observer != nil {
 		c.observer.CloseStart()
 	}
-
 	close(c.stopChan)
 
 	c.deliveryWg.Wait()
@@ -128,9 +128,15 @@ func (c *Consumer) run(ctx context.Context) {
 
 		fetches.EachPartition(func(p kgo.FetchTopicPartition) {
 			for _, msg := range p.Records {
-				delivery := NewDelivery(c.deliveryWg, c.client, msg, c.consumerGroupId)
 				c.deliveryWg.Add(1)
-				c.deliveries <- *delivery
+				select {
+				case <-c.stopChan:
+					c.deliveryWg.Done()
+					return
+				default:
+					delivery := NewDelivery(c.deliveryWg, c.client, msg, c.consumerGroupId)
+					c.deliveries <- *delivery
+				}
 			}
 		})
 	}
