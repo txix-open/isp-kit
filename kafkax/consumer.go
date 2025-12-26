@@ -2,11 +2,13 @@ package kafkax
 
 import (
 	"context"
-	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/twmb/franz-go/plugin/kprom"
+	"github.com/txix-open/isp-kit/metrics"
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/segmentio/kafka-go"
 	"github.com/txix-open/isp-kit/kafkax/consumer"
 	"github.com/txix-open/isp-kit/log"
 )
@@ -21,7 +23,7 @@ type ConsumerConfig struct {
 	Topic             string   `validate:"required" schema:"Топик"`
 	GroupId           string   `validate:"required" schema:"Идентификатор консьюмера"`
 	Concurrency       int      `schema:"Кол-во обработчиков, по умолчанию 1"`
-	MaxBatchSizeMb    int      `schema:"Максимальный размер батча для приема консьюмером, по умолчанию 64 Мб"`
+	MaxBatchSizeMb    int32    `schema:"Максимальный размер батча для приема консьюмером, по умолчанию 64 Мб"`
 	CommitIntervalSec *int     `schema:"Интервал в секундах с которым происходит коммит офсетов, по умолчанию 1 c"`
 	Auth              *Auth    `schema:"Параметры аутентификации"`
 	TLS               *TLS     `schema:"Данные для установки TLS-соединения"`
@@ -29,7 +31,7 @@ type ConsumerConfig struct {
 	MetricConsumerId  *string  `schema:"Идентификатор консьюмера в метриках, при отсутствии метрики не отправляются"`
 }
 
-func (c ConsumerConfig) GetMaxBatchSizeMb() int {
+func (c ConsumerConfig) GetMaxBatchSizeMb() int32 {
 	if c.MaxBatchSizeMb <= 0 {
 		return defaultMaxBatchSizeMb
 	}
@@ -65,64 +67,61 @@ func (c ConsumerConfig) DefaultConsumer(
 		authMechanism = *c.Auth.Mechanism
 	}
 
-	dialer, err := c.createDialer(authMechanism)
+	saslMechanism, err := setupSASLMechanism(authMechanism, c.Auth)
 	if err != nil {
-		logger.Error(logCtx, errors.WithMessage(err, "create kafka consumer dialer"))
+		logger.Error(logCtx, errors.WithMessage(err, "failed to setup sasl mechanism"))
 	}
 
-	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:        c.Addresses,
-		GroupID:        c.GroupId,
-		Topic:          c.Topic,
-		Dialer:         dialer,
-		MinBytes:       1,
-		MaxBytes:       c.GetMaxBatchSizeMb() * bytesInMb,
-		CommitInterval: c.GetCommitInterval(),
-		ErrorLogger: kafka.LoggerFunc(func(s string, i ...interface{}) {
-			logger.Error(logCtx, "kafka consumer: "+fmt.Sprintf(s, i...))
-		}),
-	})
+	tls, err := setupTLS(c.TLS)
+	if err != nil {
+		logger.Error(logCtx, errors.WithMessage(err, "failed to setup tls"))
+	}
+
+	opts := []kgo.Opt{
+		kgo.SeedBrokers(c.Addresses...),
+		kgo.ConsumerGroup(c.GroupId),
+		kgo.DisableIdempotentWrite(),
+		kgo.ConsumeTopics(c.Topic),
+		kgo.DialTLSConfig(tls),
+		kgo.DialTimeout(c.GetDialTimeout()),
+		kgo.SASL(saslMechanism),
+		kgo.FetchMinBytes(1),
+		kgo.FetchMaxBytes(c.GetMaxBatchSizeMb() * bytesInMb),
+		kgo.AutoCommitInterval(c.GetCommitInterval()),
+		kgo.WithLogger(NewLogger(logCtx, "kafka consumer", kgo.LogLevelError, logger)),
+	}
 
 	middlewares := []consumer.Middleware{
 		ConsumerRequestId(),
 	}
 	middlewares = append(middlewares, restMiddlewares...)
 
-	var metrics *consumer.Metrics
-
 	if c.MetricConsumerId != nil {
-		metrics = consumer.NewMetrics(sendMetricPeriod, reader, *c.MetricConsumerId)
+		labels := prometheus.Labels{
+			"consumerId": *c.MetricConsumerId,
+		}
+		consumerMetrics := kprom.NewMetrics(
+			"kafka_consumer",
+			kprom.WithStaticLabel(labels),
+		)
+		opts = append(opts, kgo.WithHooks(consumerMetrics))
+		defaultRegistry := metrics.DefaultRegistry
+		defaultRegistry.GetOrRegister(consumerMetrics)
+	}
+
+	client, err := kgo.NewClient(opts...)
+	if err != nil {
+		logger.Error(logCtx, errors.WithMessage(err, "create kafka client"))
 	}
 
 	cons := consumer.New(
-		reader,
+		client,
+		c.GroupId,
 		handler,
 		c.Concurrency,
-		metrics,
 		consumer.WithObserver(consumer.NewLogObserver(logCtx, logger)),
 		consumer.WithMiddlewares(middlewares...),
 	)
 
 	return *cons
-}
-
-func (c ConsumerConfig) createDialer(mechanismType string) (*kafka.Dialer, error) {
-	saslMechanism, err := setupSASLMechanism(mechanismType, c.Auth)
-	if err != nil {
-		return nil, errors.WithMessage(err, "failed to setup sasl mechanism")
-	}
-
-	tls, err := setupTLS(c.TLS)
-	if err != nil {
-		return nil, errors.WithMessage(err, "failed to setup tls")
-	}
-
-	dialer := &kafka.Dialer{
-		DualStack:     true,
-		Timeout:       c.GetDialTimeout(),
-		SASLMechanism: saslMechanism,
-		TLS:           tls,
-	}
-
-	return dialer, nil
 }

@@ -12,13 +12,12 @@ middleware, метрик и наблюдения за состоянием.
 
 - Параллельную обработку (конкурентность)
 - Middleware-цепочки
-- Сбор метрик
 
 **Methods:**
 
-#### `New(reader *kafka.Reader, handler Handler, concurrency int, metrics *Metrics, opts ...Option) *Consumer`
+#### `New(client *kgo.Client, consumerGroupId string, handler Handler, concurrency int, opts ...Option) *Consumer`
 
-Создать нового консумера из низкоуровневого ридера из библиотеки `kafka-go` с указанным обработчиком сообщений
+Создать нового консумера из клиента из библиотеки `franz-go` с указанным обработчиком сообщений
 `Handler`.
 
 Основные опции:
@@ -49,7 +48,7 @@ middleware, метрик и наблюдения за состоянием.
 
 Подтвердить успешную обработку сообщения. Должен вызываться только один раз за сообщение.
 
-#### `(d *Delivery) Source() *kafka.Message`
+#### `(d *Delivery) Source() *kgo.Record`
 
 Получить исходное сообщение Kafka (топик, партиция, ключ, значение).
 
@@ -60,24 +59,6 @@ middleware, метрик и наблюдения за состоянием.
 #### `(d *Delivery) ConsumerGroupId() string`
 
 Получить groupId консумера.
-
-### Metrics
-
-Структура для сбора и отправки метрик консумера в Prometheus.
-
-**Methods:**
-
-#### `NewMetrics(sendMetricPeriod time.Duration, reader *kafka.Reader, consumerId string) *Metrics`
-
-Создает сборщик метрик из низкоуровневого ридера Kafka.
-
-#### `(m *Metrics) Send(stats kafka.ReaderStats)`
-
-Единожды отправить метрики.
-
-#### `(m *Metrics) Run()`
-
-Запустить периодическую отправку метрик.
 
 ### LogObserver
 
@@ -114,6 +95,7 @@ package main
 
 import (
 	"context"
+	"github.com/twmb/franz-go/pkg/kgo"
 	"log"
 
 	"github.com/txix-open/isp-kit/kafkax"
@@ -132,15 +114,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers: []string{"localhost:9092"},
-		Topic:   "test",
-		GroupID: "test",
-	})
+	client, err := kgo.NewClient(
+		kgo.SeedBrokers("localhost:9092"),
+		kgo.ConsumerGroup("test"),
+		kgo.ConsumeTopics("test"))
 
 	observer := consumer.NewLogObserver(context.Background(), logger)
 	consumer := consumer.New(
-		reader,
+		client,
+		"test",
 		consumer.HandlerFunc(noopHandlerFn),
 		3,   /* concurrency */
 		nil, /* metrics */

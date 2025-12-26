@@ -4,11 +4,11 @@ package kafkax
 import (
 	"crypto/tls"
 	"crypto/x509"
-
 	"github.com/pkg/errors"
-	"github.com/segmentio/kafka-go/sasl"
-	"github.com/segmentio/kafka-go/sasl/plain"
-	"github.com/segmentio/kafka-go/sasl/scram"
+	"github.com/twmb/franz-go/pkg/sasl"
+	"github.com/twmb/franz-go/pkg/sasl/plain"
+	"github.com/twmb/franz-go/pkg/sasl/scram"
+	"strings"
 )
 
 const (
@@ -37,10 +37,10 @@ func PlainAuth(auth *Auth) sasl.Mechanism {
 		return nil
 	}
 
-	return plain.Mechanism{
-		Username: auth.Username,
-		Password: auth.Password,
-	}
+	return plain.Auth{
+		User: auth.Username,
+		Pass: auth.Password,
+	}.AsMechanism()
 }
 
 func ScramAuth(auth *Auth) (sasl.Mechanism, error) {
@@ -52,22 +52,19 @@ func ScramAuth(auth *Auth) (sasl.Mechanism, error) {
 		return nil, errors.Errorf("scramType is required")
 	}
 
-	var algorithm scram.Algorithm
-	switch *auth.ScramType {
+	scramAuth := scram.Auth{
+		User: auth.Username,
+		Pass: auth.Password,
+	}
+
+	switch strings.ToUpper(*auth.ScramType) {
 	case ScramTypeSHA256:
-		algorithm = scram.SHA256
+		return scramAuth.AsSha256Mechanism(), nil
 	case ScramTypeSHA512:
-		algorithm = scram.SHA512
+		return scramAuth.AsSha512Mechanism(), nil
 	default:
 		return nil, errors.Errorf("unexpected scram type %s", *auth.ScramType)
 	}
-
-	mechanism, err := scram.Mechanism(algorithm, auth.Username, auth.Password)
-	if err != nil {
-		return nil, errors.WithMessage(err, "get auth mechanism")
-	}
-
-	return mechanism, nil
 }
 
 func setupSASLMechanism(mechanismType string, auth *Auth) (sasl.Mechanism, error) {

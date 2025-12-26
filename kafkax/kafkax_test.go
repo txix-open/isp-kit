@@ -2,12 +2,12 @@ package kafkax_test
 
 import (
 	"context"
+	"github.com/twmb/franz-go/pkg/kgo"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/segmentio/kafka-go"
 	"github.com/txix-open/isp-kit/kafkax"
 	"github.com/txix-open/isp-kit/kafkax/consumer"
 	"github.com/txix-open/isp-kit/kafkax/handler"
@@ -71,7 +71,7 @@ func TestRequestIdChain(t *testing.T) {
 	ctx = log.ToContext(ctx, log.String(requestid.LogKey, expectedRequestId))
 
 	for i := 1; i <= 5; i++ {
-		err := pub1.Publish(ctx, kafka.Message{
+		err := pub1.Publish(ctx, &kgo.Record{
 			Key:   []byte(strconv.Itoa(i)),
 			Value: []byte("test message"),
 		})
@@ -134,7 +134,7 @@ func TestRetry(t *testing.T) {
 
 	time.Sleep(500 * time.Millisecond)
 
-	err := pub1.Publish(t.Context(), kafka.Message{
+	err := pub1.Publish(t.Context(), &kgo.Record{
 		Value: []byte("test message"),
 	})
 	require.NoError(err)
@@ -162,7 +162,7 @@ func TestReadWrite(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 
 	// test first topic
-	testKafka.WriteMessages(kafka.Message{
+	testKafka.WriteMessages(&kgo.Record{
 		Topic: topic,
 		Value: []byte("test message"),
 	})
@@ -173,7 +173,7 @@ func TestReadWrite(t *testing.T) {
 	require.EqualValues([]byte("test message"), msg.Value)
 	require.EqualValues(topic, msg.Topic)
 
-	testKafka.WriteMessages(kafka.Message{
+	testKafka.WriteMessages(&kgo.Record{
 		Topic: topic,
 		Value: []byte("test message 2"),
 	})
@@ -186,7 +186,7 @@ func TestReadWrite(t *testing.T) {
 	require.EqualValues(topic, msg.Topic)
 
 	// test second topic
-	testKafka.WriteMessages(kafka.Message{
+	testKafka.WriteMessages(&kgo.Record{
 		Topic: topic2,
 		Value: []byte("test 2 message 1"),
 	})
@@ -239,7 +239,7 @@ func TestRecover(t *testing.T) {
 
 	time.Sleep(500 * time.Millisecond)
 
-	err := pub1.Publish(t.Context(), kafka.Message{
+	err := pub1.Publish(t.Context(), &kgo.Record{
 		Value: []byte("test message"),
 	})
 	require.NoError(err)

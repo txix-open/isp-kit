@@ -11,26 +11,24 @@
 
 - Автоматическую подстановку топика сообщений
 - Цепочки middleware
-- Сбор метрик производительности
 - Проверку состояния (healthcheck)
 
 **Methods:**
 
-#### `New(writer *kafka.Writer, topic string, metrics *Metrics, opts ...Option) *Publisher`
+#### `New(client *kgo.Client, topic string, opts ...Option) *Publisher`
 
-Создает новый продюсер из изкоуровневого райтера из библиотеки `kafka-go`.
+Создает новый продюсер из клиента из библиотеки `franz-go`.
 
 Основные опции:
 
 - `WithMiddlewares(mws ...Middleware) Option` – добавить middleware в цепочку обработки публикуемых сообщений.
 
-#### `(p *Publisher) Publish(ctx context.Context, msgs ...kafka.Message) error`
+#### `(p *Publisher) Publish(ctx context.Context, rs ...*kgo.Record) error`
 
 Отправить сообщения в Kafka. Автоматически:
 
 - Устанавливает топик сообщения, если не указана
 - Применяет цепочку middleware
-- Обновляет метрики
 
 #### `(p *Publisher) Close() error`
 
@@ -39,24 +37,6 @@
 #### `(p *Publisher) Healthcheck(ctx context.Context) error`
 
 Проверить активность паблишера. Возвращает ошибку при проблемах с подключением.
-
-### Metrics
-
-Структура для сбора и отправки метрик продюсера в Prometheus.
-
-**Methods:**
-
-#### `NewMetrics(sendMetricPeriod time.Duration, writer *kafka.Writer, publisherId string) *Metrics`
-
-Структура для сбора и отправки метрик паблишера в Prometheus.
-
-#### `(m *Metrics) Send(stats kafka.WriterStats)`
-
-Единожды отправить метрики.
-
-#### `(m *Metrics) Run()`
-
-Запустить периодическую отправку метрик.
 
 ## Usage
 
@@ -67,10 +47,12 @@ package main
 
 import (
 	"context"
+	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/twmb/franz-go/plugin/kprom"
+	"github.com/txix-open/isp-kit/metrics"
 	"log"
 	"time"
 
-	kafka "github.com/segmentio/kafka-go"
 	"github.com/txix-open/isp-kit/kafkax"
 	"github.com/txix-open/isp-kit/kafkax/publisher"
 	log2 "github.com/txix-open/isp-kit/log"
@@ -87,21 +69,21 @@ func main() {
 		log.Fatal(err)
 	}
 
-	writer := kafka.NewWriter(kafka.WriterConfig{
-		Brokers: []string{"localhost:9092"},
-		Topic:   "test",
-	})
-
-	metrics := publisher.NewMetrics(
-		10*time.Second,
-		writer,
-		"test-publisher",
+	metricsTest := kprom.NewMetrics(
+		"kafka_publisher",
 	)
 
+	defaultRegistry := metrics.DefaultRegistry
+	defaultRegistry.GetOrRegister(metricsTest)
+
+	client, err := kgo.NewClient(kgo.SeedBrokers("localhost:9092"), kgo.WithHooks(metricsTest))
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	publisher := publisher.New(
-		writer,
+		client,
 		"test",
-		metrics,
 		publisher.WithMiddlewares(
 			kafkax.PublisherLog(logger, true),
 			/* publishing with retries */
@@ -110,7 +92,7 @@ func main() {
 	)
 
 	/* send message */
-	err = publisher.Publish(context.Background(), kafka.Message{
+	err = publisher.Publish(context.Background(), &kgo.Record{
 		Key:   []byte("data"),
 		Value: []byte(`{"status": "processed"}`),
 	})

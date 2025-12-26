@@ -57,7 +57,7 @@ func Log(logger log.Logger) Middleware {
 					ctx,
 					"kafka client: message will be committed",
 					log.String("topic", topic),
-					log.Int("partition", partition),
+					log.Int32("partition", partition),
 					log.Int64("offset", offset),
 				)
 			case result.Retry:
@@ -65,7 +65,7 @@ func Log(logger log.Logger) Middleware {
 					ctx,
 					"kafka client: message will be retried",
 					log.String("topic", topic),
-					log.Int("partition", partition),
+					log.Int32("partition", partition),
 					log.Int64("offset", offset),
 					log.String("error", result.RetryError.Error()),
 					log.String("retryAfter", result.RetryAfter.String()),

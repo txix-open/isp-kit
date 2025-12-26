@@ -3,19 +3,20 @@ package kafkat
 import (
 	"context"
 	"fmt"
-	"io"
+	"github.com/twmb/franz-go/pkg/kadm"
+	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/twmb/franz-go/pkg/sasl/plain"
+	"os"
 	"time"
 
-	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/kafka-go/sasl/plain"
 	"github.com/txix-open/isp-kit/kafkax"
 	"github.com/txix-open/isp-kit/test"
 )
 
 type Kafka struct {
 	test     *test.Test
-	manager  *kafka.Conn
-	writer   *kafka.Writer
+	client   *kgo.Client
+	adm      *kadm.Client
 	address  string
 	username string
 	password string
@@ -27,37 +28,25 @@ func NewKafka(t *test.Test) *Kafka {
 	username := t.Config().Optional().String("KAFKA_USERNAME", "user")
 	password := t.Config().Optional().String("KAFKA_PASSWORD", "password")
 
-	dialer := &kafka.Dialer{
-		Timeout:   10 * time.Second, //nolint:mnd
-		DualStack: true,
-		SASLMechanism: plain.Mechanism{
-			Username: username,
-			Password: password,
-		},
-	}
-
-	conn, err := dialer.Dial("tcp", addr)
+	c, err := kgo.NewClient(
+		kgo.SeedBrokers(addr),
+		kgo.ProduceRequestTimeout(500*time.Millisecond), //nolint:mnd
+		kgo.MaxBufferedRecords(1),
+		kgo.SASL(plain.Auth{
+			User: username,
+			Pass: password,
+		}.AsMechanism()),
+		kgo.WithLogger(kgo.BasicLogger(os.Stderr, kgo.LogLevelError, func() string {
+			return "kafka client"
+		})))
 	t.Assert().NoError(err)
 
-	w := &kafka.Writer{
-		Addr:         kafka.TCP(addr),
-		BatchTimeout: 500 * time.Millisecond, //nolint:mnd
-		BatchSize:    1,
-		Transport: &kafka.Transport{
-			SASL: kafkax.PlainAuth(&kafkax.Auth{
-				Username: username,
-				Password: password,
-			}),
-		},
-		ErrorLogger: kafka.LoggerFunc(func(s string, i ...any) {
-			t.Logger().Error(context.Background(), "kafka publisher: "+fmt.Sprintf(s, i...))
-		}),
-	}
+	adm := kadm.NewClient(c)
 
 	cli := &Kafka{
 		test:     t,
-		manager:  conn,
-		writer:   w,
+		client:   c,
+		adm:      adm,
 		address:  addr,
 		username: username,
 		password: password,
@@ -65,47 +54,52 @@ func NewKafka(t *test.Test) *Kafka {
 	}
 
 	t.T().Cleanup(func() {
-		err = cli.writer.Close()
-		t.Assert().NoError(err)
-
 		cli.deleteTopics()
-
-		err = cli.manager.Close()
-		t.Assert().NoError(err)
+		cli.client.Close()
 	})
 
 	return cli
 }
 
 // WriteMessages публикует сообщения в топик, указанный в сообщении
-func (k *Kafka) WriteMessages(msgs ...kafka.Message) {
-	err := k.writer.WriteMessages(context.Background(), msgs...)
-	k.test.Assert().NoError(err)
+func (k *Kafka) WriteMessages(msgs ...*kgo.Record) {
+	results := k.client.ProduceSync(context.Background(), msgs...)
+	for _, result := range results {
+		if result.Err != nil {
+			k.test.Assert().NoError(fmt.Errorf("failed to produce message: %w", result.Err))
+		}
+	}
 }
 
-func (k *Kafka) ReadMessage(topic string, offset int64) kafka.Message {
-	dialer := &kafka.Dialer{
-		Timeout:   10 * time.Second, //nolint:mnd
-		DualStack: true,
-		SASLMechanism: kafkax.PlainAuth(&kafkax.Auth{
-			Username: k.username,
-			Password: k.password,
+func (k *Kafka) ReadMessage(topic string, offset int64) *kgo.Record {
+	saslMechanism := plain.Auth{
+		User: k.username,
+		Pass: k.password,
+	}.AsMechanism()
+
+	opts := []kgo.Opt{
+		kgo.SeedBrokers(k.address),
+		kgo.SASL(saslMechanism),
+		kgo.ConsumePartitions(map[string]map[int32]kgo.Offset{
+			topic: {0: kgo.NewOffset().At(offset)},
 		}),
 	}
 
-	l, err := dialer.DialLeader(context.Background(), "tcp", k.address, topic, 0)
+	cl, err := kgo.NewClient(opts...)
 	k.test.Assert().NoError(err)
+	defer cl.Close()
 
-	_, err = l.Seek(offset, io.SeekStart)
-	k.test.Assert().NoError(err)
+	ctx := context.Background()
+	fetches := cl.PollFetches(ctx)
 
-	msg, err := l.ReadMessage(64 * 1024 * 1024) // nolint:mnd
-	k.test.Assert().NoError(err)
+	k.test.Assert().NoError(fetches.Err())
 
-	err = l.Close()
-	k.test.Assert().NoError(err)
+	iter := fetches.RecordIter()
+	if !iter.Done() {
+		return iter.Next()
+	}
 
-	return msg
+	return nil
 }
 
 func (k *Kafka) Address() string {
@@ -113,11 +107,7 @@ func (k *Kafka) Address() string {
 }
 
 func (k *Kafka) CreateDefaultTopic(topic string) {
-	err := k.manager.CreateTopics(kafka.TopicConfig{
-		Topic:             topic,
-		NumPartitions:     1,
-		ReplicationFactor: -1,
-	})
+	_, err := k.adm.CreateTopic(context.Background(), 1, -1, nil, topic)
 	k.test.Assert().NoError(err)
 	k.topics = append(k.topics, topic)
 }
@@ -148,6 +138,6 @@ func (k *Kafka) ConsumerConfig(topic, groupId string) kafkax.ConsumerConfig {
 }
 
 func (k *Kafka) deleteTopics() {
-	err := k.manager.DeleteTopics(k.topics...)
+	_, err := k.adm.DeleteTopics(context.Background(), k.topics...)
 	k.test.Assert().NoError(err)
 }
