@@ -6,13 +6,12 @@ import (
 )
 
 type Config struct {
-	IsInDevMode   bool
-	OutputPaths   []string
-	DisableStdout bool
-	DisableStderr bool
-	Sampling      *SamplingConfig
-	Hooks         []func(entry zapcore.Entry) error
-	InitialLevel  Level
+	IsInDevMode          bool
+	OutputPaths          []string
+	DisableDefaultOutput bool
+	Sampling             *SamplingConfig
+	Hooks                []func(entry zapcore.Entry) error
+	InitialLevel         Level
 }
 
 type SamplingConfig = zap.SamplingConfig

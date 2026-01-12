@@ -34,8 +34,14 @@ func NewFromConfig(config Config) (*Adapter, error) {
 	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	cfg.Sampling = config.Sampling
 
+	if config.DisableDefaultOutput {
+		cfg.OutputPaths = nil
+		cfg.ErrorOutputPaths = nil
+	}
+
 	if len(config.OutputPaths) > 0 {
 		cfg.OutputPaths = append(cfg.OutputPaths, config.OutputPaths...)
+		cfg.ErrorOutputPaths = append(cfg.ErrorOutputPaths, config.OutputPaths...)
 	}
 
 	level := zap.NewAtomicLevelAt(config.InitialLevel)
