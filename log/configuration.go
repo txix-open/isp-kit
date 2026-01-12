@@ -9,6 +9,7 @@ type Config struct {
 	IsInDevMode   bool
 	OutputPaths   []string
 	DisableStdout bool
+	DisableStderr bool
 	Sampling      *SamplingConfig
 	Hooks         []func(entry zapcore.Entry) error
 	InitialLevel  Level
