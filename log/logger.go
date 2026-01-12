@@ -36,7 +36,6 @@ func NewFromConfig(config Config) (*Adapter, error) {
 
 	if config.DisableDefaultOutput {
 		cfg.OutputPaths = nil
-		cfg.ErrorOutputPaths = nil
 	}
 
 	if len(config.OutputPaths) > 0 {
