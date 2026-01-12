@@ -40,15 +40,10 @@ func NewFromConfig(config Config) (*Adapter, error) {
 	}
 
 	if len(config.OutputPaths) > 0 {
-		cfg.OutputPaths = config.OutputPaths
-	}
-
-	if cfg.ErrorOutputPaths == nil && !config.DisableStdout {
-		cfg.ErrorOutputPaths = []string{"stderr"}
-	}
-
-	if cfg.ErrorOutputPaths == nil && config.DisableStdout && len(config.OutputPaths) > 0 {
-		cfg.ErrorOutputPaths = config.OutputPaths
+		cfg.OutputPaths = append(cfg.OutputPaths, config.OutputPaths...)
+		if config.DisableStdout {
+			cfg.ErrorOutputPaths = append(cfg.ErrorOutputPaths, config.OutputPaths...)
+		}
 	}
 
 	level := zap.NewAtomicLevelAt(config.InitialLevel)
