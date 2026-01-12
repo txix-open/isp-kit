@@ -18,6 +18,12 @@ func WithFileOutput(fileOutput file.Output) Option {
 	}
 }
 
+func WithDisableDefaultOutput() Option {
+	return func(a *Config) {
+		a.DisableDefaultOutput = true
+	}
+}
+
 func WithLevel(level Level) Option {
 	return func(a *Config) {
 		a.InitialLevel = level
