@@ -36,9 +36,6 @@ func NewFromConfig(config Config) (*Adapter, error) {
 
 	if len(config.OutputPaths) > 0 {
 		cfg.OutputPaths = append(cfg.OutputPaths, config.OutputPaths...)
-		if config.DisableStdout {
-			cfg.ErrorOutputPaths = append(cfg.ErrorOutputPaths, config.OutputPaths...)
-		}
 	}
 
 	level := zap.NewAtomicLevelAt(config.InitialLevel)
