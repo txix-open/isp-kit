@@ -7,6 +7,7 @@ import (
 	"github.com/txix-open/isp-kit/grpc"
 	"github.com/txix-open/isp-kit/grpc/isp"
 	"github.com/txix-open/isp-kit/log"
+	"google.golang.org/grpc/metadata"
 )
 
 type logConfig struct {
@@ -82,6 +83,7 @@ func combinedLogMiddleware(logger log.Logger, cfg *logConfig) grpc.Middleware {
 			if cfg.logRequestBody {
 				logFields = append(logFields, log.ByteString("requestBody", message.GetBytesBody()))
 			}
+			logFields = append(logFields, applicationLogFields(ctx)...)
 
 			now := time.Now()
 			response, err := next(ctx, message)
@@ -102,4 +104,25 @@ func combinedLogMiddleware(logger log.Logger, cfg *logConfig) grpc.Middleware {
 			return response, err
 		}
 	}
+}
+
+func applicationLogFields(ctx context.Context) []log.Field {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil
+	}
+	authData := grpc.AuthData(md)
+
+	logFields := make([]log.Field, 0)
+	appName, err := authData.ApplicationName()
+	if err == nil {
+		logFields = append(logFields, log.String("applicationName", appName))
+	}
+
+	appId, err := authData.ApplicationId()
+	if err == nil {
+		logFields = append(logFields, log.Int("applicationId", appId))
+	}
+
+	return logFields
 }

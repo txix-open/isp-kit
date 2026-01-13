@@ -3,6 +3,7 @@ package httplog
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -11,6 +12,11 @@ import (
 	"github.com/txix-open/isp-kit/http/endpoint"
 	"github.com/txix-open/isp-kit/http/endpoint/buffer"
 	"github.com/txix-open/isp-kit/log"
+)
+
+const (
+	applicationNameHeader = "x-application-name"
+	applicationIdHeader   = "x-application-identity"
 )
 
 // nolint:gochecknoglobals
@@ -122,6 +128,7 @@ func combinedLogMiddleware(logger log.Logger, cfg *logConfig) endpoint.LogMiddle
 				log.String("method", r.Method),
 				log.String("url", r.URL.String()),
 			}
+			logFields = append(logFields, applicationLogFields(r)...)
 
 			requestContentType := r.Header.Get("Content-Type")
 			if cfg.logRequestBody && matchContentType(requestContentType, cfg.logBodyContentTypes) {
@@ -163,4 +170,23 @@ func matchContentType(contentType string, availableContentTypes []string) bool {
 		}
 	}
 	return false
+}
+
+func applicationLogFields(r *http.Request) []log.Field {
+	logFields := make([]log.Field, 0)
+	appName := r.Header.Get(applicationNameHeader)
+	if appName != "" {
+		logFields = append(logFields, log.String("applicationName", appName))
+	}
+
+	appId := r.Header.Get(applicationIdHeader)
+	if appId == "" {
+		return logFields
+	}
+
+	intAppId, err := strconv.Atoi(appId)
+	if err == nil {
+		logFields = append(logFields, log.Int("applicationId", intAppId))
+	}
+	return logFields
 }
