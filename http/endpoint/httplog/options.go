@@ -27,3 +27,10 @@ func WithLogRequestBody(logRequestBody bool) Option {
 		cfg.logRequestBody = logRequestBody
 	}
 }
+
+// Enables single combined request+response log entry.
+func WithCombinedLog(enable bool) Option {
+	return func(cfg *logConfig) {
+		cfg.combinedLog = enable
+	}
+}

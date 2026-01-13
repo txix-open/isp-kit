@@ -25,6 +25,7 @@ type logConfig struct {
 	logBodyContentTypes []string
 	logRequestBody      bool
 	logResponseBody     bool
+	combinedLog         bool
 }
 
 func Log(logger log.Logger, logBody bool) endpoint.LogMiddleware {
@@ -36,14 +37,28 @@ func Log(logger log.Logger, logBody bool) endpoint.LogMiddleware {
 	return middleware(logger, cfg)
 }
 
+func CombinedLog(logger log.Logger, logBody bool) endpoint.LogMiddleware {
+	cfg := &logConfig{
+		logBodyContentTypes: defaultLogBodyContentTypes,
+		logRequestBody:      logBody,
+		logResponseBody:     logBody,
+	}
+	return combinedLogMiddleware(logger, cfg)
+}
+
 func LogWithOptions(logger log.Logger, opts ...Option) endpoint.LogMiddleware {
 	cfg := &logConfig{
 		logBodyContentTypes: defaultLogBodyContentTypes,
 		logRequestBody:      false,
 		logResponseBody:     false,
+		combinedLog:         false,
 	}
 	for _, opt := range opts {
 		opt(cfg)
+	}
+
+	if cfg.combinedLog {
+		return combinedLogMiddleware(logger, cfg)
 	}
 	return middleware(logger, cfg)
 }
@@ -59,6 +74,7 @@ func middleware(logger log.Logger, cfg *logConfig) endpoint.LogMiddleware {
 				log.String("method", r.Method),
 				log.String("url", r.URL.String()),
 			}
+
 			requestContentType := r.Header.Get("Content-Type")
 			if cfg.logRequestBody && matchContentType(requestContentType, cfg.logBodyContentTypes) {
 				err := buf.ReadRequestBody(r.Body)
@@ -82,12 +98,58 @@ func middleware(logger log.Logger, cfg *logConfig) endpoint.LogMiddleware {
 				log.Int("statusCode", buf.StatusCode()),
 				log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()),
 			}
+
 			responseContentType := buf.Header().Get("Content-Type")
 			if cfg.logResponseBody && matchContentType(responseContentType, cfg.logBodyContentTypes) {
 				responseLogFields = append(responseLogFields, log.ByteString("responseBody", buf.ResponseBody()))
 			}
 
 			logger.Debug(ctx, "http handler: response", responseLogFields...)
+
+			return err
+		}
+	}
+}
+
+func combinedLogMiddleware(logger log.Logger, cfg *logConfig) endpoint.LogMiddleware {
+	return func(next http2.HandlerFunc) http2.HandlerFunc {
+		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+			buf := buffer.Acquire(w)
+			defer buffer.Release(buf)
+
+			now := time.Now()
+			logFields := []log.Field{
+				log.String("method", r.Method),
+				log.String("url", r.URL.String()),
+			}
+
+			requestContentType := r.Header.Get("Content-Type")
+			if cfg.logRequestBody && matchContentType(requestContentType, cfg.logBodyContentTypes) {
+				err := buf.ReadRequestBody(r.Body)
+				if err != nil {
+					return errors.WithMessage(err, "read request body for logging")
+				}
+				err = r.Body.Close()
+				if err != nil {
+					return errors.WithMessage(err, "close request reader")
+				}
+				r.Body = buffer.NewRequestBody(buf.RequestBody())
+
+				logFields = append(logFields, log.ByteString("requestBody", buf.RequestBody()))
+			}
+
+			err := next(ctx, buf, r)
+
+			logFields = append(logFields,
+				log.Int("statusCode", buf.StatusCode()),
+				log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()),
+			)
+			responseContentType := buf.Header().Get("Content-Type")
+			if cfg.logResponseBody && matchContentType(responseContentType, cfg.logBodyContentTypes) {
+				logFields = append(logFields, log.ByteString("responseBody", buf.ResponseBody()))
+			}
+
+			logger.Debug(ctx, "http handler: log", logFields...)
 
 			return err
 		}

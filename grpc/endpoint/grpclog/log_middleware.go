@@ -12,6 +12,7 @@ import (
 type logConfig struct {
 	logRequestBody  bool
 	logResponseBody bool
+	combinedLog     bool
 }
 
 func Log(logger log.Logger, logBody bool) grpc.Middleware {
@@ -22,6 +23,14 @@ func Log(logger log.Logger, logBody bool) grpc.Middleware {
 	return middleware(logger, cfg)
 }
 
+func CombinedLog(logger log.Logger, logBody bool) grpc.Middleware {
+	cfg := &logConfig{
+		logRequestBody:  logBody,
+		logResponseBody: logBody,
+	}
+	return combinedLogMiddleware(logger, cfg)
+}
+
 func LogWithOptions(logger log.Logger, opts ...Option) grpc.Middleware {
 	cfg := &logConfig{
 		logRequestBody:  false,
@@ -29,6 +38,9 @@ func LogWithOptions(logger log.Logger, opts ...Option) grpc.Middleware {
 	}
 	for _, opt := range opts {
 		opt(cfg)
+	}
+	if cfg.combinedLog {
+		return combinedLogMiddleware(logger, cfg)
 	}
 	return middleware(logger, cfg)
 }
@@ -57,6 +69,35 @@ func middleware(logger log.Logger, cfg *logConfig) grpc.Middleware {
 			logger.Debug(ctx,
 				"grpc handler: response",
 				responseFields...,
+			)
+			return response, err
+		}
+	}
+}
+
+func combinedLogMiddleware(logger log.Logger, cfg *logConfig) grpc.Middleware {
+	return func(next grpc.HandlerFunc) grpc.HandlerFunc {
+		return func(ctx context.Context, message *isp.Message) (*isp.Message, error) {
+			logFields := []log.Field{}
+			if cfg.logRequestBody {
+				logFields = append(logFields, log.ByteString("requestBody", message.GetBytesBody()))
+			}
+
+			now := time.Now()
+			response, err := next(ctx, message)
+			if err != nil {
+				return response, err
+			}
+
+			logFields = append(logFields,
+				log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()),
+			)
+			if cfg.logResponseBody {
+				logFields = append(logFields, log.ByteString("responseBody", response.GetBytesBody()))
+			}
+			logger.Debug(ctx,
+				"grpc handler: log",
+				logFields...,
 			)
 			return response, err
 		}

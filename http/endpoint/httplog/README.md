@@ -12,6 +12,14 @@
 - Логирует тело запроса/ответа, если `logBody = true`.
 - По умолчанию логирует только для `application/json` и `text/xml`.
 
+#### `CombinedLog(logger log.Logger, logBody bool) endpoint.LogMiddleware`
+
+Создает middleware с базовыми настройками:
+
+- Логирует тело запроса/ответа, если `logBody = true`.
+- По умолчанию логирует только для `application/json` и `text/xml`.
+- Собирает запрос и ответ в 1 лог.
+
 #### `LogWithOptions(logger log.Logger, opts ...Option) endpoint.LogMiddleware`
 
 Создает middleware с кастомными настройками через опции:
@@ -21,6 +29,7 @@
 - `WithLogBody(logBody bool) Option` – Включает/отключает логирование тела запроса и ответа.
 - `WithLogResponseBody(logResponseBody bool) Option` – Включает/отключает логирование тела ответа.
 - `WithLogRequestBody(logRequestBody bool) Option` – Включает/отключает логирование тела запроса.
+- `WithCombinedLog(enable bool) Option` – Включает/отключает сборку запроса/ответа в 1 лог.
 
 ## Usage
 
