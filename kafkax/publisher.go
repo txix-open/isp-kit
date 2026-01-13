@@ -2,12 +2,13 @@ package kafkax
 
 import (
 	"context"
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/twmb/franz-go/plugin/kprom"
 	"github.com/txix-open/isp-kit/metrics"
 	"github.com/txix-open/isp-kit/metrics/kafka_metrics"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/kafkax/publisher"
@@ -125,16 +126,16 @@ func (p PublisherConfig) DefaultPublisher(
 	middlewares = append(middlewares, restMiddlewares...)
 
 	if p.MetricPublisherId != nil {
+		defaultRegistry := metrics.DefaultRegistry
 		labels := prometheus.Labels{
-			"publisherId": *p.MetricPublisherId,
+			"publisher_id": *p.MetricPublisherId,
 		}
 		publisherMetrics := kprom.NewMetrics(
 			"kafka_publisher",
+			kprom.Registry(defaultRegistry),
 			kprom.WithStaticLabel(labels),
 		)
 		opts = append(opts, kgo.WithHooks(publisherMetrics))
-		defaultRegistry := metrics.DefaultRegistry
-		defaultRegistry.GetOrRegister(publisherMetrics)
 	}
 
 	client, err := kgo.NewClient(opts...)
