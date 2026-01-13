@@ -114,6 +114,11 @@ func (c ConsumerConfig) DefaultConsumer(
 		logger.Error(logCtx, errors.WithMessage(err, "create kafka client"))
 	}
 
+	err = client.Ping(logCtx)
+	if err != nil {
+		logger.Error(logCtx, errors.WithMessage(err, "ping kafka client"))
+	}
+
 	cons := consumer.New(
 		client,
 		c.GroupId,
