@@ -8,14 +8,15 @@ import (
 )
 
 const (
-	ApplicationIdHeader = "x-application-identity"
-	UserIdHeader        = "x-user-identity"
-	DeviceIdHeader      = "x-device-identity"
-	ServiceIdHeader     = "x-service-identity"
-	DomainIdHeader      = "x-domain-identity"
-	SystemIdHeader      = "x-system-identity"
-	UserTokenHeader     = "x-user-token"
-	DeviceTokenHeader   = "x-device-token"
+	ApplicationIdHeader   = "x-application-identity"
+	ApplicationNameHeader = "x-application-name"
+	UserIdHeader          = "x-user-identity"
+	DeviceIdHeader        = "x-device-identity"
+	ServiceIdHeader       = "x-service-identity"
+	DomainIdHeader        = "x-domain-identity"
+	SystemIdHeader        = "x-system-identity"
+	UserTokenHeader       = "x-user-token"
+	DeviceTokenHeader     = "x-device-token"
 )
 
 type AuthData metadata.MD
@@ -34,6 +35,10 @@ func (i AuthData) ServiceId() (int, error) {
 
 func (i AuthData) ApplicationId() (int, error) {
 	return intFromMd(ApplicationIdHeader, metadata.MD(i))
+}
+
+func (i AuthData) ApplicationName() (string, error) {
+	return StringFromMd(ApplicationNameHeader, metadata.MD(i))
 }
 
 func (i AuthData) UserId() (int, error) {
