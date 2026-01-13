@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	applicationNameHeader = "x-application-name"
-	applicationIdHeader   = "x-application-identity"
+	applicationNameHeader = "X-Application-Name"
+	applicationIdHeader   = "X-Application-Identity"
 )
 
 // nolint:gochecknoglobals
