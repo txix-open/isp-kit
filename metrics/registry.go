@@ -11,6 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	io_prometheus_client "github.com/prometheus/client_model/go"
 )
 
 const (
@@ -68,6 +69,25 @@ func (r *Registry) MetricsDescriptionHandler() http.Handler {
 		metricsDescriptionTimeout,
 		"timeout",
 	)
+}
+
+func (r *Registry) Register(collector prometheus.Collector) error {
+	r.GetOrRegister(collector)
+	return nil
+}
+
+func (r *Registry) MustRegister(collectors ...prometheus.Collector) {
+	for _, c := range collectors {
+		r.GetOrRegister(c)
+	}
+}
+
+func (r *Registry) Unregister(collector prometheus.Collector) bool {
+	return r.reg.Unregister(collector)
+}
+
+func (r *Registry) Gather() ([]*io_prometheus_client.MetricFamily, error) {
+	return r.reg.Gather()
 }
 
 func (r *Registry) metricsDescriptionHandler(writer http.ResponseWriter, request *http.Request) {

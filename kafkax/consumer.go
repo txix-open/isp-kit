@@ -2,15 +2,15 @@ package kafkax
 
 import (
 	"context"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/twmb/franz-go/pkg/kgo"
-	"github.com/twmb/franz-go/plugin/kprom"
-	"github.com/txix-open/isp-kit/metrics"
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/twmb/franz-go/plugin/kprom"
 	"github.com/txix-open/isp-kit/kafkax/consumer"
 	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/metrics"
 )
 
 const (
@@ -97,21 +97,26 @@ func (c ConsumerConfig) DefaultConsumer(
 	middlewares = append(middlewares, restMiddlewares...)
 
 	if c.MetricConsumerId != nil {
+		defaultRegistry := metrics.DefaultRegistry
 		labels := prometheus.Labels{
-			"consumerId": *c.MetricConsumerId,
+			"consumer_id": *c.MetricConsumerId,
 		}
 		consumerMetrics := kprom.NewMetrics(
 			"kafka_consumer",
+			kprom.Registry(defaultRegistry),
 			kprom.WithStaticLabel(labels),
 		)
 		opts = append(opts, kgo.WithHooks(consumerMetrics))
-		defaultRegistry := metrics.DefaultRegistry
-		defaultRegistry.GetOrRegister(consumerMetrics)
 	}
 
 	client, err := kgo.NewClient(opts...)
 	if err != nil {
 		logger.Error(logCtx, errors.WithMessage(err, "create kafka client"))
+	}
+
+	err = client.Ping(logCtx)
+	if err != nil {
+		logger.Error(logCtx, errors.WithMessage(err, "ping kafka client"))
 	}
 
 	cons := consumer.New(
