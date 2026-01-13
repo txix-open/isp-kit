@@ -22,19 +22,19 @@ const (
 type AuthData metadata.MD
 
 func (i AuthData) SystemId() (int, error) {
-	return intFromMd(SystemIdHeader, metadata.MD(i))
+	return IntFromMd(SystemIdHeader, metadata.MD(i))
 }
 
 func (i AuthData) DomainId() (int, error) {
-	return intFromMd(DomainIdHeader, metadata.MD(i))
+	return IntFromMd(DomainIdHeader, metadata.MD(i))
 }
 
 func (i AuthData) ServiceId() (int, error) {
-	return intFromMd(ServiceIdHeader, metadata.MD(i))
+	return IntFromMd(ServiceIdHeader, metadata.MD(i))
 }
 
 func (i AuthData) ApplicationId() (int, error) {
-	return intFromMd(ApplicationIdHeader, metadata.MD(i))
+	return IntFromMd(ApplicationIdHeader, metadata.MD(i))
 }
 
 func (i AuthData) ApplicationName() (string, error) {
@@ -42,11 +42,11 @@ func (i AuthData) ApplicationName() (string, error) {
 }
 
 func (i AuthData) UserId() (int, error) {
-	return intFromMd(UserIdHeader, metadata.MD(i))
+	return IntFromMd(UserIdHeader, metadata.MD(i))
 }
 
 func (i AuthData) DeviceId() (int, error) {
-	return intFromMd(DeviceIdHeader, metadata.MD(i))
+	return IntFromMd(DeviceIdHeader, metadata.MD(i))
 }
 
 func (i AuthData) UserToken() (string, error) {
@@ -68,7 +68,7 @@ func StringFromMd(key string, md metadata.MD) (string, error) {
 	return values[0], nil
 }
 
-func intFromMd(key string, md metadata.MD) (int, error) {
+func IntFromMd(key string, md metadata.MD) (int, error) {
 	value, err := StringFromMd(key, md)
 	if err != nil {
 		return 0, err
