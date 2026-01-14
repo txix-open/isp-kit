@@ -8,12 +8,16 @@
 #### `Log(logger log.Logger, logBody bool) grpc.Middleware`
 Создает middleware с базовыми настройками. Логирует тела запроса и ответа, если `logBody = true`.
 
+#### `CombinedLog(logger log.Logger, logBody bool) grpc.Middleware`
+Создает middleware с базовыми настройками. Логирует тела запроса и ответа, если `logBody = true`, собирает запрос и ответ в 1 лог.
+
 #### `LogWithOptions(logger log.Logger, opts ...Option) grpc.Middleware`
 Создает middleware с кастомными настройками через опции:
 
 - `WithLogBody(logBody bool) Option` – Включает/отключает логирование тела запроса и ответа.
 - `WithLogResponseBody(logResponseBody bool) Option` – Включает/отключает логирование тела ответа.
 - `WithLogRequestBody(logRequestBody bool) Option` – Включает/отключает логирование тела запроса.
+- `WithCombinedLog(enable bool) Option` – Включает/отключает сборку запроса/ответа в 1 лог.
 
 ## Usage
 
