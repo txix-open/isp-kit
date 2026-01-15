@@ -97,7 +97,7 @@ type sink struct {
 }
 
 func (s sink) Sync() error {
-	return nil
+	return s.Close()
 }
 
 func newSink(writer io.WriteCloser) sink {
