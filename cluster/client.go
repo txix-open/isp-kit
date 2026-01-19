@@ -278,6 +278,7 @@ func (c *Client) notifyModuleReady(ctx context.Context, cli *clientWrapper, requ
 		Version:              c.moduleInfo.ModuleVersion,
 		LibVersion:           c.moduleInfo.LibVersion,
 		Endpoints:            c.moduleInfo.Endpoints,
+		Transport:            c.moduleInfo.Transport,
 		RequiredModules:      moduleDependencies,
 		Address:              c.moduleInfo.GrpcOuterAddress,
 		MetricsAutodiscovery: c.moduleInfo.MetricsAutodiscovery,

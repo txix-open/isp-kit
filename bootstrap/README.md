@@ -17,13 +17,14 @@
 
 Обработать критические ошибки с уведомлением в Sentry
 
-#### `New(moduleVersion string, remoteConfig any, endpoints []cluster.EndpointDescriptor) *Bootstrap`
+#### `New(moduleVersion string, remoteConfig any, endpoints []cluster.EndpointDescriptor, transport string) *Bootstrap`
 
 Конструктор с параметрами:
 
 - `moduleVersion` - версия модуля
 - `remoteConfig` - структура для динамической конфигурации
-- `endpoints` - список эндпоинтов модуля
+- `endpoints` - список эндпоинтов модуля, для транспорта `http` у каждого `endpoint`'а должен быть указан `HttpMethod`
+- `transport` - тип сервера, `grpc` или `http`
 
 #### `NewStandalone(moduleVersion string) *StandaloneBootstrap`
 
@@ -90,7 +91,7 @@ func main() {
 		Inner:   false,
 		Handler: noopHandler,
 	}}
-	boot := bootstrap.New("1.0.0", remoteConfig{}, endpoints)
+	boot := bootstrap.New("1.0.0", remoteConfig{}, endpoints, cluster.GrpcModuleTransport)
 
 	shutdown.On(func() { /* waiting for SIGINT & SIGTERM signals */
 		log.Println("shutting down...")
