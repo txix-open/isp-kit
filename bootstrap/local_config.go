@@ -15,6 +15,7 @@ type LocalConfig struct {
 	HealthcheckHandlerTimeout time.Duration
 	// Path to the application configuration
 	RemoteConfigPath string
+	SwaggerPath      string
 }
 
 type ClusteredLocalConfig struct {
