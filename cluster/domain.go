@@ -7,8 +7,9 @@ import (
 const (
 	RequiredAdminPermission = "reqAdminPerm"
 
-	GrpcModuleTransport = "grpc"
-	HttpModuleTransport = "http"
+	GrpcTransport  = "grpc"
+	HttpTransport  = "http"
+	EmptyTransport = "empty"
 )
 
 type AddressConfiguration struct {

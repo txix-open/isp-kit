@@ -44,7 +44,7 @@ func New(
 		stdlog.Fatal(err)
 	}
 
-	if transport == cluster.HttpModuleTransport {
+	if transport == cluster.HttpTransport {
 		for _, endpoint := range endpoints {
 			if endpoint.HttpMethod == "" {
 				app.Logger().Fatal(

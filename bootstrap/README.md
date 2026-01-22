@@ -24,7 +24,7 @@
 - `moduleVersion` - версия модуля
 - `remoteConfig` - структура для динамической конфигурации
 - `endpoints` - список эндпоинтов модуля, для транспорта `http` у каждого `endpoint`'а должен быть указан `HttpMethod`
-- `transport` - тип сервера, `grpc` или `http`
+- `transport` - тип сервера, `grpc`, `http` или `empty`
 
 #### `NewStandalone(moduleVersion string) *StandaloneBootstrap`
 
@@ -91,7 +91,7 @@ func main() {
 		Inner:   false,
 		Handler: noopHandler,
 	}}
-	boot := bootstrap.New("1.0.0", remoteConfig{}, endpoints, cluster.GrpcModuleTransport)
+	boot := bootstrap.New("1.0.0", remoteConfig{}, endpoints, cluster.GrpcTransport)
 
 	shutdown.On(func() { /* waiting for SIGINT & SIGTERM signals */
 		log.Println("shutting down...")
