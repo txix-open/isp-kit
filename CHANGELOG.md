@@ -1,6 +1,8 @@
 ## v1.64.8
 * Добавлены дефолтные эндпоинты в `bootstrap`
   * Добавлен эндпоинт `"moduleName" + "/swagger"` для отдачи swagger-документации в формате base64-encoded (`HTTP` и `gRPC`)
+* Добавлен тип транспорта в `bootstrap`
+* Добавлен `httpMethod` в описание `endpoint`'а
 ## v1.64.7
 * Добавлено декодирование заголовка `x-application-name` из base64
 ## v1.64.6
