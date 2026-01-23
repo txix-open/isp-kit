@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"encoding/base64"
+	"net/http"
 	"os"
 
 	"github.com/pkg/errors"
@@ -32,6 +33,7 @@ func (s DefaultEndpoints) EndpointDescriptor(basePath string) []cluster.Endpoint
 		Path:             basePath + "/swagger",
 		Inner:            false,
 		UserAuthRequired: false,
+		HttpMethod:       http.MethodGet,
 		Handler: func() (string, error) {
 			encoded := base64.StdEncoding.EncodeToString(s.swagger)
 
