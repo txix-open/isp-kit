@@ -1,3 +1,6 @@
+## v1.64.7
+* Добавлены дефолтные эндпоинты в `bootstrap`
+  * Добавлен эндпоинт `"moduleName" + "/swagger"` для отдачи swagger-документации в формате base64-encoded (`HTTP` и `gRPC`)
 ## v1.64.6
 * Переписан `endpoint.Caller` для HTTP и gRPC:
   * Предвычисляются `hasResult` и `hasError` для ускорения вызова метода контроллера.
