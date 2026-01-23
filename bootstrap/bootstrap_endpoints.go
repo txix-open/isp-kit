@@ -29,15 +29,15 @@ func (s DefaultEndpoints) endpointDescriptor(basePath string) []cluster.Endpoint
 		return nil
 	}
 
+	encodedSwagger := base64.StdEncoding.EncodeToString(s.swagger)
+
 	return []cluster.EndpointDescriptor{{
 		Path:             basePath + "/swagger",
 		Inner:            false,
 		UserAuthRequired: false,
 		HttpMethod:       http.MethodGet,
 		Handler: func() (string, error) {
-			encoded := base64.StdEncoding.EncodeToString(s.swagger)
-
-			return encoded, nil
+			return encodedSwagger, nil
 		},
 	}}
 }
