@@ -323,7 +323,7 @@ func getDefaultEndpoints(moduleName string, swaggerPath string, isDev bool) []cl
 	if err != nil {
 		return nil
 	}
-	endpointDescriptors := defaultEndpoints.EndpointDescriptor(moduleName)
+	endpointDescriptors := defaultEndpoints.endpointDescriptor(moduleName)
 
 	return endpointDescriptors
 }

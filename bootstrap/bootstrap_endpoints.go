@@ -24,7 +24,7 @@ func NewDefaultEndpoints(path string) (DefaultEndpoints, error) {
 	}, nil
 }
 
-func (s DefaultEndpoints) EndpointDescriptor(basePath string) []cluster.EndpointDescriptor {
+func (s DefaultEndpoints) endpointDescriptor(basePath string) []cluster.EndpointDescriptor {
 	if len(s.swagger) == 0 {
 		return nil
 	}
