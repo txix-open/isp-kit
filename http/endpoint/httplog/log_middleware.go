@@ -2,6 +2,7 @@ package httplog
 
 import (
 	"context"
+	"encoding/base64"
 	"net/http"
 	"strconv"
 	"strings"
@@ -176,7 +177,10 @@ func applicationLogFields(r *http.Request) []log.Field {
 	logFields := make([]log.Field, 0)
 	appName := r.Header.Get(applicationNameHeader)
 	if appName != "" {
-		logFields = append(logFields, log.String("applicationName", appName))
+		decodedName, err := base64.StdEncoding.DecodeString(appName)
+		if err == nil {
+			logFields = append(logFields, log.String("applicationName", string(decodedName)))
+		}
 	}
 
 	appId := r.Header.Get(applicationIdHeader)

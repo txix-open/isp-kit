@@ -2,6 +2,7 @@ package grpclog
 
 import (
 	"context"
+	"encoding/base64"
 	"time"
 
 	"github.com/txix-open/isp-kit/grpc"
@@ -116,7 +117,10 @@ func applicationLogFields(ctx context.Context) []log.Field {
 	logFields := make([]log.Field, 0)
 	appName, err := authData.ApplicationName()
 	if err == nil {
-		logFields = append(logFields, log.String("applicationName", appName))
+		decodedName, err := base64.StdEncoding.DecodeString(appName)
+		if err == nil {
+			logFields = append(logFields, log.String("applicationName", string(decodedName)))
+		}
 	}
 
 	appId, err := authData.ApplicationId()
