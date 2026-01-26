@@ -27,9 +27,8 @@ type ClusterClient interface {
 type Bootstrap struct {
 	*BaseBootstrap
 
-	ClusterCli       ClusterClient
-	RemoteConfig     *rc.Config
-	DefaultEndpoints []cluster.EndpointDescriptor
+	ClusterCli   ClusterClient
+	RemoteConfig *rc.Config
 }
 
 func New(
@@ -135,9 +134,6 @@ func newClustered(
 		return nil, errors.WithMessage(err, "create bootstrap")
 	}
 
-	defaultEndpoints := getDefaultEndpoints(localConfig.ModuleName, localConfig.SwaggerPath, isDev)
-	endpoints = append(endpoints, defaultEndpoints...)
-
 	wrappedLogger := sentry.WrapErrorLogger(application.Logger(), sentryHub)
 	clusterCli, err := initClusterClient(
 		isDev,
@@ -156,10 +152,9 @@ func newClustered(
 	rc := rc.New(validator.Default, []byte(localConfig.RemoteConfigOverride))
 
 	return &Bootstrap{
-		BaseBootstrap:    boot,
-		ClusterCli:       clusterCli,
-		RemoteConfig:     rc,
-		DefaultEndpoints: defaultEndpoints,
+		BaseBootstrap: boot,
+		ClusterCli:    clusterCli,
+		RemoteConfig:  rc,
 	}, nil
 }
 
@@ -311,30 +306,4 @@ func metricsServiceDiscovery(localConfig ClusteredLocalConfig, broadcastHost str
 		Address: address,
 		Labels:  labels,
 	}
-}
-
-func getDefaultEndpoints(moduleName string, swaggerPath string, isDev bool) []cluster.EndpointDescriptor {
-	path, err := resolveSwaggerPath(swaggerPath, isDev)
-	if err != nil {
-		return nil
-	}
-
-	defaultEndpoints, err := NewDefaultEndpoints(path)
-	if err != nil {
-		return nil
-	}
-	endpointDescriptors := defaultEndpoints.endpointDescriptor(moduleName)
-
-	return endpointDescriptors
-}
-
-func resolveSwaggerPath(swaggerPath string, isDev bool) (string, error) {
-	if swaggerPath != "" {
-		return swaggerPath, nil
-	}
-	if isDev {
-		return "./docs/swagger.yaml", nil
-	}
-
-	return relativePathFromBin("swagger.yaml")
 }
