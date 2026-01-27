@@ -31,11 +31,29 @@ type Bootstrap struct {
 	RemoteConfig *rc.Config
 }
 
-func New(moduleVersion string, remoteConfig any, endpoints []cluster.EndpointDescriptor) *Bootstrap {
+func New(
+	moduleVersion string,
+	remoteConfig any,
+	endpoints []cluster.EndpointDescriptor,
+	transport string,
+) *Bootstrap {
 	isDev := isOnDevMode()
 	app, err := initApp(isDev)
 	if err != nil {
 		stdlog.Fatal(err)
+	}
+
+	if transport == cluster.HttpTransport {
+		for _, endpoint := range endpoints {
+			if endpoint.HttpMethod == "" {
+				app.Logger().Fatal(
+					app.Context(),
+					"invalid endpoint",
+					log.String("reason", "empty httpMethod"),
+					log.String("path", endpoint.Path),
+				)
+			}
+		}
 	}
 
 	localCfg, err := localConfig[ClusteredLocalConfig](app.Config())
@@ -76,6 +94,7 @@ func New(moduleVersion string, remoteConfig any, endpoints []cluster.EndpointDes
 		app,
 		sentryHub,
 		localCfg,
+		transport,
 		remoteConfig,
 		moduleVersion,
 		endpoints,
@@ -93,6 +112,7 @@ func newClustered(
 	application *app.Application,
 	sentryHub sentry.Hub,
 	localConfig ClusteredLocalConfig,
+	transport string,
 	remoteConfig any,
 	moduleVersion string,
 	endpoints []cluster.EndpointDescriptor,
@@ -120,6 +140,7 @@ func newClustered(
 		localConfig,
 		remoteConfig,
 		moduleVersion,
+		transport,
 		broadcastHost,
 		endpoints,
 		wrappedLogger,
@@ -190,6 +211,7 @@ func initClusterClient(
 	localConfig ClusteredLocalConfig,
 	remoteConfig any,
 	moduleVersion string,
+	transport string,
 	broadcastHost string,
 	endpoints []cluster.EndpointDescriptor,
 	logger log.Logger,
@@ -198,6 +220,7 @@ func initClusterClient(
 		ModuleName:    localConfig.ModuleName,
 		ModuleVersion: moduleVersion,
 		LibVersion:    kitVersion(),
+		Transport:     transport,
 		GrpcOuterAddress: cluster.AddressConfiguration{
 			IP:   broadcastHost,
 			Port: strconv.Itoa(localConfig.GrpcOuterAddress.Port),

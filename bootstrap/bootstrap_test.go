@@ -32,7 +32,7 @@ func TestNew(t *testing.T) {
 		UserAuthRequired: false,
 		Extra:            cluster.RequireAdminPermission("perm"),
 		Handler:          nil,
-	}})
+	}}, cluster.GrpcTransport)
 }
 
 type mockConfigReceiver struct {
@@ -57,7 +57,7 @@ func TestNew_Offline(t *testing.T) {
 		UserAuthRequired: false,
 		Extra:            cluster.RequireAdminPermission("perm"),
 		Handler:          nil,
-	}})
+	}}, cluster.GrpcTransport)
 
 	expectedRemoteConfig, err := os.ReadFile("test_data/config_test.json")
 	require.NoError(t, err)
