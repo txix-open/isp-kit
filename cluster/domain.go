@@ -6,6 +6,10 @@ import (
 
 const (
 	RequiredAdminPermission = "reqAdminPerm"
+
+	GrpcTransport  = "grpc"
+	HttpTransport  = "http"
+	EmptyTransport = "empty"
 )
 
 type AddressConfiguration struct {
@@ -23,6 +27,7 @@ type ModuleInfo struct {
 	ModuleName           string
 	ModuleVersion        string
 	LibVersion           string
+	Transport            string
 	GrpcOuterAddress     AddressConfiguration
 	Endpoints            []EndpointDescriptor
 	MetricsAutodiscovery *MetricsAutodiscovery
@@ -34,6 +39,7 @@ type BackendDeclaration struct {
 	ModuleName           string
 	Version              string
 	LibVersion           string
+	Transport            string
 	Endpoints            []EndpointDescriptor
 	RequiredModules      []ModuleDependency
 	Address              AddressConfiguration
@@ -44,6 +50,7 @@ type EndpointDescriptor struct {
 	Path             string
 	Inner            bool
 	UserAuthRequired bool
+	HttpMethod       string
 	Extra            map[string]any
 	Handler          any `json:"-"`
 }
