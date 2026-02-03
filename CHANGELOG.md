@@ -1,3 +1,5 @@
+## v1.64.9
+* файл свагера отдается как `application/yaml` без экранирования
 ## v1.64.8
 * Добавлен модуль `common_endpoints`:
   * Добавлен эндпоинт `"basePath" + "/swagger"` для отдачи swagger-документации в формате base64-encoded (`HTTP` и `gRPC`)
