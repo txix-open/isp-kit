@@ -1,10 +1,10 @@
 package common_endpoints
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/txix-open/isp-kit/cluster"
+	"github.com/txix-open/isp-kit/json"
 )
 
 type commonEndpointsCfg struct {
@@ -25,17 +25,14 @@ func CommonEndpoints(basePath string, opts ...CommonEndpointOption) []cluster.En
 	return endpoints
 }
 
-func swaggerEndpoint(basePath string, swaggerYaml []byte) cluster.EndpointDescriptor {
-	length := fmt.Sprintf("%d", len(swaggerYaml))
+func swaggerEndpoint(basePath string, swaggerJson json.RawMessage) cluster.EndpointDescriptor {
 	return cluster.EndpointDescriptor{
 		Path:             basePath + "/swagger",
 		Inner:            false,
 		UserAuthRequired: false,
 		HttpMethod:       http.MethodGet,
-		Handler: func(res http.ResponseWriter) {
-			res.Header().Set("Content-Type", "application/yaml")
-			res.Header().Set("Content-Length", length)
-			_, _ = res.Write(swaggerYaml)
+		Handler: func() json.RawMessage {
+			return swaggerJson
 		},
 	}
 }
