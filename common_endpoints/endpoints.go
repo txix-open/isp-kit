@@ -1,7 +1,7 @@
 package common_endpoints
 
 import (
-	"encoding/base64"
+	"fmt"
 	"net/http"
 
 	"github.com/txix-open/isp-kit/cluster"
@@ -25,16 +25,17 @@ func CommonEndpoints(basePath string, opts ...CommonEndpointOption) []cluster.En
 	return endpoints
 }
 
-func swaggerEndpoint(basePath string, swagger []byte) cluster.EndpointDescriptor {
-	encodedSwagger := base64.StdEncoding.EncodeToString(swagger)
-
+func swaggerEndpoint(basePath string, swaggerYaml []byte) cluster.EndpointDescriptor {
+	length := fmt.Sprintf("%d", len(swaggerYaml))
 	return cluster.EndpointDescriptor{
 		Path:             basePath + "/swagger",
 		Inner:            false,
 		UserAuthRequired: false,
 		HttpMethod:       http.MethodGet,
-		Handler: func() string {
-			return encodedSwagger
+		Handler: func(res http.ResponseWriter) {
+			res.Header().Set("Content-Type", "application/yaml")
+			res.Header().Set("Content-Length", length)
+			_, _ = res.Write(swaggerYaml)
 		},
 	}
 }
