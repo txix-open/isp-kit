@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"net/http"
 	"net/http/httputil"
 	"time"
 
@@ -135,7 +136,15 @@ func Log(logger log.Logger) httpcli.Middleware {
 			}
 
 			responseFields = append(responseFields, log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()))
-			logger.Debug(ctx, "http client: response", responseFields...)
+
+			switch {
+			case resp.StatusCode() >= http.StatusInternalServerError:
+				logger.Error(ctx, "http client: response", responseFields...)
+			case resp.StatusCode() >= http.StatusBadRequest:
+				logger.Warn(ctx, "http client: response", responseFields...)
+			default:
+				logger.Debug(ctx, "http client: response", responseFields...)
+			}
 
 			return resp, err
 		})
