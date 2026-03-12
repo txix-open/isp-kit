@@ -60,8 +60,7 @@ func FindTag[T any](v T, tag string) bool {
 		// nolint:exhaustive
 		switch cur.Kind() {
 		case reflect.Struct:
-			for i := range cur.NumField() {
-				field := cur.Field(i)
+			for field := range cur.Fields() {
 				if field.Tag.Get(tag) != "" {
 					return true
 				}

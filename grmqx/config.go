@@ -229,7 +229,7 @@ func NewConfig(url string, opts ...ConfigOption) Config {
 }
 
 func retryPolicyFromConfig(policy RetryPolicy) retry.Policy {
-	retries := make([]retry.Retry, 0)
+	retries := make([]retry.Retry, 0, len(policy.Retries))
 	for _, r := range policy.Retries {
 		retries = append(retries, retry.Retry{
 			Delay:       time.Duration(r.DelayInMs) * time.Millisecond,

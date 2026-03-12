@@ -64,8 +64,8 @@ func NewCaller(
 	}
 
 	numOut := rt.NumOut()
-	hasResult := numOut > 0 && rt.Out(0) != reflect.TypeOf((*error)(nil)).Elem()
-	hasError := numOut > 0 && rt.Out(numOut-1) == reflect.TypeOf((*error)(nil)).Elem()
+	hasResult := numOut > 0 && rt.Out(0) != reflect.TypeFor[*error]().Elem()
+	hasError := numOut > 0 && rt.Out(numOut-1) == reflect.TypeFor[*error]().Elem()
 
 	return &Caller{
 		bodyExtractor: bodyExtractor,

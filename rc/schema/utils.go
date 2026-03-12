@@ -139,8 +139,7 @@ type tagOptionsMap map[string]string
 
 func parseTagIntoMap(tag string) tagOptionsMap {
 	optionsMap := make(tagOptionsMap)
-	options := strings.Split(tag, ",")
-	for _, option := range options {
+	for option := range strings.SplitSeq(tag, ",") {
 		option = strings.TrimSpace(option)
 		keyValue := strings.Split(option, "=")
 		switch len(keyValue) {
@@ -185,7 +184,7 @@ var splitParamsRegex = regexp.MustCompile(`'[^']*'|\S+`)
 
 func parseOneOfParam(param string) []string {
 	values := splitParamsRegex.FindAllString(param, -1)
-	for i := 0; i < len(values); i++ {
+	for i := range values {
 		values[i] = strings.ReplaceAll(values[i], "'", "")
 	}
 	return values

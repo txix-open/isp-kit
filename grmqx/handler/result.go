@@ -20,6 +20,7 @@ func Ack() Result {
 }
 
 // Requeue
+
 // Deprecated: use Retry and RetryPolicy instead
 func Requeue(after time.Duration, err error) Result {
 	return Result{
