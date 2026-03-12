@@ -80,3 +80,12 @@ func (l LogObserver) ConnectionBlocked(reason string) {
 func (l LogObserver) ConnectionUnblocked() {
 	l.logger.Info(l.ctx, "rmq client: connection unblocked")
 }
+
+func (l LogObserver) PublisherReconnected(publisher *publisher.Publisher) {
+	l.logger.Info(
+		l.ctx,
+		"rmq client: publisher reconnected",
+		log.String("exchange", publisher.Exchange),
+		log.String("routingKey", publisher.RoutingKey),
+	)
+}
