@@ -2,6 +2,7 @@ package sentry
 
 import (
 	"context"
+	"maps"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -37,9 +38,8 @@ func NewHubFromConfiguration(config Config) (Hub, error) {
 	if config.InstanceId != "" {
 		allTags["instanceId"] = config.InstanceId
 	}
-	for key, value := range config.Tags {
-		allTags[key] = value
-	}
+
+	maps.Copy(allTags, config.Tags)
 
 	buffedTransport := sentry.NewHTTPTransport()
 	buffedTransport.Timeout = defaultTransportTimeout

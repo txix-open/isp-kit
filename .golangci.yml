@@ -17,8 +17,10 @@ linters:
     - tagalign # не всегда имеет смысл
     - varnamelen # очень индивидуально (db)
     - wsl # расставление пробелов очень индивидуально
-    - wrapcheck # не имеет смысла для модулей обёрток, в либе очень много таких модулей
-    - wsl_v5
+    - wsl_v5 # расставление пробелов очень индивидуально
+    - godoclint # ругается на // nolint, не удобно
+    - wrapcheck
+    - prealloc
   settings:
     cyclop:
       max-complexity: 15 # по умолчанию 10 мало
@@ -55,6 +57,10 @@ linters:
       - path: metrics
         linters:
           - promlinter # свой стиль наименования метрик
+      - path: ".*_test\\.go$"
+        linters:
+          - unqueryvet
+
     paths:
       - third_party$
       - builtin$
@@ -69,4 +75,3 @@ formatters:
       - third_party$
       - builtin$
       - examples$
-      - observability/tracing/http/semconvutil  # нельзя модифицировать

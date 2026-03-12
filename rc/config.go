@@ -1,6 +1,7 @@
 package rc
 
 import (
+	"maps"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -78,9 +79,8 @@ func (c *Config) mergeWithOverride(data []byte) ([]byte, error) {
 
 	config = bellows.Flatten(config, bellows.WithSep(c.delim))
 	overrideData = bellows.Flatten(overrideData, bellows.WithSep(c.delim))
-	for k, v := range overrideData {
-		config[k] = v
-	}
+	maps.Copy(config, overrideData)
+
 	result := bellows.Expand(config, bellows.WithSep(c.delim))
 	if result == nil {
 		result = make(map[string]any)

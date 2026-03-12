@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/cenkalti/backoff/v4"
+	"github.com/cenkalti/backoff/v5"
 )
 
 type ExponentialBackoff struct {
@@ -18,8 +18,10 @@ func NewExponentialBackoff(maxElapsedTime time.Duration) ExponentialBackoff {
 }
 
 func (e ExponentialBackoff) Do(ctx context.Context, operation func() error) error {
-	exp := backoff.NewExponentialBackOff()
-	exp.MaxElapsedTime = e.maxElapsedTime
-	withCtx := backoff.WithContext(exp, ctx)
-	return backoff.Retry(operation, withCtx)
+	backOff := backoff.WithBackOff(backoff.NewExponentialBackOff())
+	maxElapsedTime := backoff.WithMaxElapsedTime(e.maxElapsedTime)
+	_, err := backoff.Retry[any](ctx, func() (any, error) {
+		return nil, operation()
+	}, backOff, maxElapsedTime)
+	return err
 }
