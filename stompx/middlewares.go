@@ -2,6 +2,7 @@ package stompx
 
 import (
 	"context"
+
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/requestid"
 	"github.com/txix-open/isp-kit/stompx/consumer"
@@ -22,6 +23,7 @@ func PublisherLog(logger log.Logger, logBody bool) publisher.Middleware {
 		return publisher.RoundTripperFunc(func(ctx context.Context, queue string, msg *publisher.Message) error {
 			fields := []log.Field{
 				log.String("queue", queue),
+				log.Int("bodySize", len(msg.Body)),
 			}
 			if logBody {
 				fields = append(fields, log.ByteString("body", msg.Body))
@@ -71,6 +73,7 @@ func ConsumerLog(logger log.Logger, logBody bool) consumer.Middleware {
 		return consumer.HandlerFunc(func(ctx context.Context, delivery *consumer.Delivery) {
 			fields := []log.Field{
 				log.String("queue", delivery.Source().Destination),
+				log.Int("bodySize", len(delivery.Source().Body)),
 			}
 			if logBody {
 				fields = append(fields, log.ByteString("body", delivery.Source().Body))
