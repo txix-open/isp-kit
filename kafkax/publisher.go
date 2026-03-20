@@ -88,10 +88,8 @@ func (p PublisherConfig) DefaultPublisher(
 	logger log.Logger,
 	restMiddlewares ...publisher.Middleware,
 ) *publisher.Publisher {
-	var authMechanism string
-	if p.Auth.Mechanism == nil {
-		authMechanism = AuthTypePlain
-	} else {
+	authMechanism := AuthTypePlain
+	if p.Auth != nil && p.Auth.Mechanism != nil {
 		authMechanism = *p.Auth.Mechanism
 	}
 

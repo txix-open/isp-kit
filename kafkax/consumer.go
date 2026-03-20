@@ -60,10 +60,8 @@ func (c ConsumerConfig) DefaultConsumer(
 	handler consumer.Handler,
 	restMiddlewares ...consumer.Middleware,
 ) consumer.Consumer {
-	var authMechanism string
-	if c.Auth.Mechanism == nil {
-		authMechanism = AuthTypePlain
-	} else {
+	authMechanism := AuthTypePlain
+	if c.Auth != nil && c.Auth.Mechanism != nil {
 		authMechanism = *c.Auth.Mechanism
 	}
 
