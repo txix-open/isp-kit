@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -38,6 +39,7 @@ type Client struct {
 	logger              log.Logger
 	sessionIsActive     *atomic.Bool
 	closed              *atomic.Bool
+	mu                  sync.Mutex
 
 	cli *atomic.Pointer[clientWrapper]
 }
@@ -218,6 +220,9 @@ func (c *Client) dialClientWrapper(ctx context.Context, cli *clientWrapper, host
 
 func (c *Client) remoteConfigEventHandler(data []byte) error {
 	cli := c.cli.Load()
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	c.logger.Info(cli.ctx, "remote config applying...")
 	err := c.applyRemoteConfig(cli.ctx, data)
