@@ -39,7 +39,7 @@ type Client struct {
 	logger              log.Logger
 	sessionIsActive     *atomic.Bool
 	closed              *atomic.Bool
-	mu                  sync.Mutex
+	applyConfigLock     sync.Mutex
 
 	cli *atomic.Pointer[clientWrapper]
 }
@@ -175,7 +175,7 @@ func (c *Client) runSession(ctx context.Context, host string) error {
 func (c *Client) subscribeToEvents(cli *clientWrapper) chan error {
 	for moduleName, upgrader := range c.eventHandler.requiredModules {
 		event := ModuleConnectedEvent(moduleName)
-		cli.RegisterEvent(event, func(data []byte) error {
+		cli.RegisterEvent(event, func(eventId string, data []byte) error {
 			hosts, err := readHosts(data)
 			if err != nil {
 				return errors.WithMessage(err, "read hosts")
@@ -218,22 +218,23 @@ func (c *Client) dialClientWrapper(ctx context.Context, cli *clientWrapper, host
 	return nil
 }
 
-func (c *Client) remoteConfigEventHandler(data []byte) error {
+func (c *Client) remoteConfigEventHandler(eventId string, data []byte) error {
+	c.applyConfigLock.Lock()
+	defer c.applyConfigLock.Unlock()
+
 	cli := c.cli.Load()
+	ctx := log.ToContext(cli.ctx, log.String(EventIdContextKey, eventId))
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	c.logger.Info(cli.ctx, "remote config applying...")
-	err := c.applyRemoteConfig(cli.ctx, data)
+	c.logger.Info(ctx, "remote config applying...")
+	err := c.applyRemoteConfig(ctx, data)
 	if err != nil {
 		return errors.WithMessage(err, "apply remote config")
 	}
-	c.logger.Info(cli.ctx, "remote config successfully applied")
+	c.logger.Info(ctx, "remote config successfully applied")
 	return nil
 }
 
-func (c *Client) routesEventHandler(data []byte) error {
+func (c *Client) routesEventHandler(eventId string, data []byte) error {
 	cli := c.cli.Load()
 
 	routes, err := readRoutes(data)
