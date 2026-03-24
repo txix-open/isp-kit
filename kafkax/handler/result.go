@@ -15,6 +15,10 @@ func Commit() Result {
 	return Result{Commit: true}
 }
 
+func Nothing() Result {
+	return Result{}
+}
+
 func Retry(after time.Duration, err error) Result {
 	return Result{Retry: true, RetryAfter: after, RetryError: err}
 }

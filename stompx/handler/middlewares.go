@@ -24,11 +24,17 @@ func Log(logger log.Logger) Middleware {
 					"stomp client: message will be acknowledged",
 					log.String("destination", destination),
 				)
-			case result.Requeue:
+			case result.Requeue && result.Err != nil:
 				logger.Error(
 					ctx,
 					"stomp client: message will be requeued",
 					log.Any("error", result.Err),
+					log.String("destination", destination),
+				)
+			case result.Requeue:
+				logger.Debug(
+					ctx,
+					"stomp client: message will be requeued",
 					log.String("destination", destination),
 				)
 			}
