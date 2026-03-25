@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/txix-open/etp/v4"
+	"github.com/txix-open/isp-kit/requestid"
 
 	"github.com/pkg/errors"
 	"github.com/txix-open/etp/v4/msg"
@@ -14,6 +15,7 @@ import (
 )
 
 const (
+	EventIdContextKey  = "eventId"
 	emitWithAckTimeout = 1 * time.Second
 )
 
@@ -86,18 +88,19 @@ func (w *clientWrapper) EmitWithAck(ctx context.Context, event string, data []by
 	return resp, nil
 }
 
-func (w *clientWrapper) RegisterEvent(event string, handler func([]byte) error) {
+func (w *clientWrapper) RegisterEvent(event string, handler func(string, []byte) error) {
 	future := eventFuture{
 		errorCh:    make(chan error, 1),
 		responseCh: make(chan []byte, 1),
 	}
 	w.eventFutures.Store(event, future)
 
-	w.on(event, func(data []byte) {
-		err := handler(data)
+	w.on(event, func(eventId string, data []byte) {
+		err := handler(eventId, data)
 		if err != nil {
 			sendNonBlocking(future.errorCh, err)
 			w.logger.Error(w.ctx, "handle event",
+				log.String(EventIdContextKey, eventId),
 				log.String("event", event),
 				log.String("error", err.Error()),
 			)
@@ -149,7 +152,7 @@ func (w *clientWrapper) OnDisconnect(handler etp.DisconnectHandler) {
 
 func (w *clientWrapper) eventChan(event string) chan []byte {
 	ch := make(chan []byte, 1)
-	w.on(event, func(data []byte) {
+	w.on(event, func(_ string, data []byte) {
 		select {
 		case <-w.ctx.Done():
 		case ch <- data:
@@ -158,15 +161,17 @@ func (w *clientWrapper) eventChan(event string) chan []byte {
 	return ch
 }
 
-func (w *clientWrapper) on(event string, handler func(data []byte)) {
+func (w *clientWrapper) on(event string, handler func(eventId string, data []byte)) {
 	w.cli.On(event, etp.HandlerFunc(func(ctx context.Context, conn *etp.Conn, event msg.Event) []byte {
+		eventId := requestid.Next()
 		w.logger.Info(
 			w.ctx,
 			"event received",
+			log.String(EventIdContextKey, eventId),
 			log.String("event", event.Name),
 			log.ByteString("data", hideSecrets(event.Name, event.Data)),
 		)
-		handler(event.Data)
+		handler(eventId, event.Data)
 		return nil
 	}))
 }
