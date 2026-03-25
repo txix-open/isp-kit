@@ -35,3 +35,39 @@ func RewriteContextField(ctx context.Context, field Field) context.Context {
 
 	return context.WithValue(ctx, contextKeyValue, fields)
 }
+
+func UpsertContextField(ctx context.Context, field Field) context.Context {
+	var found bool
+	existedValues := ContextLogValues(ctx)
+	fields := make([]Field, 0, len(existedValues))
+
+	for i := range existedValues {
+		if existedValues[i].Key == field.Key {
+			fields = append(fields, field)
+			found = true
+		} else {
+			fields = append(fields, existedValues[i])
+		}
+	}
+
+	if !found {
+		fields = append(fields, field)
+	}
+	return context.WithValue(ctx, contextKeyValue, fields)
+}
+
+func FromContext(ctx context.Context, key string) (Field, bool) {
+	existedValues := ContextLogValues(ctx)
+
+	for i := range existedValues {
+		if existedValues[i].Key == key {
+			return existedValues[i], true
+		}
+	}
+
+	return Field{}, false
+}
+
+func CopyValues(ctxTo, ctxFrom context.Context) context.Context {
+	return ToContext(ctxTo, ContextLogValues(ctxFrom)...)
+}

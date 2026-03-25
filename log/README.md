@@ -79,7 +79,19 @@
 
 #### `RewriteContextField(ctx context.Context, field Field) context.Context`
 
-Перезаписать поля для логов в контексте.
+Перезаписать поле для логов в контексте.
+
+#### `UpsertContextField(ctx context.Context, field Field) context.Context`
+
+Перезаписать или записать поле для логов в контексте.
+
+#### `FromContext(ctx context.Context, key string) (Field, bool)`
+
+Получить поле для логов по ключу, если не найдено ok = false
+
+#### `CopyValues(ctxTo, ctxFrom context.Context) context.Context`
+
+Копирует в контекст все поля второго контекста  
 
 ## Usage
 
@@ -110,6 +122,16 @@ func main() {
 	logger.Info(ctx, "hello world!",
 		log2.String("service", "greetings-service"),
 	)
+	
+	oldRequestId, ok := log2.FromContext(ctx, "requestId")
+	if ok {
+		ctx = log2.UpsertContextField(ctx, log2.String("requestId", "aa2266"))
+		logger.Info(ctx, "new and old requestId",
+			oldRequestId,
+		)
+    }
+	
+	
 
 	/* change logger's level dynamically */
 	logger.SetLevel(log2.DebugLevel)
