@@ -70,6 +70,14 @@ func Log(logger log.Logger) Middleware {
 					log.String("error", result.RetryError.Error()),
 					log.String("retryAfter", result.RetryAfter.String()),
 				)
+			default:
+				logger.Debug(
+					ctx,
+					"kafka client: message will be skipped",
+					log.String("topic", topic),
+					log.Int32("partition", partition),
+					log.Int64("offset", offset),
+				)
 			}
 
 			return result

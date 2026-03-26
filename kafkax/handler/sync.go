@@ -58,6 +58,9 @@ func (r Sync) Handle(ctx context.Context, delivery *consumer.Delivery) {
 			case <-time.After(result.RetryAfter):
 				continue
 			}
+		default:
+			delivery.Done()
+			return
 		}
 	}
 }

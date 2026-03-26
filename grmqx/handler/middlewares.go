@@ -60,7 +60,7 @@ func Log(logger log.Logger) Middleware {
 					log.String("exchange", exchange),
 					log.String("routingKey", routingKey),
 				)
-			case result.Requeue:
+			case result.Requeue && result.Err != nil:
 				logger.Error(
 					ctx,
 					"rmq client: message will be requeued",
@@ -69,13 +69,28 @@ func Log(logger log.Logger) Middleware {
 					log.String("routingKey", routingKey),
 					log.String("requeueTimeout", result.RequeueTimeout.String()),
 				)
-			case result.Retry:
+			case result.Requeue:
+				logger.Debug(
+					ctx,
+					"rmq client: message will be requeued",
+					log.String("exchange", exchange),
+					log.String("routingKey", routingKey),
+					log.String("requeueTimeout", result.RequeueTimeout.String()),
+				)
+			case result.Retry && result.Err != nil:
 				logger.Error(
 					ctx,
 					"rmq client: message will be retried",
 					log.String("exchange", exchange),
 					log.String("routingKey", routingKey),
 					log.Any("error", result.Err),
+				)
+			case result.Retry:
+				logger.Debug(
+					ctx,
+					"rmq client: message will be retried",
+					log.String("exchange", exchange),
+					log.String("routingKey", routingKey),
 				)
 			case result.MoveToDlq:
 				logger.Error(
