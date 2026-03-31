@@ -1,3 +1,8 @@
+## v1.66.2
+* Добавлено поле `bodySize` в логи:
+  * `rmq client: consume message`, `rmq client: publish message`
+  * `kafka consumer: consume message`, `kafka client: publish message`
+  * `stomp client: consume message`, `stomp client: publish message`
 ## v1.66.1
 * Изменено логирование Result для `kafkax`, `stompx`, `grmqx`:
   * При Requeue и Retry, если не предоставлена ошибка, то тип логов Debug.
