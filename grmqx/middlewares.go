@@ -17,6 +17,7 @@ func PublisherLog(logger log.Logger, logBody bool) publisher.Middleware {
 			fields := []log.Field{
 				log.String("exchange", exchange),
 				log.String("routingKey", routingKey),
+				log.Int("bodySize", len(msg.Body)),
 			}
 			if logBody {
 				fields = append(fields, log.ByteString("body", msg.Body))
@@ -91,6 +92,7 @@ func ConsumerLog(logger log.Logger, logBody bool) consumer.Middleware {
 			fields := []log.Field{
 				log.String("exchange", delivery.Source().Exchange),
 				log.String("routingKey", delivery.Source().RoutingKey),
+				log.Int("bodySize", len(delivery.Source().Body)),
 			}
 			if logBody {
 				fields = append(fields, log.ByteString("body", delivery.Source().Body))

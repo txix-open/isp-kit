@@ -2,8 +2,9 @@ package kafkax
 
 import (
 	"context"
-	"github.com/twmb/franz-go/pkg/kgo"
 	"time"
+
+	"github.com/twmb/franz-go/pkg/kgo"
 
 	"github.com/txix-open/isp-kit/kafkax/consumer"
 	"github.com/txix-open/isp-kit/kafkax/publisher"
@@ -50,6 +51,7 @@ func PublisherLog(logger log.Logger, logBody bool) publisher.Middleware {
 					log.String("topic", r.Topic),
 					log.Int32("partition", r.Partition),
 					log.ByteString("messageKey", r.Key),
+					log.Int("bodySize", len(r.Value)),
 				}
 				if logBody {
 					fields = append(fields, log.ByteString("body", r.Value))
@@ -112,6 +114,7 @@ func ConsumerLog(logger log.Logger, logBody bool) consumer.Middleware {
 				log.Int32("partition", delivery.Source().Partition),
 				log.Int64("offset", delivery.Source().Offset),
 				log.ByteString("messageKey", delivery.Source().Key),
+				log.Int("bodySize", len(delivery.Source().Value)),
 			}
 			if logBody {
 				fields = append(fields, log.ByteString("body", delivery.Source().Value))
