@@ -22,6 +22,8 @@ type logConfig struct {
 
 	LogHeadersRequest  bool
 	LogHeadersResponse bool
+
+	CombinedLog bool
 }
 
 type LogOption func(*logConfig)
@@ -40,6 +42,12 @@ func LogHeaders(requestHeaders bool, responseHeaders bool) LogOption {
 	}
 }
 
+func LogCombined(combinedLog bool) LogOption {
+	return func(cfg *logConfig) {
+		cfg.CombinedLog = combinedLog
+	}
+}
+
 type logConfigContextKey struct{}
 
 // nolint:gochecknoglobals
@@ -47,6 +55,7 @@ var (
 	defaultLogConfig = logConfig{
 		LogRequestBody:  true,
 		LogResponseBody: true,
+		CombinedLog:     false,
 	}
 	logConfigContextKeyValue = logConfigContextKey{}
 )
@@ -71,12 +80,9 @@ func LogConfigToContext(
 func Log(logger log.Logger) httpcli.Middleware {
 	return func(next httpcli.RoundTripper) httpcli.RoundTripper {
 		return httpcli.RoundTripperFunc(func(ctx context.Context, request *httpcli.Request) (*httpcli.Response, error) {
-			config := defaultLogConfig
-			configFromContext, ok := ctx.Value(logConfigContextKeyValue).(logConfig)
-			if ok {
-				config = configFromContext
-			}
+			config := getLogConfig(ctx)
 
+			var logFields []log.Field
 			requestFields := []log.Field{
 				log.String("method", request.Raw.Method),
 				log.String("url", request.Raw.URL.String()),
@@ -86,7 +92,9 @@ func Log(logger log.Logger) httpcli.Middleware {
 				requestFields = append(requestFields, log.ByteString("requestBody", request.Body()))
 			}
 
-			logger.Debug(ctx, "http client: request", requestFields...)
+			if !config.CombinedLog {
+				logger.Debug(ctx, "http client: request", requestFields...)
+			}
 
 			now := time.Now()
 			resp, err := next.RoundTrip(ctx, request)
@@ -110,11 +118,14 @@ func Log(logger log.Logger) httpcli.Middleware {
 					log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()),
 				)
 
-				logger.Debug(
-					ctx,
-					"http client: response with error",
-					responseFields...,
-				)
+				if config.CombinedLog {
+					logFields = append(logFields, requestFields...)
+					logFields = append(logFields, responseFields...)
+					logger.Debug(ctx, "http client: log with error", logFields...)
+				} else {
+					logger.Debug(ctx, "http client: response with error", responseFields...)
+				}
+
 				return resp, err
 			}
 
@@ -137,16 +148,45 @@ func Log(logger log.Logger) httpcli.Middleware {
 
 			responseFields = append(responseFields, log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()))
 
-			switch {
-			case resp.StatusCode() >= http.StatusInternalServerError:
-				logger.Error(ctx, "http client: response", responseFields...)
-			case resp.StatusCode() >= http.StatusBadRequest:
-				logger.Warn(ctx, "http client: response", responseFields...)
-			default:
-				logger.Debug(ctx, "http client: response", responseFields...)
-			}
+			logByStatusCode(ctx, logger, config, requestFields, responseFields, resp)
 
 			return resp, err
 		})
+	}
+}
+
+func getLogConfig(ctx context.Context) logConfig {
+	config := defaultLogConfig
+	configFromContext, ok := ctx.Value(logConfigContextKeyValue).(logConfig)
+	if ok {
+		config = configFromContext
+	}
+	return config
+}
+
+func logByStatusCode(ctx context.Context, logger log.Logger, config logConfig, requestFields, responseFields []log.Field, resp *httpcli.Response) {
+	if config.CombinedLog {
+		var logFields []log.Field
+		logFields = append(logFields, requestFields...)
+		logFields = append(logFields, responseFields...)
+
+		switch {
+		case resp.StatusCode() >= http.StatusInternalServerError:
+			logger.Error(ctx, "http client: log", logFields...)
+		case resp.StatusCode() >= http.StatusBadRequest:
+			logger.Warn(ctx, "http client: log", logFields...)
+		default:
+			logger.Debug(ctx, "http client: log", logFields...)
+		}
+		return
+	}
+
+	switch {
+	case resp.StatusCode() >= http.StatusInternalServerError:
+		logger.Error(ctx, "http client: response", responseFields...)
+	case resp.StatusCode() >= http.StatusBadRequest:
+		logger.Warn(ctx, "http client: response", responseFields...)
+	default:
+		logger.Debug(ctx, "http client: response", responseFields...)
 	}
 }
