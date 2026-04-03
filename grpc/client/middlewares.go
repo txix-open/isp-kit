@@ -11,6 +11,12 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+type logConfig struct {
+	logRequestBody  bool
+	logResponseBody bool
+	combinedLog     bool
+}
+
 func RequestId() request.Middleware {
 	return func(next request.RoundTripper) request.RoundTripper {
 		return func(ctx context.Context, builder *request.Builder, message *isp.Message) (*isp.Message, error) {
@@ -26,44 +32,97 @@ func RequestId() request.Middleware {
 }
 
 func Log(logger log.Logger, logBody bool) request.Middleware {
+	cfg := &logConfig{
+		logRequestBody:  logBody,
+		logResponseBody: logBody,
+	}
+	return logMiddleware(logger, cfg)
+}
+
+func LogWithOptions(logger log.Logger, opts ...LogOption) request.Middleware {
+	cfg := &logConfig{
+		logRequestBody:  false,
+		logResponseBody: false,
+		combinedLog:     false,
+	}
+	for _, opt := range opts {
+		opt(cfg)
+	}
+
+	if cfg.combinedLog {
+		return logCombinedMiddleware(logger, cfg)
+	}
+	return logMiddleware(logger, cfg)
+}
+
+func logMiddleware(logger log.Logger, cfg *logConfig) request.Middleware {
 	return func(next request.RoundTripper) request.RoundTripper {
 		return func(ctx context.Context, builder *request.Builder, message *isp.Message) (*isp.Message, error) {
 			requestFields := []log.Field{
 				log.String("endpoint", builder.Endpoint),
 			}
-			if logBody {
+			if cfg.logRequestBody {
 				requestFields = append(requestFields, log.ByteString("requestBody", message.GetBytesBody()))
 			}
-			logger.Debug(
-				ctx,
-				"grpc client: request",
-				requestFields...,
-			)
+			logger.Debug(ctx, "grpc client: request", requestFields...)
+
+			var responseFields []log.Field
 
 			now := time.Now()
 			resp, err := next(ctx, builder, message)
 			if err != nil {
-				logger.Debug(
-					ctx,
-					"grpc client: response with error",
+				responseFields = append(responseFields,
 					log.Any("error", err),
 					log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()),
 				)
+				logger.Debug(ctx, "grpc client: response with error", responseFields...)
+
 				return resp, err
 			}
 
-			responseFields := []log.Field{
+			responseFields = append(responseFields,
 				log.String("endpoint", builder.Endpoint),
 				log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()),
-			}
-			if logBody {
+			)
+			if cfg.logResponseBody {
 				responseFields = append(responseFields, log.ByteString("responseBody", resp.GetBytesBody()))
 			}
-			logger.Debug(
-				ctx,
-				"grpc client: response",
-				responseFields...,
+
+			logger.Debug(ctx, "grpc client: response", responseFields...)
+
+			return resp, err
+		}
+	}
+}
+
+func logCombinedMiddleware(logger log.Logger, cfg *logConfig) request.Middleware {
+	return func(next request.RoundTripper) request.RoundTripper {
+		return func(ctx context.Context, builder *request.Builder, message *isp.Message) (*isp.Message, error) {
+			logFields := []log.Field{
+				log.String("endpoint", builder.Endpoint),
+			}
+			if cfg.logRequestBody {
+				logFields = append(logFields, log.ByteString("requestBody", message.GetBytesBody()))
+			}
+
+			now := time.Now()
+			resp, err := next(ctx, builder, message)
+
+			logFields = append(logFields,
+				log.String("endpoint", builder.Endpoint),
+				log.Int64("elapsedTimeMs", time.Since(now).Milliseconds()),
 			)
+
+			if err != nil {
+				logFields = append(logFields, log.Any("error", err))
+				logger.Debug(ctx, "grpc client: log with error", logFields...)
+				return resp, err
+			}
+
+			if cfg.logResponseBody {
+				logFields = append(logFields, log.ByteString("responseBody", resp.GetBytesBody()))
+			}
+			logger.Debug(ctx, "grpc client: log", logFields...)
 
 			return resp, err
 		}
