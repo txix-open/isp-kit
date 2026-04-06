@@ -246,13 +246,7 @@ func mergeLogConfig(ctx context.Context, defaultCfg *logConfig) logConfig {
 		return *defaultCfg
 	}
 
-	merged := configFromContext
-
-	if !configFromContext.CombinedLog && defaultCfg.CombinedLog {
-		merged.CombinedLog = defaultCfg.CombinedLog
-	}
-
-	return merged
+	return configFromContext
 }
 
 func logResponseByStatusCode(ctx context.Context, logger log.Logger, responseFields []log.Field, resp *httpcli.Response) {
