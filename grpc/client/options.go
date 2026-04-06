@@ -18,3 +18,30 @@ func WithDialOptions(dialOptions ...grpc.DialOption) Option {
 		cli.dialOptions = dialOptions
 	}
 }
+
+type LogOption func(cfg *logConfig)
+
+func WithLogBody(logBody bool) LogOption {
+	return func(cfg *logConfig) {
+		cfg.logResponseBody = logBody
+		cfg.logRequestBody = logBody
+	}
+}
+
+func WithLogResponseBody(logResponseBody bool) LogOption {
+	return func(cfg *logConfig) {
+		cfg.logResponseBody = logResponseBody
+	}
+}
+
+func WithLogRequestBody(logRequestBody bool) LogOption {
+	return func(cfg *logConfig) {
+		cfg.logRequestBody = logRequestBody
+	}
+}
+
+func WithCombinedLog(enable bool) LogOption {
+	return func(cfg *logConfig) {
+		cfg.combinedLog = enable
+	}
+}
