@@ -1,3 +1,6 @@
+## v1.66.3
+* Добавлена опция `LogCombined` объединяющая логи `request` и `response` для `hhtpclix.LogConfigToContext`
+* Добавлена middleware `LogWithOptions` в пакет `grpc/client`  принимающая опции `WithLogBody`, `WithLogResponseBody`, `WithLogRequestBody`, `WithCombinedLog`
 ## v1.66.2
 * Добавлено поле `bodySize` в логи:
   * `rmq client: consume message`, `rmq client: publish message`

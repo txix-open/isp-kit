@@ -78,6 +78,7 @@ func TestLogHeaders(t *testing.T) {
 	ctx = httpclix.LogConfigToContext(ctx, false, false,
 		httpclix.LogHeaders(true, true),
 		httpclix.LogDump(true, true),
+		httpclix.LogCombined(true),
 	)
 
 	exp := example{}
