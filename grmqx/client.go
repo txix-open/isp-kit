@@ -66,6 +66,44 @@ func (c *Client) Close() {
 	}
 }
 
+func (c *Client) DeleteQueues(ctx context.Context, queueNames ...string) error {
+	if len(queueNames) == 0 {
+		return nil
+	}
+
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if c.cli == nil {
+		return errors.New("client is not initialized")
+	}
+	conn := c.cli.UnsafeConnection()
+	if conn == nil {
+		return errors.New("rabbit mq is not connected")
+	}
+	ch, err := conn.Channel()
+	if err != nil {
+		return errors.WithMessage(err, "open channel")
+	}
+	defer ch.Close()
+
+	for _, name := range queueNames {
+		if name == "" {
+			continue
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+		_, err = ch.QueueDelete(name, false, false, false)
+		if err != nil {
+			c.logger.Warn(ctx, "failed delete queue", log.String("name", name))
+		}
+	}
+	return nil
+}
+
 func (c *Client) upgrade(ctx context.Context, config Config, justServe bool) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
