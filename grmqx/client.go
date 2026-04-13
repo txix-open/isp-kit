@@ -66,13 +66,14 @@ func (c *Client) Close() {
 	}
 }
 
-// QueuesDelete removes queues on the broker by name using underlying grmq.UnsafeConnection.
-func (c *Client) QueuesDelete(ctx context.Context, queueNames ...string) error {
+func (c *Client) DeleteQueues(ctx context.Context, queueNames ...string) error {
 	if len(queueNames) == 0 {
 		return nil
 	}
+
 	c.lock.Lock()
 	defer c.lock.Unlock()
+
 	if c.cli == nil {
 		return errors.New("client is not initialized")
 	}
@@ -95,8 +96,9 @@ func (c *Client) QueuesDelete(ctx context.Context, queueNames ...string) error {
 			return ctx.Err()
 		default:
 		}
-		if _, err := ch.QueueDelete(name, false, false, false); err != nil {
-			c.logger.Warn(ctx, "failed delete queue ", log.String("name", name))
+		_, err = ch.QueueDelete(name, false, false, false)
+		if err != nil {
+			c.logger.Warn(ctx, "failed delete queue", log.String("name", name))
 		}
 	}
 	return nil
