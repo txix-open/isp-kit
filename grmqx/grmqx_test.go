@@ -173,3 +173,54 @@ func TestRecovery(t *testing.T) {
 
 	require.EqualValues(1, cli.QueueLength("test.DLQ"))
 }
+
+func TestQueuesDelete(t *testing.T) {
+	t.Parallel()
+	test, require := test.New(t)
+
+	const queueName = "queue_to_delete"
+	consumerCfg := grmqx.Consumer{
+		Queue: queueName,
+	}
+
+	testCli := grmqt.New(test)
+	config := grmqx.NewConfig(
+		testCli.ConnectionConfig().Url(),
+		grmqx.WithDeclarations(grmqx.TopologyFromConsumers(consumerCfg)),
+	)
+	err := testCli.GrmqxCli.Upgrade(t.Context(), config)
+	require.NoError(err)
+
+	require.True(queueExists(t, testCli.ConnectionConfig().Url(), queueName))
+
+	err = testCli.GrmqxCli.QueuesDelete(t.Context(), queueName)
+	require.NoError(err)
+
+	require.False(queueExists(t, testCli.ConnectionConfig().Url(), queueName))
+}
+
+func TestQueuesDeleteUninitializedClient(t *testing.T) {
+	t.Parallel()
+	test, require := test.New(t)
+
+	cli := grmqx.New(test.Logger())
+	err := cli.QueuesDelete(t.Context(), "some-queue")
+	require.EqualError(err, "client is not initialized")
+}
+
+func queueExists(t *testing.T, url string, queue string) bool {
+	conn, err := amqp091.Dial(url)
+	if err != nil {
+		t.Fatalf("dial rabbit mq: %v", err)
+	}
+	defer conn.Close()
+
+	ch, err := conn.Channel()
+	if err != nil {
+		t.Fatalf("open channel: %v", err)
+	}
+	defer ch.Close()
+
+	_, err = ch.QueueInspect(queue)
+	return err == nil
+}
