@@ -1,3 +1,5 @@
+## v1.66.4
+* Добавлен функционал удаления очередей для rmq клиента
 ## v1.66.3
 * Добавлена опция `LogCombined` объединяющая логи `request` и `response` для `hhtpclix.LogConfigToContext`
 * Добавлена middleware `LogWithOptions` в пакет `grpc/client`  принимающая опции `WithLogBody`, `WithLogResponseBody`, `WithLogRequestBody`, `WithCombinedLog`
