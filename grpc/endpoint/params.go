@@ -9,6 +9,8 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+// ContextParam creates a ParamMapper for injecting context.Context into handlers.
+// The context is passed through from the incoming gRPC request context.
 func ContextParam() ParamMapper {
 	return ParamMapper{
 		Type: "context.Context",
@@ -18,6 +20,9 @@ func ContextParam() ParamMapper {
 	}
 }
 
+// AuthDataParam creates a ParamMapper for injecting grpc.AuthData into handlers.
+// Extracts authentication and authorization information from the incoming request metadata.
+// Returns an error if metadata is not present in the context.
 func AuthDataParam() ParamMapper {
 	return ParamMapper{
 		Type: "grpc.AuthData",

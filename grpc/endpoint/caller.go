@@ -8,11 +8,15 @@ import (
 	"github.com/txix-open/isp-kit/grpc/isp"
 )
 
+// param represents a single parameter to be injected into a wrapped function.
 type param struct {
 	index   int
 	builder ParamBuilder
 }
 
+// Caller wraps a function for gRPC invocation using reflection.
+// It analyzes the function signature, injects dependencies, and handles
+// request/response marshaling automatically.
 type Caller struct {
 	bodyExtractor RequestBodyExtractor
 	bodyMapper    ResponseBodyMapper
@@ -28,6 +32,9 @@ type Caller struct {
 	errorIndex int
 }
 
+// NewCaller creates a new Caller for the specified function.
+// Analyzes the function signature to determine parameter types and return values.
+// Returns an error if the input is not a function or if parameter types cannot be resolved.
 func NewCaller(
 	f any,
 	bodyExtractor RequestBodyExtractor,
@@ -81,6 +88,9 @@ func NewCaller(
 	}, nil
 }
 
+// Handle executes the wrapped function with the provided context and message.
+// Injects parameters, extracts request body, calls the function, and maps the result.
+// Returns the response message and any error from the function or parameter extraction.
 func (h *Caller) Handle(ctx context.Context, message *isp.Message) (*isp.Message, error) {
 	args := make([]reflect.Value, h.paramsCount)
 
@@ -103,9 +113,6 @@ func (h *Caller) Handle(ctx context.Context, message *isp.Message) (*isp.Message
 	out := h.handler.Call(args)
 
 	if h.hasError && !out[h.errorIndex].IsNil() {
-		// Приведение к error безопасно:
-		// 1) hasError == true → функция возвращает последним аргументом error
-		// 2) проверка errVal != nil исключает typed-nil
 		return nil, out[h.errorIndex].Interface().(error) // nolint:forcetypeassert
 	}
 
