@@ -23,6 +23,7 @@ const (
 	defaultDialTimeoutSec        = 5
 )
 
+// PublisherConfig holds configuration for a Kafka publisher.
 type PublisherConfig struct {
 	Addresses                  []string `validate:"required" schema:"Список адресов брокеров для отправки сообщений"`
 	Topic                      string   `validate:"required" schema:"Топик для отправки сообщений описывается здесь либо в каждом сообщении"`
@@ -37,6 +38,9 @@ type PublisherConfig struct {
 	MetricPublisherId          *string  `schema:"Идентификатор паблишера в метриках, при отсутствии метрики не отправляются"`
 }
 
+// GetRequiredAckLevel returns the required acknowledgment level for message
+// production. Returns LeaderAck() for level 1, AllISRAcks() for level -1,
+// and NoAck() for all other values.
 func (p PublisherConfig) GetRequiredAckLevel() kgo.Acks {
 	switch p.RequiredAckLevel {
 	case 1:
@@ -48,6 +52,8 @@ func (p PublisherConfig) GetRequiredAckLevel() kgo.Acks {
 	return kgo.NoAck()
 }
 
+// GetWriteTimeout returns the write timeout duration. Returns 10 seconds by
+// default if not configured.
 func (p PublisherConfig) GetWriteTimeout() time.Duration {
 	if p.WriteTimeoutSec == nil {
 		return time.Duration(defaultWriteTimeoutSec) * time.Second
@@ -55,6 +61,9 @@ func (p PublisherConfig) GetWriteTimeout() time.Duration {
 	return time.Duration(*p.WriteTimeoutSec) * time.Second
 }
 
+// GetMaxMessageSizePerPartition returns the maximum message size per partition
+// in bytes. Returns 64MB by default if not configured or set to a non-positive
+// value.
 func (p PublisherConfig) GetMaxMessageSizePerPartition() int32 {
 	if p.MaxMsgSizeMbPerPartition <= 0 {
 		return defaultMaxMsgSizeMb
@@ -62,6 +71,8 @@ func (p PublisherConfig) GetMaxMessageSizePerPartition() int32 {
 	return p.MaxMsgSizeMbPerPartition
 }
 
+// GetBatchSizePerPartition returns the batch size per partition. Returns 10
+// by default if not configured or set to a non-positive value.
 func (p PublisherConfig) GetBatchSizePerPartition() int {
 	if p.BatchSizePerPartition <= 0 {
 		return defaultBatchSizePerPartition
@@ -69,6 +80,8 @@ func (p PublisherConfig) GetBatchSizePerPartition() int {
 	return p.BatchSizePerPartition
 }
 
+// GetBatchTimeoutPerPartition returns the batch timeout duration per partition.
+// Returns 500ms by default if not configured.
 func (p PublisherConfig) GetBatchTimeoutPerPartition() time.Duration {
 	if p.BatchTimeoutPerPartitionMs == nil {
 		return time.Duration(defaultBatchTimeoutMs) * time.Millisecond
@@ -76,6 +89,8 @@ func (p PublisherConfig) GetBatchTimeoutPerPartition() time.Duration {
 	return time.Duration(*p.BatchTimeoutPerPartitionMs) * time.Millisecond
 }
 
+// GetDialTimeout returns the dial timeout duration. Returns 5 seconds by
+// default if not configured.
 func (p PublisherConfig) GetDialTimeout() time.Duration {
 	if p.DialTimeoutMs == nil {
 		return time.Duration(defaultDialTimeoutSec) * time.Second
@@ -83,6 +98,9 @@ func (p PublisherConfig) GetDialTimeout() time.Duration {
 	return time.Duration(*p.DialTimeoutMs) * time.Millisecond
 }
 
+// DefaultPublisher creates a new publisher with default configuration, including
+// built-in metrics and request ID middlewares. Additional middlewares can be
+// provided via restMiddlewares.
 func (p PublisherConfig) DefaultPublisher(
 	logCtx context.Context,
 	logger log.Logger,

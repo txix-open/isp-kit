@@ -1,3 +1,7 @@
+// Package consumer provides a high-level abstraction for consuming messages
+// from Apache Kafka topics. It wraps the franz-go client and supports
+// concurrent message processing with middleware chains for cross-cutting
+// concerns like logging, metrics, and request IDs.
 package consumer
 
 import (
@@ -11,18 +15,26 @@ import (
 	"go.uber.org/atomic"
 )
 
+// Middleware is a function that wraps a Handler to add cross-cutting
+// functionality such as logging, metrics, or request ID propagation.
 type Middleware func(next Handler) Handler
 
+// Handler defines the interface for processing consumed messages.
 type Handler interface {
 	Handle(ctx context.Context, delivery *Delivery)
 }
 
+// HandlerFunc is an adapter that allows a function to be used as a Handler.
 type HandlerFunc func(ctx context.Context, delivery *Delivery)
 
+// Handle implements the Handler interface by calling the underlying function.
 func (f HandlerFunc) Handle(ctx context.Context, delivery *Delivery) {
 	f(ctx, delivery)
 }
 
+// Consumer handles consuming messages from Kafka topics with configurable
+// concurrency and middleware support. It manages offset committing and
+// provides lifecycle hooks through the observer pattern.
 type Consumer struct {
 	client *kgo.Client
 
@@ -39,6 +51,9 @@ type Consumer struct {
 	stopChan chan struct{}
 }
 
+// New creates a new Consumer instance with the provided Kafka client, consumer
+// group ID, handler, and concurrency level. Options can be used to configure
+// middlewares and the observer.
 func New(client *kgo.Client, consumerGroupId string, handler Handler, concurrency int, opts ...Option) *Consumer {
 	if concurrency <= 0 {
 		concurrency = 1
@@ -67,6 +82,8 @@ func New(client *kgo.Client, consumerGroupId string, handler Handler, concurrenc
 	return c
 }
 
+// Run starts the consumer and begins processing messages. It returns
+// immediately and runs message processing in a separate goroutine.
 func (c *Consumer) Run(ctx context.Context) {
 	if c.observer != nil {
 		c.observer.BeginConsuming()
@@ -74,6 +91,8 @@ func (c *Consumer) Run(ctx context.Context) {
 	go c.run(ctx)
 }
 
+// Close gracefully shuts down the consumer, waits for pending message
+// processing to complete, and releases the underlying Kafka client connection.
 func (c *Consumer) Close() error {
 	defer func() {
 		c.alive.Store(false)
@@ -93,6 +112,8 @@ func (c *Consumer) Close() error {
 	return nil
 }
 
+// Healthcheck returns nil if the consumer is healthy and able to fetch
+// messages, or an error if it has encountered issues.
 func (c *Consumer) Healthcheck(ctx context.Context) error {
 	if c.alive.Load() {
 		return nil
@@ -100,6 +121,8 @@ func (c *Consumer) Healthcheck(ctx context.Context) error {
 	return errors.New("could not fetch messages")
 }
 
+// run is the main message processing loop. It polls for new messages and
+// distributes them to worker goroutines for processing.
 func (c *Consumer) run(ctx context.Context) {
 	for range c.concurrency {
 		go c.runWorker(ctx)
@@ -142,6 +165,8 @@ func (c *Consumer) run(ctx context.Context) {
 	}
 }
 
+// handleFetchErrors handles errors that occur when polling for messages. It
+// marks the consumer as unhealthy and notifies the observer.
 func (c *Consumer) handleFetchErrors(ctx context.Context, errs []kgo.FetchError) {
 	c.alive.Store(false)
 	if c.observer != nil {
@@ -156,7 +181,8 @@ func (c *Consumer) handleFetchErrors(ctx context.Context, errs []kgo.FetchError)
 	}
 }
 
-//nolint:gosimple
+// runWorker is a worker goroutine that processes messages from the deliveries
+// channel. It continues until the channel is closed.
 func (c *Consumer) runWorker(ctx context.Context) {
 	for {
 		select {
@@ -170,6 +196,7 @@ func (c *Consumer) runWorker(ctx context.Context) {
 	}
 }
 
+// handleMessage delegates message processing to the configured handler.
 func (c *Consumer) handleMessage(ctx context.Context, delivery *Delivery) {
 	c.handler.Handle(ctx, delivery)
 }
