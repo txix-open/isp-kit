@@ -31,6 +31,14 @@
 //   - Metrics endpoints
 //   - Cluster client (for clustered mode)
 //   - Remote configuration management (for clustered mode)
+//
+// # Environment Variables
+//
+// The following environment variables are supported:
+//   - APP_MODE: Set to "dev" to enable development mode (affects logging level and file paths)
+//   - CLUSTER_MODE: Set to "offline" to enable offline cluster mode
+//   - APP_CONFIG_PATH: Custom path to the application configuration file
+//   - APP_CONFIG_ENV_PREFIX: Prefix for environment variable configuration keys
 package bootstrap
 
 import (
