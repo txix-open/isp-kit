@@ -1,3 +1,6 @@
+// Package migration provides database migration functionality using the goose
+// library. It manages schema evolution by applying pending SQL or Go migrations
+// from a specified directory and tracks migration versions.
 package migration
 
 import (
@@ -14,18 +17,25 @@ import (
 	"github.com/txix-open/isp-kit/log"
 )
 
+// DialectPostgreSQL represents the PostgreSQL dialect for migrations.
 const (
 	DialectPostgreSQL = goose.DialectPostgres
-	DialectSqlite3    = goose.DialectSQLite3
+	// DialectSqlite3 represents the SQLite3 dialect for migrations.
+	DialectSqlite3 = goose.DialectSQLite3
+	// DialectClickhouse represents the ClickHouse dialect for migrations.
 	DialectClickhouse = goose.DialectClickHouse
 )
 
+// Runner manages database migrations using the goose library.
+// It applies pending migrations from a specified directory and tracks migration versions.
 type Runner struct {
 	dialect      goose.Dialect
 	migrationDir string
 	logger       log.Logger
 }
 
+// NewRunner creates a new migration Runner with the specified dialect,
+// migration directory, and logger.
 func NewRunner(
 	dialect goose.Dialect,
 	migrationDir string,
@@ -38,6 +48,9 @@ func NewRunner(
 	}
 }
 
+// Run applies all pending migrations to the database.
+// It logs the current database version, lists all migrations with their status, and applies any pending migrations.
+// Returns an error if the migration directory does not exist, migrations cannot be loaded, or if applying migrations fails.
 func (r Runner) Run(ctx context.Context, db *sql.DB, gooseOpts ...goose.ProviderOption) error {
 	ctx = log.ToContext(ctx, log.String("worker", "goose_db_migration"))
 
