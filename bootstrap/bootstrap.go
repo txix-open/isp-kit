@@ -1,3 +1,36 @@
+// Package bootstrap provides a unified initialization framework for isp-kit applications.
+//
+// The bootstrap package handles application setup including configuration management,
+// logging, observability (Sentry and tracing), cluster coordination, and infrastructure
+// server initialization. It supports both clustered and standalone deployment modes.
+//
+// # Usage
+//
+// For clustered applications:
+//
+//	boot := bootstrap.New(
+//	    "1.0.0",                                    // module version
+//	    &RemoteConfig{},                            // remote config struct
+//	    []cluster.EndpointDescriptor{},             // service endpoints
+//	    cluster.HttpTransport,                      // transport type
+//	)
+//
+// For standalone applications:
+//
+//	boot := bootstrap.NewStandalone("1.0.0")
+//	var cfg MyConfig
+//	if err := boot.ReadConfig(&cfg); err != nil {
+//	    // handle error
+//	}
+//
+// The package automatically initializes:
+//   - Application context and lifecycle management
+//   - Logging with optional file output and sampling
+//   - Sentry error reporting and tracing
+//   - Health check endpoints
+//   - Metrics endpoints
+//   - Cluster client (for clustered mode)
+//   - Remote configuration management (for clustered mode)
 package bootstrap
 
 import (
@@ -19,11 +52,22 @@ import (
 	"github.com/txix-open/isp-kit/validator"
 )
 
+// ClusterClient defines the interface for cluster coordination operations.
 type ClusterClient interface {
 	Run(ctx context.Context, eventHandler *cluster.EventHandler) error
 	Close() error
 }
 
+// Bootstrap represents the main initialization context for clustered applications.
+// It embeds BaseBootstrap and adds cluster-specific functionality including
+// cluster client management and remote configuration.
+//
+// The Bootstrap instance provides access to:
+//   - Application lifecycle management (via BaseBootstrap)
+//   - Cluster coordination through ClusterCli
+//   - Remote configuration via RemoteConfig
+//
+// Create a Bootstrap instance using the New() function.
 type Bootstrap struct {
 	*BaseBootstrap
 
@@ -31,6 +75,35 @@ type Bootstrap struct {
 	RemoteConfig *rc.Config
 }
 
+// New creates and initializes a new Bootstrap instance for clustered applications.
+//
+// Parameters:
+//   - moduleVersion: Version string of the module (e.g., "1.0.0")
+//   - remoteConfig: Pointer to a struct defining the remote configuration schema
+//   - endpoints: List of service endpoint descriptors for cluster discovery
+//   - transport: Transport type (e.g., cluster.HttpTransport or cluster.GrpcTransport)
+//
+// Returns a fully initialized Bootstrap instance with:
+//   - Application context and logging
+//   - Sentry error reporting
+//   - Cluster client for coordination
+//   - Remote configuration management
+//   - Infrastructure server with metrics and health endpoints
+//
+// The function automatically detects the deployment mode (dev/offline) and
+// configures the application accordingly. In case of initialization errors,
+// the function logs a fatal error and terminates the application.
+//
+// Example:
+//
+//	boot := bootstrap.New(
+//	    "1.2.3",
+//	    &MyRemoteConfig{},
+//	    []cluster.EndpointDescriptor{
+//	        {Path: "/api/v1", HttpMethod: "GET"},
+//	    },
+//	    cluster.HttpTransport,
+//	)
 func New(
 	moduleVersion string,
 	remoteConfig any,
