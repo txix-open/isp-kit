@@ -1,3 +1,4 @@
+// Package batch_handler provides batch message processing for RabbitMQ consumers.
 package batch_handler
 
 import (
@@ -8,6 +9,8 @@ import (
 	"github.com/txix-open/grmq/consumer"
 )
 
+// Handler accumulates messages and processes them in batches.
+// It triggers processing when the batch reaches maxSize or when the purgeInterval elapses.
 type Handler struct {
 	adapter       SyncHandlerAdapter
 	purgeInterval time.Duration
@@ -19,6 +22,7 @@ type Handler struct {
 	lock          sync.Locker
 }
 
+// New creates a new batch handler with the specified adapter, purge interval, and max batch size.
 func New(adapter SyncHandlerAdapter, purgeInterval time.Duration, maxSize int) *Handler {
 	return &Handler{
 		adapter:       adapter,
@@ -30,6 +34,8 @@ func New(adapter SyncHandlerAdapter, purgeInterval time.Duration, maxSize int) *
 	}
 }
 
+// Handle adds a message to the batch and triggers processing if needed.
+// If the handler is closed, the message is negatively acknowledged.
 func (r *Handler) Handle(ctx context.Context, delivery *consumer.Delivery) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
@@ -48,6 +54,7 @@ func (r *Handler) Handle(ctx context.Context, delivery *consumer.Delivery) {
 	}
 }
 
+// Close stops the batch handler and prevents further message processing.
 func (r *Handler) Close() {
 	r.lock.Lock()
 	defer r.lock.Unlock()
@@ -56,6 +63,7 @@ func (r *Handler) Close() {
 	close(r.c)
 }
 
+// run is the main processing loop that accumulates messages and triggers batch processing.
 func (r *Handler) run() {
 	var timer *time.Timer
 	defer func() {
