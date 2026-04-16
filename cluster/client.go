@@ -1,3 +1,17 @@
+// Package cluster provides client-side functionality for connecting to a isp-config-service
+// in a distributed system. It handles session management, event-driven configuration updates,
+// and module dependency management.
+//
+// The package uses the ETP (Event Transport Protocol) for communication and supports
+// automatic load balancing, liveness probing, and graceful reconnection.
+//
+// Basic usage:
+//
+//	client := cluster.NewClient(moduleInfo, configData, hosts, timeout, logger)
+//	eventHandler := cluster.NewEventHandler().
+//		RemoteConfigReceiver(myReceiver).
+//		RoutesReceiver(myRoutesReceiver)
+//	err := client.Run(ctx, eventHandler)
 package cluster
 
 import (
@@ -9,10 +23,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/txix-open/etp/v4"
 	"github.com/txix-open/isp-kit/json"
-
-	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/lb"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/requestid"
@@ -30,6 +43,8 @@ const (
 	etpClientReadLimit = 4 * 1024 * 1024
 )
 
+// Client manages the connection to a isp-config-service, handling session lifecycle,
+// event processing, and automatic reconnection.
 type Client struct {
 	moduleInfo          ModuleInfo
 	configData          ConfigData
@@ -44,6 +59,8 @@ type Client struct {
 	cli *atomic.Pointer[clientWrapper]
 }
 
+// NewClient creates a new Client with the provided module information, configuration data,
+// list of hosts, timeout duration, and logger.
 func NewClient(
 	moduleInfo ModuleInfo,
 	configData ConfigData,
@@ -63,6 +80,9 @@ func NewClient(
 	}
 }
 
+// Run starts the client's main loop, establishing a connection to the isp-config-service
+// and handling events through the provided event handler. It blocks until the context is
+// canceled or the client is closed.
 func (c *Client) Run(ctx context.Context, eventHandler *EventHandler) error {
 	if c.handleConfigTimeout != 0 {
 		eventHandler.handleConfigTimeout = c.handleConfigTimeout
@@ -105,6 +125,7 @@ func (c *Client) Run(ctx context.Context, eventHandler *EventHandler) error {
 	}
 }
 
+// Close terminates the client and releases associated resources.
 func (c *Client) Close() error {
 	c.closed.Store(true)
 	cli := c.cli.Load()
@@ -114,6 +135,7 @@ func (c *Client) Close() error {
 	return nil
 }
 
+// Healthcheck returns an error if the session is inactive, otherwise returns nil.
 func (c *Client) Healthcheck(ctx context.Context) error {
 	if c.sessionIsActive.Load() {
 		return nil
@@ -121,6 +143,7 @@ func (c *Client) Healthcheck(ctx context.Context) error {
 	return errors.New("session inactive")
 }
 
+// runSession establishes and manages a single session with the isp-config-service.
 func (c *Client) runSession(ctx context.Context, host string) error {
 	defer c.sessionIsActive.Store(false)
 
@@ -172,6 +195,7 @@ func (c *Client) runSession(ctx context.Context, host string) error {
 	return err
 }
 
+// subscribeToEvents registers handlers for configuration and routing events.
 func (c *Client) subscribeToEvents(cli *clientWrapper) chan error {
 	for moduleName, upgrader := range c.eventHandler.requiredModules {
 		event := ModuleConnectedEvent(moduleName)
@@ -202,6 +226,7 @@ func (c *Client) subscribeToEvents(cli *clientWrapper) chan error {
 	return disconnectCh
 }
 
+// dialClientWrapper establishes a WebSocket connection to the isp-config-service.
 func (c *Client) dialClientWrapper(ctx context.Context, cli *clientWrapper, host string) error {
 	connUrl, err := url.Parse(fmt.Sprintf("ws://%s/isp-etp/", host))
 	if err != nil {
@@ -218,6 +243,7 @@ func (c *Client) dialClientWrapper(ctx context.Context, cli *clientWrapper, host
 	return nil
 }
 
+// remoteConfigEventHandler processes incoming remote configuration updates.
 func (c *Client) remoteConfigEventHandler(eventId string, data []byte) error {
 	c.applyConfigLock.Lock()
 	defer c.applyConfigLock.Unlock()
@@ -234,6 +260,7 @@ func (c *Client) remoteConfigEventHandler(eventId string, data []byte) error {
 	return nil
 }
 
+// routesEventHandler processes incoming routing configuration updates.
 func (c *Client) routesEventHandler(eventId string, data []byte) error {
 	cli := c.cli.Load()
 
@@ -248,6 +275,8 @@ func (c *Client) routesEventHandler(eventId string, data []byte) error {
 	return nil
 }
 
+// waitModuleReady waits for all required modules and optional events (routes, config)
+// to be ready, with individual timeouts for each.
 func (c *Client) waitModuleReady(ctx context.Context, cli *clientWrapper, requirements ModuleRequirements) error {
 	awaitEvents := make(map[string]time.Duration, len(requirements.RequiredModules)+1)
 	if requirements.RequireRoutes {
@@ -270,6 +299,8 @@ func (c *Client) waitModuleReady(ctx context.Context, cli *clientWrapper, requir
 	return nil
 }
 
+// notifyModuleReady sends a ModuleReady event to the isp-config-service, announcing
+// the module's availability and its dependencies.
 func (c *Client) notifyModuleReady(ctx context.Context, cli *clientWrapper, requirements ModuleRequirements) error {
 	moduleDependencies := make([]ModuleDependency, 0, len(requirements.RequiredModules))
 	for _, module := range requirements.RequiredModules {
@@ -297,6 +328,7 @@ func (c *Client) notifyModuleReady(ctx context.Context, cli *clientWrapper, requ
 	return nil
 }
 
+// applyRemoteConfig applies a remote configuration update with the configured timeout.
 func (c *Client) applyRemoteConfig(ctx context.Context, config []byte) error {
 	ctx, cancel := context.WithTimeout(ctx, c.eventHandler.handleConfigTimeout)
 	defer cancel()
@@ -314,6 +346,8 @@ func (c *Client) applyRemoteConfig(ctx context.Context, config []byte) error {
 	}
 }
 
+// livenessProbeLoop periodically sends ping requests to verify the connection to the
+// isp-config-service is still alive.
 func (c *Client) livenessProbeLoop(ctx context.Context) {
 	for {
 		cli := c.cli.Load()
@@ -337,6 +371,7 @@ func (c *Client) livenessProbeLoop(ctx context.Context) {
 	}
 }
 
+// readRoutes unmarshals JSON data into a RoutingConfig.
 func readRoutes(data []byte) (RoutingConfig, error) {
 	var routes RoutingConfig
 	err := json.Unmarshal(data, &routes)
@@ -346,6 +381,7 @@ func readRoutes(data []byte) (RoutingConfig, error) {
 	return routes, nil
 }
 
+// readHosts unmarshals JSON data into a list of host addresses.
 func readHosts(data []byte) ([]string, error) {
 	addresses := make([]AddressConfiguration, 0)
 	err := json.Unmarshal(data, &addresses)
