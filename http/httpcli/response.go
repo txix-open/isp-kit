@@ -7,6 +7,7 @@ import (
 	"net/http"
 )
 
+// Response wraps an http.Response with buffering and lifecycle management.
 type Response struct {
 	Raw *http.Response
 
@@ -16,6 +17,8 @@ type Response struct {
 	buff   *bytes.Buffer
 }
 
+// ReadingResponseMetricHook is a context key for hooks that are called when
+// the response body is fully read. Used for metrics collection.
 type ReadingResponseMetricHook struct{}
 
 // nolint:gochecknoglobals
@@ -23,10 +26,13 @@ var (
 	ReadingResponseMetricHookKey = ReadingResponseMetricHook{}
 )
 
-// UnsafeBody
-// Read and return full response body
-// Be careful, after calling Close returned data is no longer available
-// Do not call close or copy slice if you want to use data outside the calling function
+// UnsafeBody reads and returns the full response body as bytes.
+//
+// After calling Close(), the returned data is no longer valid.
+// Use BodyCopy() if you need the data after calling Close().
+//
+// Do not call Close() or modify the returned slice if you want to use
+// the data outside the current scope.
 func (r *Response) UnsafeBody() ([]byte, error) {
 	if r.err != nil {
 		return nil, r.err
@@ -55,9 +61,11 @@ func (r *Response) UnsafeBody() ([]byte, error) {
 	return r.body, nil
 }
 
-// Close
-// Release all resources associated with Response (buffer, tcp connection, context)
-// After call, bytes slice returned by Body can not be used
+// Close releases all resources associated with the Response, including buffers,
+// TCP connections, and context.
+//
+// After calling Close(), any bytes slice returned by UnsafeBody() or BodyCopy()
+// should not be accessed.
 func (r *Response) Close() {
 	if r.cancel != nil {
 		r.cancel()
@@ -70,17 +78,19 @@ func (r *Response) Close() {
 	releaseBuffer(r.buff)
 }
 
+// IsSuccess returns true if the response status code is in the 2xx range.
 func (r *Response) IsSuccess() bool {
 	return r.StatusCode() >= http.StatusOK && r.StatusCode() < http.StatusMultipleChoices
 }
 
+// StatusCode returns the HTTP status code of the response.
 func (r *Response) StatusCode() int {
 	return r.Raw.StatusCode
 }
 
-// BodyCopy
-// Return copy of response body
-// Slice is available after calling Close
+// BodyCopy returns a copy of the response body as bytes.
+//
+// The returned slice remains valid even after calling Close().
 func (r *Response) BodyCopy() ([]byte, error) {
 	body, err := r.UnsafeBody()
 	if err != nil {

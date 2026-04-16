@@ -8,11 +8,15 @@ import (
 	"github.com/pkg/errors"
 )
 
+// param represents a function parameter that can be built from the request context.
 type param struct {
 	index   int
 	builder ParamBuilder
 }
 
+// Caller uses reflection to wrap arbitrary functions as HTTP handlers.
+// It automatically extracts request body, builds parameters from the context,
+// and maps return values to the response.
 type Caller struct {
 	bodyExtractor RequestBodyExtractor
 	bodyMapper    ResponseBodyMapper
@@ -28,6 +32,9 @@ type Caller struct {
 	errorIndex int
 }
 
+// NewCaller creates a new Caller that wraps the provided function.
+// It analyzes the function signature and configures parameter extraction and result mapping.
+// Returns an error if the provided value is not a function or has invalid parameter types.
 func NewCaller(
 	f any,
 	bodyExtractor RequestBodyExtractor,
@@ -81,6 +88,8 @@ func NewCaller(
 	}, nil
 }
 
+// Handle invokes the wrapped function with extracted parameters and maps the result.
+// It returns an error if parameter extraction fails or the function returns an error.
 func (h *Caller) Handle(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	args := make([]reflect.Value, h.paramsCount)
 
@@ -103,9 +112,6 @@ func (h *Caller) Handle(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	out := h.handler.Call(args)
 
 	if h.hasError && !out[h.errorIndex].IsNil() {
-		// Приведение к error безопасно:
-		// 1) hasError == true → функция возвращает последним аргументом error
-		// 2) проверка errVal != nil исключает typed-nil
 		return out[h.errorIndex].Interface().(error) // nolint:forcetypeassert
 	}
 

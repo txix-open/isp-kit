@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+// ClientTracer collects detailed timing information for HTTP client operations.
+//
+// It implements the httptrace.ClientTrace interface to measure DNS lookup,
+// connection establishment, request writing, and response reading durations.
 type ClientTracer struct {
 	clientStorage              *metrics.ClientStorage
 	connEstablishmentStartTime time.Time
@@ -15,6 +19,7 @@ type ClientTracer struct {
 	endpoint                   string
 }
 
+// NewClientTracer creates a new ClientTracer for the given endpoint.
 func NewClientTracer(clientStorage *metrics.ClientStorage, endpoint string) *ClientTracer {
 	return &ClientTracer{
 		clientStorage: clientStorage,
@@ -22,6 +27,8 @@ func NewClientTracer(clientStorage *metrics.ClientStorage, endpoint string) *Cli
 	}
 }
 
+// ClientTrace returns an httptrace.ClientTrace that records timing metrics
+// for the various phases of an HTTP request.
 func (cli *ClientTracer) ClientTrace() *httptrace.ClientTrace {
 	tracingCli := httptrace.ClientTrace{
 		DNSStart: func(info httptrace.DNSStartInfo) {
@@ -66,6 +73,9 @@ func (cli *ClientTracer) ClientTrace() *httptrace.ClientTrace {
 	return &tracingCli
 }
 
+// ResponseReceived is called when the response body has been fully read.
+//
+// Records the duration of response reading.
 func (cli *ClientTracer) ResponseReceived() {
 	if cli.responseReadingStartTime.IsZero() {
 		return
