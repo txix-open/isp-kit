@@ -10,6 +10,11 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+// Default creates a Client with pre-configured middleware for observability.
+// Includes request ID propagation, metrics collection, and distributed tracing.
+// Uses insecure transport by default (suitable for development and testing).
+// Accepts additional middleware to be appended after the default ones.
+// Returns an error if the client cannot be initialized.
 func Default(restMiddlewares ...request.Middleware) (*Client, error) {
 	middlewares := append(
 		[]request.Middleware{

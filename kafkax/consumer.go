@@ -18,6 +18,7 @@ const (
 	defaultMaxBatchSizeMb = 64
 )
 
+// ConsumerConfig holds configuration for a Kafka consumer.
 type ConsumerConfig struct {
 	Addresses         []string `validate:"required" schema:"Список адресов брокеров для чтения сообщений"`
 	Topic             string   `validate:"required" schema:"Топик"`
@@ -31,6 +32,8 @@ type ConsumerConfig struct {
 	MetricConsumerId  *string  `schema:"Идентификатор консьюмера в метриках, при отсутствии метрики не отправляются"`
 }
 
+// GetMaxBatchSizeMb returns the maximum batch size in MB. Returns 64MB by
+// default if not configured or set to a non-positive value.
 func (c ConsumerConfig) GetMaxBatchSizeMb() int32 {
 	if c.MaxBatchSizeMb <= 0 {
 		return defaultMaxBatchSizeMb
@@ -39,6 +42,8 @@ func (c ConsumerConfig) GetMaxBatchSizeMb() int32 {
 	return c.MaxBatchSizeMb
 }
 
+// GetCommitInterval returns the auto-commit interval duration. Returns 1 second
+// by default if not configured.
 func (c ConsumerConfig) GetCommitInterval() time.Duration {
 	if c.CommitIntervalSec == nil {
 		return 1 * time.Second
@@ -47,6 +52,8 @@ func (c ConsumerConfig) GetCommitInterval() time.Duration {
 	return time.Duration(*c.CommitIntervalSec) * time.Second
 }
 
+// GetDialTimeout returns the dial timeout duration. Returns 5 seconds by
+// default if not configured.
 func (c ConsumerConfig) GetDialTimeout() time.Duration {
 	if c.DialTimeoutMs == nil {
 		return defaultDialTimeout
@@ -54,6 +61,9 @@ func (c ConsumerConfig) GetDialTimeout() time.Duration {
 	return time.Duration(*c.DialTimeoutMs) * time.Millisecond
 }
 
+// DefaultConsumer creates a new consumer with default configuration, including
+// built-in request ID middleware and log observer. Additional middlewares can
+// be provided via restMiddlewares.
 func (c ConsumerConfig) DefaultConsumer(
 	logCtx context.Context,
 	logger log.Logger,

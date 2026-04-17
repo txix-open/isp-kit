@@ -1,3 +1,4 @@
+// Package publisher provides functionality for publishing messages to a STOMP broker.
 package publisher
 
 import (
@@ -10,24 +11,34 @@ import (
 	"github.com/txix-open/isp-kit/stompx/consumer"
 )
 
+// Middleware is a function that wraps a RoundTripper with additional functionality.
 type Middleware func(next RoundTripper) RoundTripper
 
+// RoundTripper defines the interface for publishing messages.
 type RoundTripper interface {
 	Publish(ctx context.Context, queue string, msg *Message) error
 }
 
+// RoundTripperFunc is an adapter type that allows using functions as round trippers.
 type RoundTripperFunc func(ctx context.Context, queue string, msg *Message) error
 
+// Publish calls the underlying function.
 func (f RoundTripperFunc) Publish(ctx context.Context, queue string, msg *Message) error {
 	return f(ctx, queue, msg)
 }
 
+// PublishOption is a function type for configuring message publication.
 type PublishOption = func(*frame.Frame) error
 
+// Publisher manages a connection to a STOMP broker for publishing messages.
 type Publisher struct {
-	Address     string
-	Queue       string
-	ConnOpts    []consumer.ConnOption
+	// Address is the broker address.
+	Address string
+	// Queue is the default queue name to publish to.
+	Queue string
+	// ConnOpts are connection options.
+	ConnOpts []consumer.ConnOption
+	// Middlewares are middleware functions applied to the round tripper.
 	Middlewares []Middleware
 
 	roundTripper RoundTripper
@@ -35,6 +46,7 @@ type Publisher struct {
 	conn         *stomp.Conn
 }
 
+// NewPublisher creates a new Publisher with the provided configuration options.
 func NewPublisher(address string, queue string, opts ...Option) *Publisher {
 	p := &Publisher{
 		Address: address,
@@ -54,14 +66,17 @@ func NewPublisher(address string, queue string, opts ...Option) *Publisher {
 	return p
 }
 
+// Publish sends a message to the default queue configured for this publisher.
 func (p *Publisher) Publish(ctx context.Context, msg *Message) error {
 	return p.PublishTo(ctx, p.Queue, msg)
 }
 
+// PublishTo sends a message to the specified queue.
 func (p *Publisher) PublishTo(ctx context.Context, queue string, msg *Message) error {
 	return p.roundTripper.Publish(ctx, queue, msg)
 }
 
+// Close disconnects the publisher from the broker.
 func (p *Publisher) Close() error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -76,6 +91,7 @@ func (p *Publisher) Close() error {
 	return nil
 }
 
+// Healthcheck verifies that the publisher can connect to the broker.
 func (p *Publisher) Healthcheck(ctx context.Context) error {
 	if len(p.Address) == 0 {
 		return errors.New("publisher is not initialized")

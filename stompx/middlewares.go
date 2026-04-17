@@ -9,6 +9,7 @@ import (
 	"github.com/txix-open/isp-kit/stompx/publisher"
 )
 
+// PublisherPersistent adds a `persistent=true` header to all outgoing messages.
 func PublisherPersistent() publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
 		return publisher.RoundTripperFunc(func(ctx context.Context, queue string, msg *publisher.Message) error {
@@ -18,6 +19,7 @@ func PublisherPersistent() publisher.Middleware {
 	}
 }
 
+// PublisherLog logs message publishing events.
 func PublisherLog(logger log.Logger, logBody bool) publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
 		return publisher.RoundTripperFunc(func(ctx context.Context, queue string, msg *publisher.Message) error {
@@ -38,6 +40,7 @@ func PublisherLog(logger log.Logger, logBody bool) publisher.Middleware {
 	}
 }
 
+// PublisherRequestId adds a Request-Id to message headers.
 func PublisherRequestId() publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
 		return publisher.RoundTripperFunc(func(ctx context.Context, queue string, msg *publisher.Message) error {
@@ -51,12 +54,13 @@ func PublisherRequestId() publisher.Middleware {
 	}
 }
 
+// Retrier defines an interface for retrying operations.
 type Retrier interface {
 	Do(ctx context.Context, f func() error) error
 }
 
 // PublisherRetry creates a middleware for retrying message publications.
-// It is recommended to use this middleware after logging,
+// It is recommended to use this middleware after logging middleware
 // to avoid duplicate logging of publication attempts.
 func PublisherRetry(retrier Retrier) publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
@@ -68,6 +72,7 @@ func PublisherRetry(retrier Retrier) publisher.Middleware {
 	}
 }
 
+// ConsumerLog logs incoming message consumption.
 func ConsumerLog(logger log.Logger, logBody bool) consumer.Middleware {
 	return func(next consumer.Handler) consumer.Handler {
 		return consumer.HandlerFunc(func(ctx context.Context, delivery *consumer.Delivery) {
@@ -88,6 +93,7 @@ func ConsumerLog(logger log.Logger, logBody bool) consumer.Middleware {
 	}
 }
 
+// ConsumerRequestId extracts or generates a Request-Id and saves it in the request context.
 func ConsumerRequestId() consumer.Middleware {
 	return func(next consumer.Handler) consumer.Handler {
 		return consumer.HandlerFunc(func(ctx context.Context, delivery *consumer.Delivery) {

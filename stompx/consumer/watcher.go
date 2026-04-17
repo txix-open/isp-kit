@@ -9,6 +9,7 @@ import (
 	"go.uber.org/atomic"
 )
 
+// Watcher manages the lifecycle of a consumer with automatic reconnection support.
 type Watcher struct {
 	config        Config
 	close         chan struct{}
@@ -18,6 +19,7 @@ type Watcher struct {
 	alive         *atomic.Bool
 }
 
+// NewWatcher creates a new Watcher with the provided configuration.
 func NewWatcher(config Config) *Watcher {
 	mustReconnect := &atomic.Bool{}
 	mustReconnect.Store(true)
@@ -32,6 +34,8 @@ func NewWatcher(config Config) *Watcher {
 	}
 }
 
+// Run starts the consumer and blocks until it is ready or an error occurs.
+// It returns the first error encountered during session initialization.
 func (w *Watcher) Run(ctx context.Context) error {
 	firstSessionErr := make(chan error, 1)
 	go w.run(ctx, firstSessionErr)
@@ -47,18 +51,19 @@ func (w *Watcher) Run(ctx context.Context) error {
 	}
 }
 
+// Serve starts the consumer and returns immediately, allowing message processing to continue.
 func (w *Watcher) Serve(ctx context.Context) {
 	firstSessionErr := make(chan error, 1)
 	go w.run(ctx, firstSessionErr)
 }
 
-// Shutdown
-// Perform graceful shutdown
+// Shutdown performs a graceful shutdown, waiting for all operations to complete.
 func (w *Watcher) Shutdown() {
 	close(w.close)
 	<-w.shutdownDone
 }
 
+// Healthcheck returns an error if the watcher is not receiving messages.
 func (w *Watcher) Healthcheck(ctx context.Context) error {
 	if w.alive.Load() {
 		return nil
@@ -99,7 +104,6 @@ func (w *Watcher) run(ctx context.Context, firstSessionErr chan error) {
 	}
 }
 
-// nolint:nonamedreturns
 func (w *Watcher) runSession(firstSessionErr chan error) (err error) {
 	defer func() {
 		if err != nil {

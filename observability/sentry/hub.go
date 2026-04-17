@@ -1,3 +1,33 @@
+// Package sentry provides integration with Sentry for error tracking and event monitoring.
+//
+// This package wraps the Sentry Go SDK to provide a simple interface for capturing errors
+// and events from your application. It includes support for log integration, event enrichment,
+// and graceful fallback when Sentry is disabled.
+//
+// # Basic Usage
+//
+// Create a hub from configuration:
+//
+//	hub, err := sentry.NewHubFromConfiguration(sentry.Config{
+//		Enable:        true,
+//		Dsn:           "your-sentry-dsn",
+//		ModuleName:    "my-service",
+//		ModuleVersion: "v1.0.0",
+//		Environment:   "production",
+//	})
+//
+// Wrap a logger to automatically capture log events:
+//
+//	logger := sentry.WrapErrorLogger(log.Default(), hub)
+//	logger.Error(ctx, "something went wrong", log.String("key", "value"))
+//
+// # Event Enrichment
+//
+// You can enrich events with custom context using EnrichEvent:
+//
+//	ctx := sentry.EnrichEvent(ctx, func(event *sentry.Event) {
+//		event.Tags["custom-tag"] = "custom-value"
+//	})
 package sentry
 
 import (
@@ -12,17 +42,25 @@ import (
 )
 
 const (
+	// RequestIdKey is the key used to store the request ID in event extra data.
 	RequestIdKey = "requestId"
 
+	// defaultTransportTimeout is the timeout for sending events to Sentry.
 	defaultTransportTimeout = 3 * time.Second
-	defaultEventBufferSize  = 10
+	// defaultEventBufferSize is the buffer size for the Sentry transport.
+	defaultEventBufferSize = 10
 )
 
+// SdkHub is the concrete implementation of the Hub interface using the Sentry Go SDK.
 type SdkHub struct {
 	hub *sentry.Hub
 }
 
-// nolint:ireturn
+// NewHubFromConfiguration creates a new Hub from the provided configuration.
+// If Enable is false, it returns a NoopHub that discards all events.
+// Returns an error if Dsn is empty when Enable is true.
+//
+// The created Hub is safe for concurrent use.
 func NewHubFromConfiguration(config Config) (Hub, error) {
 	if !config.Enable {
 		return NewNoopHub(), nil
@@ -78,6 +116,9 @@ func NewHubFromConfiguration(config Config) (Hub, error) {
 	}, nil
 }
 
+// CatchError captures an error with the specified log level.
+// It maps the log level to a Sentry level and extracts the error stack trace.
+// If a request ID is present in the context, it is added to the event.
 func (s SdkHub) CatchError(ctx context.Context, err error, level log.Level) {
 	eventLevel := sentry.LevelError
 	levelFromMapping, ok := logLevelMapping[level]
@@ -101,10 +142,14 @@ func (s SdkHub) CatchError(ctx context.Context, err error, level log.Level) {
 	s.CatchEvent(ctx, event)
 }
 
+// CatchEvent captures a Sentry event directly.
+// The event is sent asynchronously to Sentry.
 func (s SdkHub) CatchEvent(ctx context.Context, event *sentry.Event) {
 	s.hub.CaptureEvent(event)
 }
 
+// Flush waits for all buffered events to be sent to Sentry.
+// It blocks until the transport timeout or until all events are sent.
 func (s SdkHub) Flush() {
 	s.hub.Flush(defaultTransportTimeout)
 }

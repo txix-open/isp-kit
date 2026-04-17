@@ -1,3 +1,6 @@
+// Package grpclog provides logging middleware for gRPC server handlers.
+// It supports request/response body logging with configurable granularity
+// and automatic inclusion of application context from metadata.
 package grpclog
 
 import (
@@ -11,12 +14,16 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+// logConfig holds logging configuration for server middleware.
 type logConfig struct {
 	logRequestBody  bool
 	logResponseBody bool
 	combinedLog     bool
 }
 
+// Log creates a middleware that logs gRPC server requests and responses separately.
+// When logBody is true, request and response bodies are included in the logs.
+// Logs at Debug level for requests and responses.
 func Log(logger log.Logger, logBody bool) grpc.Middleware {
 	cfg := &logConfig{
 		logRequestBody:  logBody,
@@ -25,6 +32,9 @@ func Log(logger log.Logger, logBody bool) grpc.Middleware {
 	return middleware(logger, cfg)
 }
 
+// CombinedLog creates a middleware that logs gRPC server requests and responses in a single entry.
+// When logBody is true, request and response bodies are included in the logs.
+// Includes application context (name and ID) from metadata.
 func CombinedLog(logger log.Logger, logBody bool) grpc.Middleware {
 	cfg := &logConfig{
 		logRequestBody:  logBody,
@@ -33,6 +43,8 @@ func CombinedLog(logger log.Logger, logBody bool) grpc.Middleware {
 	return combinedLogMiddleware(logger, cfg)
 }
 
+// LogWithOptions creates a middleware that logs gRPC server requests and responses with custom options.
+// Provides fine-grained control over what is logged (request body, response body, combined logs).
 func LogWithOptions(logger log.Logger, opts ...Option) grpc.Middleware {
 	cfg := &logConfig{
 		logRequestBody:  false,
@@ -47,6 +59,7 @@ func LogWithOptions(logger log.Logger, opts ...Option) grpc.Middleware {
 	return middleware(logger, cfg)
 }
 
+// middleware implements request/response logging with separate log entries.
 func middleware(logger log.Logger, cfg *logConfig) grpc.Middleware {
 	return func(next grpc.HandlerFunc) grpc.HandlerFunc {
 		return func(ctx context.Context, message *isp.Message) (*isp.Message, error) {
@@ -77,6 +90,7 @@ func middleware(logger log.Logger, cfg *logConfig) grpc.Middleware {
 	}
 }
 
+// combinedLogMiddleware implements logging with a single combined log entry.
 func combinedLogMiddleware(logger log.Logger, cfg *logConfig) grpc.Middleware {
 	return func(next grpc.HandlerFunc) grpc.HandlerFunc {
 		return func(ctx context.Context, message *isp.Message) (*isp.Message, error) {
@@ -107,6 +121,8 @@ func combinedLogMiddleware(logger log.Logger, cfg *logConfig) grpc.Middleware {
 	}
 }
 
+// applicationLogFields extracts application context from gRPC metadata.
+// Returns application name (decoded from base64) and application ID if available.
 func applicationLogFields(ctx context.Context) []log.Field {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {

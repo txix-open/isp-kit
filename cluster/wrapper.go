@@ -5,26 +5,29 @@ import (
 	"sync"
 	"time"
 
-	"github.com/txix-open/etp/v4"
-	"github.com/txix-open/isp-kit/requestid"
-
 	"github.com/pkg/errors"
+	"github.com/txix-open/etp/v4"
 	"github.com/txix-open/etp/v4/msg"
 	"github.com/txix-open/isp-kit/json"
 	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/requestid"
 )
 
 const (
-	EventIdContextKey  = "eventId"
+	// EventIdContextKey is the context key used for event IDs.
+	EventIdContextKey = "eventId"
+	// emitWithAckTimeout is the default timeout for emit-with-ack operations.
 	emitWithAckTimeout = 1 * time.Second
 )
 
+// eventFuture tracks pending event responses.
 type eventFuture struct {
 	responseCh chan []byte
 	errorCh    chan error
 }
 
-// nolint:containedctx
+// clientWrapper wraps an ETP client with additional functionality for event handling,
+// logging, and secret masking.
 type clientWrapper struct {
 	cli             *etp.Client
 	errorConnChan   chan []byte
@@ -34,6 +37,7 @@ type clientWrapper struct {
 	logger          log.Logger
 }
 
+// newClientWrapper creates a new clientWrapper with the provided context, ETP client, and logger.
 func newClientWrapper(ctx context.Context, cli *etp.Client, logger log.Logger) *clientWrapper {
 	w := &clientWrapper{
 		cli:    cli,
@@ -54,6 +58,8 @@ func newClientWrapper(ctx context.Context, cli *etp.Client, logger log.Logger) *
 	return w
 }
 
+// EmitJsonWithAck marshals data to JSON and emits an event with acknowledgment, returning
+// the response or an error.
 func (w *clientWrapper) EmitJsonWithAck(ctx context.Context, event string, data any) ([]byte, error) {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
@@ -67,6 +73,7 @@ func (w *clientWrapper) EmitJsonWithAck(ctx context.Context, event string, data 
 	return resp, nil
 }
 
+// EmitWithAck sends an event and waits for an acknowledgment, logging the event and response.
 func (w *clientWrapper) EmitWithAck(ctx context.Context, event string, data []byte) ([]byte, error) {
 	ctx = log.ToContext(ctx, log.String("event", event))
 	w.logger.Info(
@@ -88,6 +95,8 @@ func (w *clientWrapper) EmitWithAck(ctx context.Context, event string, data []by
 	return resp, nil
 }
 
+// RegisterEvent registers a handler for a specific event. The handler will be called
+// when the event is received, and the event future is used to track the response.
 func (w *clientWrapper) RegisterEvent(event string, handler func(string, []byte) error) {
 	future := eventFuture{
 		errorCh:    make(chan error, 1),
@@ -110,6 +119,8 @@ func (w *clientWrapper) RegisterEvent(event string, handler func(string, []byte)
 	})
 }
 
+// AwaitEvent waits for a registered event to be received within the specified timeout.
+// Returns an error if the event is not registered or the timeout is exceeded.
 func (w *clientWrapper) AwaitEvent(ctx context.Context, event string, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
@@ -134,22 +145,28 @@ func (w *clientWrapper) AwaitEvent(ctx context.Context, event string, timeout ti
 	}
 }
 
+// Ping sends a ping request to verify the connection is alive.
 func (w *clientWrapper) Ping(ctx context.Context) error {
 	return w.cli.Ping(ctx)
 }
 
+// Close closes the underlying ETP connection.
 func (w *clientWrapper) Close() error {
 	return w.cli.Close()
 }
 
+// Dial establishes a WebSocket connection to the specified URL.
 func (w *clientWrapper) Dial(ctx context.Context, url string) error {
 	return w.cli.Dial(ctx, url)
 }
 
+// OnDisconnect registers a handler for disconnection events.
 func (w *clientWrapper) OnDisconnect(handler etp.DisconnectHandler) {
 	w.cli.OnDisconnect(handler)
 }
 
+// eventChan creates a channel for a specific event and registers a handler to forward
+// event data to the channel.
 func (w *clientWrapper) eventChan(event string) chan []byte {
 	ch := make(chan []byte, 1)
 	w.on(event, func(_ string, data []byte) {
@@ -161,6 +178,7 @@ func (w *clientWrapper) eventChan(event string) chan []byte {
 	return ch
 }
 
+// on registers a low-level event handler that forwards events to the provided handler function.
 func (w *clientWrapper) on(event string, handler func(eventId string, data []byte)) {
 	w.cli.On(event, etp.HandlerFunc(func(ctx context.Context, conn *etp.Conn, event msg.Event) []byte {
 		eventId := requestid.Next()
@@ -176,6 +194,7 @@ func (w *clientWrapper) on(event string, handler func(eventId string, data []byt
 	}))
 }
 
+// sendNonBlocking attempts to send data on a channel without blocking.
 func sendNonBlocking[T any](ch chan T, data T) {
 	select {
 	case ch <- data:

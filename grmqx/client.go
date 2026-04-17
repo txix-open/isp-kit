@@ -1,3 +1,7 @@
+// Package grmqx provides a high-level wrapper for the RabbitMQ client,
+// offering automatic topology declaration,
+// integration with metrics and tracing, flexible retry policies, and
+// contextual logging.
 package grmqx
 
 import (
@@ -13,10 +17,14 @@ import (
 )
 
 const (
-	DefaultHeartbeat   = 3 * time.Second
+	// DefaultHeartbeat specifies the default heartbeat interval for RabbitMQ connections.
+	DefaultHeartbeat = 3 * time.Second
+	// DefaultDialTimeout specifies the default timeout for establishing connections.
 	DefaultDialTimeout = 5 * time.Second
 )
 
+// Client manages RabbitMQ connections and the lifecycle of consumers and publishers.
+// It supports dynamic configuration updates and is safe for concurrent use.
 type Client struct {
 	cli     *grmq.Client
 	prevCfg Config
@@ -24,6 +32,7 @@ type Client struct {
 	logger  log.Logger
 }
 
+// New creates a new RabbitMQ client instance.
 func New(logger log.Logger) *Client {
 	return &Client{
 		cli:     nil,
@@ -33,14 +42,22 @@ func New(logger log.Logger) *Client {
 	}
 }
 
+// Upgrade updates the client configuration and synchronously initializes the client,
+// ensuring all components (consumers, publishers, declarations) are ready before returning.
+// It blocks until the first successful session is established or an error occurs.
+// Returns the first error encountered during session establishment, or nil on success.
 func (c *Client) Upgrade(ctx context.Context, config Config) error {
 	return c.upgrade(ctx, config, false)
 }
 
+// UpgradeAndServe updates the client configuration similarly to Upgrade, but does not wait
+// for the first successful session. Errors are passed to the Observer for handling with retries.
 func (c *Client) UpgradeAndServe(ctx context.Context, config Config) {
 	_ = c.upgrade(ctx, config, true)
 }
 
+// Healthcheck verifies the ability to connect to the RabbitMQ broker.
+// Returns an error if the client is not initialized or if the connection fails.
 func (c *Client) Healthcheck(ctx context.Context) error {
 	if c.prevCfg.Url == "" {
 		return errors.New("client is not initialized")
@@ -54,6 +71,7 @@ func (c *Client) Healthcheck(ctx context.Context) error {
 	return nil
 }
 
+// Close terminates all connections and stops the client.
 func (c *Client) Close() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -66,6 +84,9 @@ func (c *Client) Close() {
 	}
 }
 
+// DeleteQueues deletes the specified queues from the broker.
+// If an error occurs while deleting a specific queue, it is logged and processing
+// continues for remaining queues. Returns immediately without error if no queue names are provided.
 func (c *Client) DeleteQueues(ctx context.Context, queueNames ...string) error {
 	if len(queueNames) == 0 {
 		return nil

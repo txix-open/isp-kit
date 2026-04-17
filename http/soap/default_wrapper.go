@@ -1,3 +1,5 @@
+// Package soap provides SOAP message handling for XML-based web services.
+// It implements the SOAP 1.1 protocol with support for envelopes, headers, bodies, and faults.
 package soap
 
 import (
@@ -11,9 +13,13 @@ import (
 )
 
 const (
+	// defaultMaxRequestBodySize is the default maximum allowed SOAP request body size (64MB).
 	defaultMaxRequestBodySize = 64 * 1024 * 1024
 )
 
+// DefaultWrapper creates a pre-configured endpoint.Wrapper for SOAP services.
+// It includes request logging, metrics collection, tracing, error handling, and recovery.
+// The default maximum request body size is 64MB.
 func DefaultWrapper(logger log.Logger, logMiddleware endpoint.LogMiddleware, restMiddlewares ...http.Middleware) endpoint.Wrapper {
 	paramMappers := []endpoint.ParamMapper{
 		endpoint.ContextParam(),

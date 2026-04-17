@@ -16,20 +16,25 @@ type clientEndpointContextKey struct{}
 var (
 	clientEndpointContextKeyValue = clientEndpointContextKey{}
 
-	ipPortRegexp   = regexp.MustCompile(`\b(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(?::\d+)?\b`)
+	ipPortRegexp   = regexp.MustCompile(`\b(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b`)
 	ipv6PortRegexp = regexp.MustCompile(`\[([0-9a-fA-F:]+)\]:(\d+)`)
 	urlPattern     = regexp.MustCompile(`(https?://\S+|ftp://\S+|file://\S+|[a-zA-Z0-9_-]+\.([a-zA-Z]{2,})+\S+)`)
 )
 
+// ClientEndpointToContext stores the HTTP client endpoint name in the context.
 func ClientEndpointToContext(ctx context.Context, endpoint string) context.Context {
 	return context.WithValue(ctx, clientEndpointContextKeyValue, endpoint)
 }
 
+// ClientEndpoint retrieves the HTTP client endpoint name from the context.
+// Returns an empty string if no endpoint was set.
 func ClientEndpoint(ctx context.Context) string {
 	s, _ := ctx.Value(clientEndpointContextKeyValue).(string)
 	return s
 }
 
+// ClientStorage collects metrics for HTTP client operations, including request
+// latency, connection establishment, DNS lookup, and error counts.
 type ClientStorage struct {
 	duration          *prometheus.SummaryVec
 	dnsLookup         *prometheus.SummaryVec
@@ -41,6 +46,8 @@ type ClientStorage struct {
 	errorCounter  *prometheus.CounterVec
 }
 
+// NewClientStorage creates a new ClientStorage instance and registers its metrics
+// with the provided registry. Metrics are labeled by the client endpoint.
 func NewClientStorage(reg *metrics.Registry) *ClientStorage {
 	s := &ClientStorage{
 		duration: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
@@ -93,34 +100,44 @@ func NewClientStorage(reg *metrics.Registry) *ClientStorage {
 	return s
 }
 
+// ObserveDuration records the total duration of an HTTP client request.
 func (s *ClientStorage) ObserveDuration(endpoint string, duration time.Duration) {
 	s.duration.WithLabelValues(endpoint).Observe(metrics.Milliseconds(duration))
 }
 
+// ObserveConnEstablishment records the time taken to establish a connection.
 func (s *ClientStorage) ObserveConnEstablishment(endpoint string, duration time.Duration) {
 	s.connEstablishment.WithLabelValues(endpoint).Observe(float64(duration))
 }
 
+// ObserveRequestWriting records the time taken to write the request body.
 func (s *ClientStorage) ObserveRequestWriting(endpoint string, duration time.Duration) {
 	s.requestWriting.WithLabelValues(endpoint).Observe(float64(duration))
 }
 
+// ObserveDnsLookup records the time taken for DNS resolution.
 func (s *ClientStorage) ObserveDnsLookup(endpoint string, duration time.Duration) {
 	s.dnsLookup.WithLabelValues(endpoint).Observe(float64(duration))
 }
 
+// ObserveResponseReading records the time taken to read the response.
 func (s *ClientStorage) ObserveResponseReading(endpoint string, duration time.Duration) {
 	s.responseReading.WithLabelValues(endpoint).Observe(float64(duration))
 }
 
+// CountStatusCode increments the counter for a specific HTTP status code.
 func (s *ClientStorage) CountStatusCode(endpoint string, code int) {
 	s.statusCounter.WithLabelValues(endpoint, strconv.Itoa(code)).Inc()
 }
 
+// CountError increments the error counter for a specific error type.
+// The error message is sanitized to remove sensitive information like URLs and IPs.
 func (s *ClientStorage) CountError(endpoint string, err error) {
 	s.errorCounter.WithLabelValues(endpoint, trimError(err)).Inc()
 }
 
+// trimError sanitizes an error message by replacing URLs, IP addresses, and
+// IPv6 addresses with placeholders to avoid exposing sensitive information in metrics.
 func trimError(err error) string {
 	text := err.Error()
 	text = urlPattern.ReplaceAllString(text, "%URL%")

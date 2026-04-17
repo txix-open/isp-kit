@@ -1,3 +1,4 @@
+// Package handler provides functionality for processing STOMP messages and handling results.
 package handler
 
 import (
@@ -7,21 +8,26 @@ import (
 	"github.com/txix-open/isp-kit/stompx/consumer"
 )
 
+// HandlerAdapter defines the interface for adapting message processing logic.
 type HandlerAdapter interface {
 	Handle(ctx context.Context, msg *stomp.Message) Result
 }
 
+// AdapterFunc is an adapter type that allows using functions as handler adapters.
 type AdapterFunc func(ctx context.Context, msg *stomp.Message) Result
 
+// Handle calls the underlying function.
 func (a AdapterFunc) Handle(ctx context.Context, msg *stomp.Message) Result {
 	return a(ctx, msg)
 }
 
+// ResultHandler wraps a handler adapter with middleware support and result processing.
 type ResultHandler struct {
 	logger  log.Logger
 	adapter HandlerAdapter
 }
 
+// NewHandler creates a new ResultHandler with the provided logger, adapter, and optional middleware.
 func NewHandler(logger log.Logger, adapter HandlerAdapter, middlewares ...Middleware) ResultHandler {
 	for i := len(middlewares) - 1; i >= 0; i-- {
 		adapter = middlewares[i](adapter)
@@ -32,6 +38,7 @@ func NewHandler(logger log.Logger, adapter HandlerAdapter, middlewares ...Middle
 	}
 }
 
+// Handle processes a message delivery based on the adapter's result.
 func (r ResultHandler) Handle(ctx context.Context, delivery *consumer.Delivery) {
 	result := r.adapter.Handle(ctx, delivery.Source())
 

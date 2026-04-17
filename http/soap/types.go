@@ -8,9 +8,12 @@ import (
 )
 
 const (
+	// ContentType is the standard SOAP content type.
 	ContentType = `text/xml; charset="utf-8"`
 )
 
+// Envelope represents a SOAP envelope containing a header and body.
+// It is the root element of a SOAP message.
 type Envelope struct {
 	XMLName xml.Name `xml:"http://schemas.xmlsoap.org/soap/envelope/ Envelope"`
 
@@ -18,12 +21,15 @@ type Envelope struct {
 	Body   Body
 }
 
+// Header represents a SOAP header containing optional metadata.
 type Header struct {
 	XMLName xml.Name `xml:"http://schemas.xmlsoap.org/soap/envelope/ Header"`
 
 	Items []any `xml:",omitempty"`
 }
 
+// Body represents a SOAP body containing the message content or fault.
+// It supports both regular content and SOAP faults, with WS-I compliance validation.
 type Body struct {
 	XMLName xml.Name `xml:"http://schemas.xmlsoap.org/soap/envelope/ Body"`
 
@@ -36,7 +42,8 @@ type Body struct {
 	Fault         *Fault `xml:",omitempty"`
 }
 
-// UnmarshalXML copied from https://github.com/hooklift/gowsdl/blob/master/soap/soap.go
+// UnmarshalXML decodes a SOAP body from XML, handling both content and faults.
+// It enforces WS-I compliance by rejecting multiple elements inside the SOAP body.
 func (b *Body) UnmarshalXML(d *xml.Decoder, _ xml.StartElement) error {
 	var (
 		token    xml.Token
@@ -85,6 +92,8 @@ Loop:
 	return nil
 }
 
+// Fault represents a SOAP fault containing error information.
+// It follows the SOAP 1.1 fault structure with code, string, actor, and optional detail.
 // nolint:errname
 type Fault struct {
 	XMLName xml.Name `xml:"http://schemas.xmlsoap.org/soap/envelope/ Fault"`
@@ -95,10 +104,13 @@ type Fault struct {
 	Detail any    `xml:"detail,omitempty"`
 }
 
+// Error returns the fault string as the error message.
 func (f Fault) Error() string {
 	return f.String
 }
 
+// WriteError writes the fault as a SOAP XML response to the http.ResponseWriter.
+// It sets the Content-Type to text/xml and the HTTP status code to 500.
 func (f Fault) WriteError(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", ContentType)
 	w.WriteHeader(http.StatusInternalServerError)

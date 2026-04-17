@@ -1,3 +1,4 @@
+// Package client_tracing provides HTTP client middleware for distributed tracing.
 package client_tracing
 
 import (
@@ -16,16 +17,20 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-const (
-	tracerName = "isp-kit/observability/tracing/http"
-)
+// tracerName identifies the tracer for HTTP client tracing.
+const tracerName = "isp-kit/observability/tracing/http"
 
+// Config holds the configuration for the HTTP client tracing middleware.
 type Config struct {
-	Provider          tracing.TracerProvider
-	Propagator        tracing.Propagator
+	// Provider is the tracer provider used to create tracers.
+	Provider tracing.TracerProvider
+	// Propagator is the text map propagator for context propagation.
+	Propagator tracing.Propagator
+	// EnableHttpTracing enables detailed HTTP client tracing using otelhttptrace.
 	EnableHttpTracing bool
 }
 
+// NewConfig creates a new Config with default values.
 func NewConfig() Config {
 	return Config{
 		Provider:   tracing.DefaultProvider,
@@ -33,6 +38,9 @@ func NewConfig() Config {
 	}
 }
 
+// Middleware returns an HTTP client middleware that creates spans for outgoing requests.
+// It injects trace context into request headers, creates a client span, and records
+// response status and errors. If the provider is a no-op, it returns a pass-through middleware.
 func (c Config) Middleware() httpcli.Middleware {
 	if tracing.IsNoop(c.Provider) {
 		return func(next httpcli.RoundTripper) httpcli.RoundTripper {

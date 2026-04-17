@@ -11,6 +11,7 @@ import (
 
 const recoverMessageRetryPeriod = 15 * time.Second
 
+// ConsumerMetricStorage defines the interface for consumer metrics storage.
 type ConsumerMetricStorage interface {
 	ObserveConsumeDuration(consumerGroup, topic string, t time.Duration)
 	ObserveConsumeMsgSize(consumerGroup, topic string, size int)
@@ -18,6 +19,8 @@ type ConsumerMetricStorage interface {
 	IncRetryCount(consumerGroup, topic string)
 }
 
+// Metrics creates a middleware that records metrics for message processing,
+// including duration, message size, and commit/retry counts.
 func Metrics(metricStorage ConsumerMetricStorage) Middleware {
 	return func(next SyncHandlerAdapter) SyncHandlerAdapter {
 		return SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) Result {
@@ -42,6 +45,8 @@ func Metrics(metricStorage ConsumerMetricStorage) Middleware {
 	}
 }
 
+// Log creates a middleware that logs the outcome of message processing,
+// including whether the message was committed, retried, or skipped.
 func Log(logger log.Logger) Middleware {
 	return func(next SyncHandlerAdapter) SyncHandlerAdapter {
 		return SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) Result {
@@ -85,7 +90,10 @@ func Log(logger log.Logger) Middleware {
 	}
 }
 
-// nolint:nonamedreturns
+// Recovery creates a middleware that recovers from panics during message
+// processing. When a panic occurs, the message is marked for retry after
+// a 15-second delay. It is recommended to place this middleware early in
+// the chain to ensure all handlers are protected.
 func Recovery() Middleware {
 	return func(next SyncHandlerAdapter) SyncHandlerAdapter {
 		return SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) (res Result) {

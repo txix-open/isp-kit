@@ -18,6 +18,7 @@ const (
 	ScramTypeSHA512 = "SHA512"
 )
 
+// Auth holds authentication configuration for connecting to Kafka.
 type Auth struct {
 	Mechanism *string `validate:"oneof=SASL/PLAIN SASL/SCRAM" schema:"Механизм аутентификации может принимать значения 'SASL/PLAIN' или 'SASL/SCRAM'"`
 	ScramType *string `validate:"oneof=SHA256 SHA512" schema:"Алгоритм используемый в механизме SASL/SCRAM, может принимать значения 'SHA256' или 'SHA512'"`
@@ -25,6 +26,7 @@ type Auth struct {
 	Password  string  `validate:"required" schema:"Пароль"`
 }
 
+// TLS holds TLS configuration for secure connections to Kafka.
 type TLS struct {
 	RootCA             *string `schema:"Корневой сертификат"`
 	PrivateKey         *string `schema:"Закрытый ключ"`
@@ -32,6 +34,8 @@ type TLS struct {
 	InsecureSkipVerify bool    `schema:"Пропуск проверки сертификатов"`
 }
 
+// PlainAuth creates a SASL/PLAIN authentication mechanism from the provided
+// credentials. Returns nil if auth is nil.
 func PlainAuth(auth *Auth) sasl.Mechanism {
 	if auth == nil {
 		return nil
@@ -43,6 +47,8 @@ func PlainAuth(auth *Auth) sasl.Mechanism {
 	}.AsMechanism()
 }
 
+// ScramAuth creates a SASL/SCRAM authentication mechanism from the provided
+// credentials. Returns an error if ScramType is not configured or is invalid.
 func ScramAuth(auth *Auth) (sasl.Mechanism, error) {
 	if auth == nil {
 		return nil, nil // nolint:nilnil
@@ -67,6 +73,8 @@ func ScramAuth(auth *Auth) (sasl.Mechanism, error) {
 	}
 }
 
+// setupSASLMechanism creates the appropriate SASL mechanism based on the
+// specified mechanism type and authentication configuration.
 func setupSASLMechanism(mechanismType string, auth *Auth) (sasl.Mechanism, error) {
 	var saslMechanism sasl.Mechanism
 
@@ -86,6 +94,8 @@ func setupSASLMechanism(mechanismType string, auth *Auth) (sasl.Mechanism, error
 	return saslMechanism, nil
 }
 
+// setupTLS creates a TLS configuration from the provided TLS settings. Returns
+// nil if cfg is nil.
 func setupTLS(cfg *TLS) (*tls.Config, error) {
 	if cfg == nil {
 		return nil, nil // nolint:nilnil

@@ -5,6 +5,7 @@ import (
 	"net/url"
 )
 
+// Config holds the configuration for establishing a database connection.
 type Config struct {
 	Host        string            `validate:"required" schema:"Хост"`
 	Port        int               `validate:"required" schema:"Порт"`
@@ -16,6 +17,8 @@ type Config struct {
 	Params      map[string]string `schema:"Дополнительные параметры подключения"`
 }
 
+// Dsn generates a PostgreSQL connection string from the configuration.
+// The applicationName parameter is included as a connection parameter.
 func (c Config) Dsn(applicationName string) string {
 	u := url.URL{
 		Scheme: "postgresql",

@@ -8,17 +8,21 @@ import (
 	"strings"
 )
 
+// MultipartData holds multipart/form-data request content including files and values.
 type MultipartData struct {
 	Files  map[string]MultipartFieldFile
 	Values map[string]string
 }
 
+// MultipartFieldFile represents a single file in a multipart form.
 type MultipartFieldFile struct {
 	Headers  map[string]string
 	Filename string
 	Reader   io.ReadCloser
 }
 
+// openReader creates a pipe reader that streams the multipart form data.
+// Returns the content type and the reader.
 func (m *MultipartData) openReader() (string, io.ReadCloser) {
 	pr, pw := io.Pipe()
 	writer := multipart.NewWriter(pw)
@@ -50,6 +54,9 @@ func (m *MultipartData) openReader() (string, io.ReadCloser) {
 	return writer.FormDataContentType(), pr
 }
 
+// CreateFormFile creates a form file part in the multipart writer with custom headers.
+//
+// Sets the Content-Disposition header with the field name and filename.
 func CreateFormFile(
 	w *multipart.Writer,
 	header map[string]string,
@@ -69,6 +76,7 @@ func CreateFormFile(
 // nolint:gochecknoglobals
 var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
 
+// escapeQuotes escapes quotes and backslashes in strings for multipart form data.
 func escapeQuotes(s string) string {
 	return quoteEscaper.Replace(s)
 }

@@ -7,6 +7,8 @@ import (
 	"github.com/txix-open/isp-kit/metrics"
 )
 
+// Storage collects metrics for background job processing, including job execution
+// latency, success counts, retry counts, DLQ counts, and internal worker errors.
 type Storage struct {
 	duration           *prometheus.SummaryVec
 	dlqCount           *prometheus.CounterVec
@@ -15,6 +17,8 @@ type Storage struct {
 	internalErrorCount prometheus.Counter
 }
 
+// NewStorage creates a new Storage instance and registers its metrics with the
+// provided registry. Metrics are labeled by queue and job type.
 func NewStorage(reg *metrics.Registry) *Storage {
 	s := &Storage{
 		duration: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
@@ -47,22 +51,27 @@ func NewStorage(reg *metrics.Registry) *Storage {
 	return s
 }
 
+// ObserveExecuteDuration records the latency of executing a single job.
 func (c *Storage) ObserveExecuteDuration(queue string, jobType string, duration time.Duration) {
 	c.duration.WithLabelValues(queue, jobType).Observe(metrics.Milliseconds(duration))
 }
 
+// IncRetryCount increments the counter for retried job processing.
 func (c *Storage) IncRetryCount(queue string, jobType string) {
 	c.retryCount.WithLabelValues(queue, jobType).Inc()
 }
 
+// IncDlqCount increments the counter for jobs moved to the dead letter queue.
 func (c *Storage) IncDlqCount(queue string, jobType string) {
 	c.dlqCount.WithLabelValues(queue, jobType).Inc()
 }
 
+// IncSuccessCount increments the counter for successfully processed jobs.
 func (c *Storage) IncSuccessCount(queue string, jobType string) {
 	c.successCount.WithLabelValues(queue, jobType).Inc()
 }
 
+// IncInternalErrorCount increments the counter for internal worker errors.
 func (c *Storage) IncInternalErrorCount() {
 	c.internalErrorCount.Inc()
 }

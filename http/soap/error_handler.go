@@ -9,6 +9,9 @@ import (
 	"github.com/txix-open/isp-kit/log"
 )
 
+// ErrorHandler is a middleware that logs errors and writes SOAP fault responses.
+// It uses the error's WriteError method if available; otherwise, it returns a generic
+// server fault to hide implementation details.
 func ErrorHandler(logger log.Logger) http2.Middleware {
 	return func(next http2.HandlerFunc) http2.HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {

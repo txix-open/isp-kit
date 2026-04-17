@@ -1,3 +1,4 @@
+// Package consumer_tracing provides RabbitMQ consumer middleware for distributed tracing.
 package consumer_tracing
 
 import (
@@ -17,15 +18,18 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-const (
-	tracerName = "isp-kit/observability/tracing/rabbitmq"
-)
+// tracerName identifies the tracer for RabbitMQ consumer tracing.
+const tracerName = "isp-kit/observability/tracing/rabbitmq"
 
+// Config holds the configuration for the RabbitMQ consumer tracing middleware.
 type Config struct {
-	Provider   tracing.TracerProvider
+	// Provider is the tracer provider used to create tracers.
+	Provider tracing.TracerProvider
+	// Propagator is the text map propagator for context propagation.
 	Propagator tracing.Propagator
 }
 
+// NewConfig creates a new Config with default values.
 func NewConfig() Config {
 	return Config{
 		Provider:   tracing.DefaultProvider,
@@ -33,6 +37,10 @@ func NewConfig() Config {
 	}
 }
 
+// Middleware returns a RabbitMQ consumer middleware that creates spans for incoming messages.
+// It extracts trace context from message headers, creates a consumer span, and records
+// the processing result (ack, requeue, retry, or dlq). If the provider is a no-op,
+// it returns a pass-through middleware.
 func (c Config) Middleware() handler.Middleware {
 	if tracing.IsNoop(c.Provider) {
 		return func(next handler.SyncHandlerAdapter) handler.SyncHandlerAdapter {
@@ -62,11 +70,6 @@ func (c Config) Middleware() handler.Middleware {
 				trace.WithSpanKind(trace.SpanKindConsumer),
 				trace.WithAttributes(attributes...),
 			}
-			/*opts = append(opts, trace.WithNewRoot())
-			// Linking incoming span context if any for public endpoint.
-			if s := trace.SpanContextFromContext(ctx); s.IsValid() && s.IsRemote() {
-				opts = append(opts, trace.WithLinks(trace.Link{SpanContext: s}))
-			}*/
 
 			destination := rabbitmq.Destination(source.Exchange, source.RoutingKey)
 			spanName := fmt.Sprintf("%s deliver", destination)

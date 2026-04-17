@@ -1,3 +1,6 @@
+// Package dbx extends the db package with additional features including
+// automatic schema creation, database migrations via goose, and connection
+// pool configuration. It provides a higher-level database client for PostgreSQL.
 package dbx
 
 import (
@@ -23,10 +26,13 @@ const (
 	connMaxIdleTimeout = 90 * time.Second
 )
 
+// MigrationRunner defines the interface for running database migrations.
 type MigrationRunner interface {
 	Run(ctx context.Context, db *sql.DB, gooseOpts ...goose.ProviderOption) error
 }
 
+// Client wraps a db.Client with migration support and schema management.
+// It is safe for concurrent use.
 type Client struct {
 	*db.Client
 
@@ -36,6 +42,9 @@ type Client struct {
 	applicationName string
 }
 
+// Open establishes a connection to a PostgreSQL database using the provided configuration.
+// It applies connection pool settings, creates the schema if needed, and runs migrations.
+// Returns an error if the connection fails, schema creation fails, or migrations fail.
 // nolint:cyclop,nonamedreturns
 func Open(ctx context.Context, config Config, opts ...Option) (cli *Client, err error) {
 	cli = &Client{}
@@ -93,6 +102,8 @@ func Open(ctx context.Context, config Config, opts ...Option) (cli *Client, err 
 	return cli, nil
 }
 
+// checkSchemaExistence verifies that the specified schema exists in the database.
+// Returns an error if the schema does not exist or if the query fails.
 func checkSchemaExistence(ctx context.Context, schema string, dbCli *db.Client) error {
 	query := `SELECT EXISTS (
 		SELECT 1 FROM pg_namespace WHERE nspname = $1

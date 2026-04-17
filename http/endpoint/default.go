@@ -9,6 +9,9 @@ import (
 	"github.com/txix-open/isp-kit/validator"
 )
 
+// DefaultWrapper creates a pre-configured Wrapper with common middleware and settings.
+// It includes request logging, metrics collection, tracing, error handling, and recovery.
+// The default maximum request body size is 64MB.
 func DefaultWrapper(logger log.Logger, logMiddleware LogMiddleware, restMiddlewares ...http.Middleware) Wrapper {
 	paramMappers := []ParamMapper{
 		ContextParam(),

@@ -8,6 +8,8 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
+// ServerStorage collects metrics for gRPC server operations, including request
+// latency, request/response body sizes, and gRPC status code counts.
 type ServerStorage struct {
 	duration         *prometheus.SummaryVec
 	requestBodySize  *prometheus.SummaryVec
@@ -15,6 +17,8 @@ type ServerStorage struct {
 	statusCounter    *prometheus.CounterVec
 }
 
+// NewServerStorage creates a new ServerStorage instance and registers its metrics
+// with the provided registry. Metrics are labeled by gRPC endpoint.
 func NewServerStorage(reg *metrics.Registry) *ServerStorage {
 	s := &ServerStorage{
 		duration: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
@@ -44,18 +48,23 @@ func NewServerStorage(reg *metrics.Registry) *ServerStorage {
 	return s
 }
 
+// ObserveDuration records the latency of a gRPC request, labeled by endpoint.
 func (s *ServerStorage) ObserveDuration(endpoint string, duration time.Duration) {
 	s.duration.WithLabelValues(endpoint).Observe(metrics.Milliseconds(duration))
 }
 
+// ObserveRequestBodySize records the size of a gRPC request payload in bytes.
 func (s *ServerStorage) ObserveRequestBodySize(endpoint string, size int) {
 	s.requestBodySize.WithLabelValues(endpoint).Observe(float64(size))
 }
 
+// ObserveResponseBodySize records the size of a gRPC response payload in bytes.
 func (s *ServerStorage) ObserveResponseBodySize(endpoint string, size int) {
 	s.responseBodySize.WithLabelValues(endpoint).Observe(float64(size))
 }
 
+// CountStatusCode increments the counter for a specific gRPC status code,
+// labeled by endpoint and status code.
 func (s *ServerStorage) CountStatusCode(endpoint string, code codes.Code) {
 	s.statusCounter.WithLabelValues(endpoint, code.String()).Inc()
 }

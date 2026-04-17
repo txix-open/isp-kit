@@ -13,7 +13,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// nolint:gochecknoglobals
+// logLevelMapping maps log levels to Sentry event levels.
 var (
 	logLevelMapping = map[log.Level]sentry.Level{
 		log.FatalLevel: sentry.LevelFatal,
@@ -24,12 +24,16 @@ var (
 	}
 )
 
+// Logger wraps a log.Logger and forwards log events to Sentry.
+// It provides structured logging with automatic error capture and context enrichment.
 type Logger struct {
 	delegate        log.Logger
 	hub             Hub
 	supportedLevels map[log.Level]sentry.Level
 }
 
+// WrapErrorLogger creates a Logger that captures only error-level events.
+// It delegates all logging to the underlying logger and sends errors to Sentry.
 func WrapErrorLogger(logger log.Logger, hub Hub) Logger {
 	return WrapLogger(
 		logger,
@@ -38,6 +42,9 @@ func WrapErrorLogger(logger log.Logger, hub Hub) Logger {
 	)
 }
 
+// WrapLogger creates a Logger that captures events at the specified log levels.
+// Only the levels in supportedLevels will be forwarded to Sentry.
+// The returned Logger is safe for concurrent use.
 func WrapLogger(logger log.Logger, hub Hub, supportedLevels []log.Level) Logger {
 	levels := make(map[log.Level]sentry.Level)
 	for _, level := range supportedLevels {
@@ -51,26 +58,33 @@ func WrapLogger(logger log.Logger, hub Hub, supportedLevels []log.Level) Logger 
 	}
 }
 
+// Error logs an error message and forwards it to Sentry if ErrorLevel is supported.
+// It delegates to the underlying logger and captures the error with full context.
 func (s Logger) Error(ctx context.Context, message any, fields ...log.Field) {
 	s.delegate.Error(ctx, message, fields...)
 	s.log(log.ErrorLevel, ctx, message, fields...)
 }
 
+// Warn logs a warning message and forwards it to Sentry if WarnLevel is supported.
 func (s Logger) Warn(ctx context.Context, message any, fields ...log.Field) {
 	s.delegate.Warn(ctx, message, fields...)
 	s.log(log.WarnLevel, ctx, message, fields...)
 }
 
+// Info logs an informational message and forwards it to Sentry if InfoLevel is supported.
 func (s Logger) Info(ctx context.Context, message any, fields ...log.Field) {
 	s.delegate.Info(ctx, message, fields...)
 	s.log(log.InfoLevel, ctx, message, fields...)
 }
 
+// Debug logs a debug message and forwards it to Sentry if DebugLevel is supported.
 func (s Logger) Debug(ctx context.Context, message any, fields ...log.Field) {
 	s.delegate.Debug(ctx, message, fields...)
 	s.log(log.DebugLevel, ctx, message, fields...)
 }
 
+// log forwards a log event to Sentry if the level is supported and the hub is not a NoopHub.
+// It extracts error information from fields and enriches the event with context.
 func (s Logger) log(level log.Level, ctx context.Context, message any, fields ...log.Field) {
 	sentryLevel, isSupported := s.supportedLevels[level]
 	if !isSupported {
@@ -86,6 +100,10 @@ func (s Logger) log(level log.Level, ctx context.Context, message any, fields ..
 	s.hub.CatchEvent(ctx, event)
 }
 
+// EventFromLog creates a Sentry event from a log entry.
+// It extracts the error from the message or fields, enriches the event with context values,
+// and applies any event enrichment functions from the context.
+// The returned event includes the request ID if present in the context.
 func EventFromLog(
 	level sentry.Level,
 	ctx context.Context,
@@ -131,8 +149,9 @@ func EventFromLog(
 	return event
 }
 
-// SetException
-// Compare to sentry.Event.SetException, we don't add local stacktrace if there is no stack in error
+// SetException extracts the error chain from an error and sets it on the Sentry event.
+// Unlike the Sentry SDK's SetException, it only includes stack traces where they exist.
+// The exception list is reversed to show the root cause first.
 func SetException(e *sentry.Event, exception error) {
 	err := exception
 	if err == nil {
@@ -160,6 +179,8 @@ func SetException(e *sentry.Event, exception error) {
 }
 
 // nolint:forcetypeassert
+// fieldToAny converts a log.Field to a Go value.
+// It handles various field types including strings, booleans, times, durations, and stringers.
 func fieldToAny(field log.Field) any {
 	switch {
 	case field.String != "":
@@ -181,6 +202,8 @@ func fieldToAny(field log.Field) any {
 	}
 }
 
+// errorFromField extracts an error from a log.Field if it is an error type.
+// Returns nil if the field is not an error.
 func errorFromField(field log.Field) error {
 	if field.Type == zapcore.ErrorType {
 		return field.Interface.(error) // nolint:forcetypeassert

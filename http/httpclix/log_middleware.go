@@ -13,6 +13,7 @@ import (
 	"github.com/txix-open/isp-kit/log"
 )
 
+// logConfig holds configuration for the logging middleware.
 type logConfig struct {
 	LogRequestBody  bool
 	LogResponseBody bool
@@ -26,8 +27,11 @@ type logConfig struct {
 	CombinedLog bool
 }
 
+// LogOption is a function that configures log behavior.
 type LogOption func(*logConfig)
 
+// LogDump enables raw HTTP request/response dumping.
+// When enabled, the full HTTP request and/or response are logged including headers and body.
 func LogDump(dumpRequest bool, dumpResponse bool) LogOption {
 	return func(cfg *logConfig) {
 		cfg.LogDumpRequest = dumpRequest
@@ -35,6 +39,7 @@ func LogDump(dumpRequest bool, dumpResponse bool) LogOption {
 	}
 }
 
+// LogHeaders enables logging of HTTP request and response headers.
 func LogHeaders(requestHeaders bool, responseHeaders bool) LogOption {
 	return func(cfg *logConfig) {
 		cfg.LogHeadersRequest = requestHeaders
@@ -42,16 +47,22 @@ func LogHeaders(requestHeaders bool, responseHeaders bool) LogOption {
 	}
 }
 
+// LogCombined enables combined logging mode where all fields are logged in a single
+// log entry instead of separate request and response entries.
 func LogCombined(combinedLog bool) LogOption {
 	return func(cfg *logConfig) {
 		cfg.CombinedLog = combinedLog
 	}
 }
 
+// logConfigContextKey is the context key for per-request log configuration.
 type logConfigContextKey struct{}
 
 var logConfigContextKeyValue = logConfigContextKey{} // nolint:gochecknoglobals
 
+// LogConfigToContext creates a new context with per-request logging configuration.
+//
+// This allows overriding the default log behavior for specific requests.
 func LogConfigToContext(
 	ctx context.Context,
 	logRequestBody bool,
@@ -69,6 +80,10 @@ func LogConfigToContext(
 	return context.WithValue(ctx, logConfigContextKeyValue, cfg)
 }
 
+// Log creates a middleware that logs HTTP requests and responses with
+// sensible defaults (request body and response body enabled).
+//
+// All logs are at Debug level unless the response has an error status code.
 func Log(logger log.Logger) httpcli.Middleware {
 	cfg := &logConfig{
 		LogRequestBody:  true,
@@ -79,6 +94,11 @@ func Log(logger log.Logger) httpcli.Middleware {
 	return dynamicLogMiddleware(logger, cfg)
 }
 
+// LogWithOptions creates a middleware that logs HTTP requests and responses
+// with custom configuration.
+//
+// By default, no body content is logged. Use LogDump, LogHeaders, or other
+// options to enable specific logging features.
 func LogWithOptions(logger log.Logger, opts ...LogOption) httpcli.Middleware {
 	cfg := &logConfig{
 		LogRequestBody:  false,
@@ -92,6 +112,10 @@ func LogWithOptions(logger log.Logger, opts ...LogOption) httpcli.Middleware {
 	return dynamicLogMiddleware(logger, cfg)
 }
 
+// dynamicLogMiddleware creates a middleware that logs HTTP requests and responses
+// using the provided logger and configuration.
+//
+// Per-request configuration from context is merged with the default configuration.
 func dynamicLogMiddleware(logger log.Logger, defaultCfg *logConfig) httpcli.Middleware {
 	return func(next httpcli.RoundTripper) httpcli.RoundTripper {
 		return httpcli.RoundTripperFunc(func(ctx context.Context, request *httpcli.Request) (*httpcli.Response, error) {
@@ -105,6 +129,9 @@ func dynamicLogMiddleware(logger log.Logger, defaultCfg *logConfig) httpcli.Midd
 	}
 }
 
+// logMiddlewareHandler handles logging for HTTP requests and responses separately.
+//
+// Logs the request before execution and the response after execution.
 func logMiddlewareHandler(
 	ctx context.Context,
 	logger log.Logger,
@@ -174,6 +201,8 @@ func logMiddlewareHandler(
 	return resp, err
 }
 
+// combinedLogMiddlewareHandler handles logging for HTTP requests and responses
+// in a single combined log entry.
 func combinedLogMiddlewareHandler(
 	ctx context.Context,
 	logger log.Logger,
@@ -240,6 +269,9 @@ func combinedLogMiddlewareHandler(
 	return resp, err
 }
 
+// mergeLogConfig merges per-request log configuration from context with defaults.
+//
+// Returns the default configuration if no per-request configuration is found.
 func mergeLogConfig(ctx context.Context, defaultCfg *logConfig) logConfig {
 	configFromContext, ok := ctx.Value(logConfigContextKeyValue).(logConfig)
 	if !ok {
@@ -249,6 +281,10 @@ func mergeLogConfig(ctx context.Context, defaultCfg *logConfig) logConfig {
 	return configFromContext
 }
 
+// logResponseByStatusCode logs response information with appropriate log level
+// based on the HTTP status code.
+//
+// 5xx errors are logged as Error, 4xx as Warn, and others as Debug.
 func logResponseByStatusCode(ctx context.Context, logger log.Logger, responseFields []log.Field, resp *httpcli.Response) {
 	switch {
 	case resp.StatusCode() >= http.StatusInternalServerError:
@@ -260,6 +296,10 @@ func logResponseByStatusCode(ctx context.Context, logger log.Logger, responseFie
 	}
 }
 
+// logCombinedByStatusCode logs combined request/response information with
+// appropriate log level based on the HTTP status code.
+//
+// 5xx errors are logged as Error, 4xx as Warn, and others as Debug.
 func logCombinedByStatusCode(ctx context.Context, logger log.Logger, logFields []log.Field, resp *httpcli.Response) {
 	switch {
 	case resp.StatusCode() >= http.StatusInternalServerError:

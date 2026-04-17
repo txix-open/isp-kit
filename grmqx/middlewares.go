@@ -11,6 +11,8 @@ import (
 	"github.com/txix-open/isp-kit/requestid"
 )
 
+// PublisherLog creates a publisher middleware that logs published messages.
+// When logBody is true, the message body is included in the log output.
 func PublisherLog(logger log.Logger, logBody bool) publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
 		return publisher.RoundTripperFunc(func(ctx context.Context, exchange string, routingKey string, msg *amqp091.Publishing) error {
@@ -32,6 +34,9 @@ func PublisherLog(logger log.Logger, logBody bool) publisher.Middleware {
 	}
 }
 
+// PublisherRequestId creates a publisher middleware that generates and injects request IDs
+// into message headers. If a request ID already exists in the context, it is used; otherwise,
+// a new one is generated.
 func PublisherRequestId() publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
 		return publisher.RoundTripperFunc(func(ctx context.Context, exchange string, routingKey string, msg *amqp091.Publishing) error {
@@ -48,12 +53,13 @@ func PublisherRequestId() publisher.Middleware {
 	}
 }
 
+// Retrier defines an interface for retry logic.
 type Retrier interface {
 	Do(ctx context.Context, f func() error) error
 }
 
 // PublisherRetry creates a middleware for retrying message publications.
-// It is recommended to use this middleware after logging,
+// It is recommended to use this middleware after logging middleware
 // to avoid duplicate logging of publication attempts.
 func PublisherRetry(retrier Retrier) publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
@@ -65,12 +71,15 @@ func PublisherRetry(retrier Retrier) publisher.Middleware {
 	}
 }
 
+// PublisherMetricStorage defines an interface for publisher metrics storage.
 type PublisherMetricStorage interface {
 	ObservePublishDuration(exchange string, routingKey string, t time.Duration)
 	ObservePublishMsgSize(exchange string, routingKey string, size int)
 	IncPublishError(exchange string, routingKey string)
 }
 
+// PublisherMetrics creates a middleware that collects publisher metrics including
+// message size, publication duration, and error counts.
 func PublisherMetrics(storage PublisherMetricStorage) publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
 		return publisher.RoundTripperFunc(func(ctx context.Context, exchange string, routingKey string, msg *amqp091.Publishing) error {
@@ -86,6 +95,8 @@ func PublisherMetrics(storage PublisherMetricStorage) publisher.Middleware {
 	}
 }
 
+// ConsumerLog creates a consumer middleware that logs consumed messages.
+// When logBody is true, the message body is included in the log output.
 func ConsumerLog(logger log.Logger, logBody bool) consumer.Middleware {
 	return func(next consumer.Handler) consumer.Handler {
 		return consumer.HandlerFunc(func(ctx context.Context, delivery *consumer.Delivery) {
@@ -107,6 +118,9 @@ func ConsumerLog(logger log.Logger, logBody bool) consumer.Middleware {
 	}
 }
 
+// ConsumerRequestId creates a consumer middleware that extracts request IDs from message headers
+// and propagates them in the context. If no request ID is found, a new one is generated.
+// It also adds the request ID to the context logger.
 func ConsumerRequestId() consumer.Middleware {
 	return func(next consumer.Handler) consumer.Handler {
 		return consumer.HandlerFunc(func(ctx context.Context, delivery *consumer.Delivery) {

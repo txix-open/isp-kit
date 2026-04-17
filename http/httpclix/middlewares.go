@@ -12,6 +12,8 @@ import (
 	"github.com/txix-open/isp-kit/requestid"
 )
 
+// DefaultMiddlewares returns a slice of middlewares for production use,
+// including request ID propagation, metrics collection, and distributed tracing.
 func DefaultMiddlewares() []httpcli.Middleware {
 	return []httpcli.Middleware{
 		RequestId(),
@@ -20,6 +22,10 @@ func DefaultMiddlewares() []httpcli.Middleware {
 	}
 }
 
+// RequestId is a middleware that ensures every request has a unique ID.
+//
+// If a request ID already exists in the context, it is used. Otherwise,
+// a new ID is generated and added to the request headers.
 func RequestId() httpcli.Middleware {
 	return func(next httpcli.RoundTripper) httpcli.RoundTripper {
 		return httpcli.RoundTripperFunc(func(ctx context.Context, request *httpcli.Request) (*httpcli.Response, error) {
@@ -34,6 +40,13 @@ func RequestId() httpcli.Middleware {
 	}
 }
 
+// Metrics is a middleware that collects HTTP client metrics including
+// request duration, status codes, and errors.
+//
+// The endpoint must be set in the context using http_metrics.ClientEndpoint.
+//
+// DNS lookup, connection establishment, request writing, and response reading
+// times are also observed when available.
 func Metrics(storage *http_metrics.ClientStorage) httpcli.Middleware {
 	return func(next httpcli.RoundTripper) httpcli.RoundTripper {
 		return httpcli.RoundTripperFunc(func(ctx context.Context, request *httpcli.Request) (*httpcli.Response, error) {

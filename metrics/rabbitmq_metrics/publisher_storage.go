@@ -7,12 +7,16 @@ import (
 	"github.com/txix-open/isp-kit/metrics"
 )
 
+// PublisherStorage collects metrics for RabbitMQ publisher operations, including message
+// publish latency, message body sizes, and publish error counts.
 type PublisherStorage struct {
 	publishMsgDuration *prometheus.SummaryVec
 	publishMsgBodySize *prometheus.SummaryVec
 	publishErrorCount  *prometheus.CounterVec
 }
 
+// NewPublisherStorage creates a new PublisherStorage instance and registers its metrics
+// with the provided registry. Metrics are labeled by exchange and routing key.
 func NewPublisherStorage(reg *metrics.Registry) *PublisherStorage {
 	s := &PublisherStorage{
 		publishMsgDuration: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
@@ -36,14 +40,17 @@ func NewPublisherStorage(reg *metrics.Registry) *PublisherStorage {
 	return s
 }
 
+// ObservePublishDuration records the latency of publishing a message to RabbitMQ.
 func (c *PublisherStorage) ObservePublishDuration(exchange string, routingKey string, duration time.Duration) {
 	c.publishMsgDuration.WithLabelValues(exchange, routingKey).Observe(metrics.Milliseconds(duration))
 }
 
+// ObservePublishMsgSize records the size of a published message in bytes.
 func (c *PublisherStorage) ObservePublishMsgSize(exchange string, routingKey string, size int) {
 	c.publishMsgBodySize.WithLabelValues(exchange, routingKey).Observe(float64(size))
 }
 
+// IncPublishError increments the error counter for publishing failures.
 func (c *PublisherStorage) IncPublishError(exchange string, routingKey string) {
 	c.publishErrorCount.WithLabelValues(exchange, routingKey).Inc()
 }

@@ -11,18 +11,26 @@ import (
 	"sync"
 )
 
+// state represents the runtime state of a Client, including active publishers,
+// consumers, and the lifecycle observer.
 type state struct {
 	publishers []*publisher.Publisher
 	consumers  []consumer.Consumer
 	observer   Observer
 }
 
+// run starts all configured consumers. It does not block.
 func (c *state) run(ctx context.Context) {
 	for _, consumer := range c.consumers {
 		consumer.Run(ctx)
 	}
 }
 
+// Client manages the lifecycle of Kafka publishers and consumers. It supports
+// dynamic reconfiguration through UpgradeAndServe and provides health checking
+// and graceful shutdown capabilities.
+//
+// Client is safe for concurrent use.
 type Client struct {
 	prevCfg Config
 	state   *state
@@ -30,6 +38,7 @@ type Client struct {
 	logger  log.Logger
 }
 
+// New creates a new Client instance with the provided logger.
 func New(logger log.Logger) *Client {
 	return &Client{
 		prevCfg: Config{},
@@ -39,6 +48,10 @@ func New(logger log.Logger) *Client {
 	}
 }
 
+// UpgradeAndServe initializes or reinitializes Kafka publishers and consumers
+// based on the provided configuration. If the new configuration is identical
+// to the previous one, initialization is skipped. Existing consumers and
+// publishers are gracefully shut down before new ones are started.
 func (c *Client) UpgradeAndServe(ctx context.Context, config Config) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -66,6 +79,8 @@ func (c *Client) UpgradeAndServe(ctx context.Context, config Config) {
 	c.prevCfg = config
 }
 
+// Healthcheck verifies the health of all consumers and publishers. Returns an
+// error if any component is unhealthy.
 func (c *Client) Healthcheck(ctx context.Context) error {
 	for _, consumer := range c.state.consumers {
 		err := consumer.Healthcheck(ctx)
@@ -84,6 +99,8 @@ func (c *Client) Healthcheck(ctx context.Context) error {
 	return nil
 }
 
+// Close gracefully shuts down the client and releases all resources. It is
+// safe to call Close multiple times.
 func (c *Client) Close() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -95,6 +112,8 @@ func (c *Client) Close() {
 	c.state = nil
 }
 
+// Shutdown gracefully stops all consumers and publishers, waiting for pending
+// operations to complete.
 func (c *Client) Shutdown() {
 	c.state.observer.ShutdownStarted()
 
@@ -123,6 +142,8 @@ func (c *Client) Shutdown() {
 	c.state.observer.ShutdownDone()
 }
 
+// newState creates a new state instance with the provided configuration and
+// initializes the log observer.
 func (c *Client) newState(ctx context.Context, config Config) *state {
 	return &state{
 		publishers: config.Publishers,

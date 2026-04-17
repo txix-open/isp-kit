@@ -1,3 +1,5 @@
+// Package client provides a SOAP client for invoking SOAP web services.
+// It handles XML envelope creation, SOAP action headers, and response parsing.
 package client
 
 import (
@@ -9,16 +11,21 @@ import (
 	"github.com/txix-open/isp-kit/http/soap"
 )
 
+// Client is a SOAP client that wraps an httpcli.Client for making SOAP requests.
 type Client struct {
 	cli *httpcli.Client
 }
 
+// New creates a new SOAP client with the specified HTTP client.
 func New(cli *httpcli.Client) Client {
 	return Client{
 		cli: cli,
 	}
 }
 
+// Invoke sends a SOAP request to the specified URL with the given action and headers.
+// It automatically wraps the request body in a SOAP envelope and parses the response.
+// Returns a Response object for parsing the SOAP response or fault.
 func (c Client) Invoke(
 	ctx context.Context,
 	url string,

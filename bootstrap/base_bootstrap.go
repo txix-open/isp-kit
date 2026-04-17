@@ -36,6 +36,22 @@ const (
 	defaulLogSamplingPassEvery     = 100
 )
 
+// BaseBootstrap provides the core initialization context for all application types.
+// It contains shared functionality for application lifecycle, metrics, infrastructure,
+// observability, and health checking.
+//
+// Fields:
+//   - App: Application instance for lifecycle management and context
+//   - MetricsRegistry: Registry for application metrics
+//   - InfraServer: Infrastructure server for internal endpoints (metrics, health, pprof)
+//   - HealthcheckRegistry: Registry for health check endpoints
+//   - BindingAddress: inner binding address (host:port)
+//   - MigrationsDir: Path to database migrations directory
+//   - ModuleName: Name of the module
+//   - SentryHub: Sentry error reporting hub
+//   - TracingProvider: OpenTelemetry tracing provider
+//
+// Create a BaseBootstrap through New() or NewStandalone() functions.
 type BaseBootstrap struct {
 	App                 *app.Application
 	MetricsRegistry     *metrics.Registry
@@ -48,6 +64,15 @@ type BaseBootstrap struct {
 	TracingProvider     tracing.Provider
 }
 
+// Fatal logs a fatal error, reports it to Sentry, and terminates the application.
+//
+// This method performs the following steps:
+//  1. Reports the error to Sentry with fatal level
+//  2. Closes the application and all registered closers
+//  3. Waits for post-shutdown operations (500ms)
+//  4. Logs the fatal error and terminates the process
+//
+// This method does not return and should only be used for unrecoverable errors.
 func (b *BaseBootstrap) Fatal(err error) {
 	b.SentryHub.CatchError(b.App.Context(), err, log.FatalLevel)
 	b.App.Close()
