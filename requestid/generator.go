@@ -9,6 +9,9 @@ const (
 	requestIdLength = 16
 )
 
+// Next generates a new cryptographically secure random request ID.
+// The returned ID is a 32-character hexadecimal string.
+// Panics if a secure random value cannot be generated.
 func Next() string {
 	value := make([]byte, requestIdLength)
 	_, err := rand.Read(value)
