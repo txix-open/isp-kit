@@ -12,10 +12,14 @@ type keeper struct {
 	dropped prometheus.Counter
 }
 
+// LogCounter collects metrics for log sampling, tracking the count of sampled and
+// dropped log entries at different log levels.
 type LogCounter struct {
 	counters map[log.Level]keeper
 }
 
+// NewLogCounter creates a new LogCounter instance and registers its metrics with
+// the provided registry. Metrics are labeled by log level and sampling status.
 func NewLogCounter(registry *metrics.Registry) LogCounter {
 	counter := metrics.GetOrRegister(
 		registry,
@@ -44,6 +48,8 @@ func NewLogCounter(registry *metrics.Registry) LogCounter {
 	}
 }
 
+// SampledLogCounter returns a hook function that increments the sampled counter
+// when a log entry is sampled (not dropped due to sampling).
 func (c LogCounter) SampledLogCounter() func(entry zapcore.Entry) error {
 	return func(entry zapcore.Entry) error {
 		keeper, ok := c.counters[entry.Level]
@@ -55,6 +61,8 @@ func (c LogCounter) SampledLogCounter() func(entry zapcore.Entry) error {
 	}
 }
 
+// DroppedLogCounter returns a hook function that increments the dropped counter
+// when a log entry is dropped due to sampling.
 func (c LogCounter) DroppedLogCounter() func(zapcore.Entry, zapcore.SamplingDecision) {
 	return func(entry zapcore.Entry, decision zapcore.SamplingDecision) {
 		if decision != zapcore.LogDropped {

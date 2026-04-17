@@ -7,6 +7,9 @@ import (
 	"github.com/txix-open/isp-kit/metrics"
 )
 
+// ConsumerStorage collects metrics for RabbitMQ consumer operations, including message
+// consume latency, message body sizes, and operation counts for success, retry, requeue,
+// and dead letter queue (DLQ).
 type ConsumerStorage struct {
 	consumeMsgDuration *prometheus.SummaryVec
 	consumeMsgBodySize *prometheus.SummaryVec
@@ -16,6 +19,8 @@ type ConsumerStorage struct {
 	successCount       *prometheus.CounterVec
 }
 
+// NewConsumerStorage creates a new ConsumerStorage instance and registers its metrics
+// with the provided registry. Metrics are labeled by exchange and routing key.
 func NewConsumerStorage(reg *metrics.Registry) *ConsumerStorage {
 	s := &ConsumerStorage{
 		consumeMsgDuration: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
@@ -54,26 +59,32 @@ func NewConsumerStorage(reg *metrics.Registry) *ConsumerStorage {
 	return s
 }
 
+// ObserveConsumeDuration records the latency of processing a single message.
 func (c *ConsumerStorage) ObserveConsumeDuration(exchange string, routingKey string, duration time.Duration) {
 	c.consumeMsgDuration.WithLabelValues(exchange, routingKey).Observe(metrics.Milliseconds(duration))
 }
 
+// ObserveConsumeMsgSize records the size of a consumed message in bytes.
 func (c *ConsumerStorage) ObserveConsumeMsgSize(exchange string, routingKey string, size int) {
 	c.consumeMsgBodySize.WithLabelValues(exchange, routingKey).Observe(float64(size))
 }
 
+// IncRequeueCount increments the counter for messages that were requeued.
 func (c *ConsumerStorage) IncRequeueCount(exchange string, routingKey string) {
 	c.requeueCount.WithLabelValues(exchange, routingKey).Inc()
 }
 
+// IncDlqCount increments the counter for messages moved to the dead letter queue.
 func (c *ConsumerStorage) IncDlqCount(exchange string, routingKey string) {
 	c.dlqCount.WithLabelValues(exchange, routingKey).Inc()
 }
 
+// IncSuccessCount increments the counter for successfully processed messages.
 func (c *ConsumerStorage) IncSuccessCount(exchange string, routingKey string) {
 	c.successCount.WithLabelValues(exchange, routingKey).Inc()
 }
 
+// IncRetryCount increments the counter for retried message processing.
 func (c *ConsumerStorage) IncRetryCount(exchange string, routingKey string) {
 	c.retryCount.WithLabelValues(exchange, routingKey).Inc()
 }
