@@ -1,3 +1,4 @@
+// Package file provides log file output with rotation using lumberjack.
 package file
 
 import (
@@ -28,14 +29,21 @@ func init() {
 	}
 }
 
+// Output configures log file rotation.
 type Output struct {
-	File       string
-	MaxSizeMb  int
-	MaxDays    int
+	// File is the path to the log file.
+	File string
+	// MaxSizeMb is the maximum file size in megabytes before rotation.
+	MaxSizeMb int
+	// MaxDays is the maximum number of days to retain old log files.
+	MaxDays int
+	// MaxBackups is the maximum number of old log files to retain.
 	MaxBackups int
-	Compress   bool
+	// Compress enables compression of rotated log files.
+	Compress bool
 }
 
+// ConfigToUrl converts an Output configuration to a URL.
 func ConfigToUrl(r Output) *url.URL {
 	values := url.Values{
 		"file":       {r.File},
@@ -51,6 +59,7 @@ func ConfigToUrl(r Output) *url.URL {
 	return u
 }
 
+// fileOutputConfigFromUrl parses an Output configuration from a URL.
 func fileOutputConfigFromUrl(u *url.URL) (*Output, error) {
 	values, err := url.ParseQuery(u.RawQuery)
 	if err != nil {
@@ -82,6 +91,7 @@ func fileOutputConfigFromUrl(u *url.URL) (*Output, error) {
 	}, nil
 }
 
+// NewFileWriter creates a new log file writer with rotation.
 func NewFileWriter(r Output) io.WriteCloser {
 	return &lumberjack.Logger{
 		Filename:   r.File,
@@ -96,10 +106,12 @@ type sink struct {
 	io.WriteCloser
 }
 
+// Sync flushes buffered writes.
 func (s sink) Sync() error {
 	return s.Close()
 }
 
+// newSink wraps a writer as a Zap sink.
 func newSink(writer io.WriteCloser) sink {
 	return sink{
 		WriteCloser: writer,
