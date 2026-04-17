@@ -1,3 +1,4 @@
+// Package client_tracing provides gRPC client middleware for distributed tracing.
 package client_tracing
 
 import (
@@ -14,15 +15,18 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-const (
-	tracerName = "isp-kit/observability/tracing/grpc"
-)
+// tracerName identifies the tracer for gRPC client tracing.
+const tracerName = "isp-kit/observability/tracing/grpc"
 
+// Config holds the configuration for the gRPC client tracing middleware.
 type Config struct {
-	Provider   tracing.TracerProvider
+	// Provider is the tracer provider used to create tracers.
+	Provider tracing.TracerProvider
+	// Propagator is the text map propagator for context propagation.
 	Propagator tracing.Propagator
 }
 
+// NewConfig creates a new Config with default values.
 func NewConfig() Config {
 	return Config{
 		Provider:   tracing.DefaultProvider,
@@ -30,6 +34,9 @@ func NewConfig() Config {
 	}
 }
 
+// Middleware returns a gRPC client middleware that creates spans for outgoing RPC calls.
+// It injects trace context into the request metadata, creates a client span, and records
+// errors. If the provider is a no-op, it returns a pass-through middleware.
 func (c Config) Middleware() request.Middleware {
 	if tracing.IsNoop(c.Provider) {
 		return func(next request.RoundTripper) request.RoundTripper {

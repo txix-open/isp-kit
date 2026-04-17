@@ -21,6 +21,12 @@ linters:
     - godoclint # ругается на // nolint, не удобно
     - wrapcheck
     - prealloc
+    - lll
+    - nonamedreturns
+    - tagliatelle
+    - gochecknoglobals
+    - ireturn
+    - containedctx
   settings:
     cyclop:
       max-complexity: 15 # по умолчанию 10 мало

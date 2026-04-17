@@ -1,3 +1,6 @@
+// Package pprof provides utilities for integrating Go's pprof profiling
+// tools with an HTTP server. It registers the standard pprof endpoints
+// under a configurable URL prefix.
 package pprof
 
 import (
@@ -6,14 +9,19 @@ import (
 	"net/http/pprof"
 )
 
-// go tool pprof -http=0.0.0.0:6061 http://localhost:10000/internal/debug/pprof/allocs
-// go tool pprof -http=0.0.0.0:6061 http://localhost:10000/internal/debug/pprof/profile?seconds=10
-// go tool pprof http://localhost:10000/internal/debug/pprof/profile?seconds=10 > profile.out
-
+// Muxer defines an interface for HTTP multiplexers that can register handlers.
+// This allows the package to work with various HTTP routing implementations.
 type Muxer interface {
-	Handle(patter string, handler http.Handler)
+	Handle(pattern string, handler http.Handler)
 }
 
+// RegisterHandlers registers pprof handlers with the provided muxer under
+// the specified URL prefix. This enables access to profiling endpoints such
+// as /debug/pprof/, /debug/pprof/profile, and others.
+//
+// Example:
+//
+//	pprof.RegisterHandlers("/api", srv)
 func RegisterHandlers(prefix string, muxer Muxer) {
 	muxer.Handle(fmt.Sprintf("%s/debug/pprof/", prefix), cutPrefix(prefix, pprof.Index))
 	muxer.Handle(fmt.Sprintf("%s/debug/pprof/cmdline", prefix), cutPrefix(prefix, pprof.Cmdline))
@@ -22,6 +30,8 @@ func RegisterHandlers(prefix string, muxer Muxer) {
 	muxer.Handle(fmt.Sprintf("%s/debug/pprof/trace", prefix), cutPrefix(prefix, pprof.Trace))
 }
 
+// Endpoints returns a list of all pprof endpoint paths for the given prefix.
+// This is useful for documentation or verification purposes.
 func Endpoints(prefix string) []string {
 	return []string{
 		fmt.Sprintf("%s/debug/pprof/", prefix),
@@ -32,6 +42,9 @@ func Endpoints(prefix string) []string {
 	}
 }
 
+// cutPrefix creates a middleware handler that strips the specified prefix
+// from the request URL path before passing it to the underlying handler.
+// This allows pprof handlers to work correctly when mounted under a custom prefix.
 func cutPrefix(prefix string, handler http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		request.URL.Path = request.URL.Path[len(prefix):]

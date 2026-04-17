@@ -12,12 +12,15 @@ import (
 	"github.com/txix-open/isp-kit/requestid"
 )
 
+// PublisherMetricStorage defines the interface for publisher metrics storage.
 type PublisherMetricStorage interface {
 	ObservePublishDuration(topic string, t time.Duration)
 	ObservePublishMsgSize(topic string, size int)
 	IncPublishError(topic string)
 }
 
+// PublisherMetrics creates a middleware that records metrics for message
+// publishing operations, including duration, message size, and error counts.
 func PublisherMetrics(storage PublisherMetricStorage) publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
 		return publisher.RoundTripperFunc(func(ctx context.Context, rs ...*kgo.Record) error {
@@ -43,6 +46,8 @@ func PublisherMetrics(storage PublisherMetricStorage) publisher.Middleware {
 	}
 }
 
+// PublisherLog creates a middleware that logs publish operations. When logBody
+// is true, the message body is included in the log output.
 func PublisherLog(logger log.Logger, logBody bool) publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
 		return publisher.RoundTripperFunc(func(ctx context.Context, rs ...*kgo.Record) error {
@@ -68,6 +73,9 @@ func PublisherLog(logger log.Logger, logBody bool) publisher.Middleware {
 	}
 }
 
+// PublisherRequestId creates a middleware that propagates request IDs to Kafka
+// message headers. If no request ID is present in the context, a new one is
+// generated.
 func PublisherRequestId() publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
 		return publisher.RoundTripperFunc(func(ctx context.Context, msgs ...*kgo.Record) error {
@@ -89,6 +97,7 @@ func PublisherRequestId() publisher.Middleware {
 	}
 }
 
+// Retrier defines an interface for retry logic implementations.
 type Retrier interface {
 	Do(ctx context.Context, f func() error) error
 }
@@ -106,6 +115,8 @@ func PublisherRetry(retrier Retrier) publisher.Middleware {
 	}
 }
 
+// ConsumerLog creates a middleware that logs consume operations. When logBody
+// is true, the message body is included in the log output.
 func ConsumerLog(logger log.Logger, logBody bool) consumer.Middleware {
 	return func(next consumer.Handler) consumer.Handler {
 		return consumer.HandlerFunc(func(ctx context.Context, delivery *consumer.Delivery) {
@@ -129,6 +140,9 @@ func ConsumerLog(logger log.Logger, logBody bool) consumer.Middleware {
 	}
 }
 
+// ConsumerRequestId creates a middleware that extracts request IDs from Kafka
+// message headers and adds them to the context. If no request ID is found,
+// a new one is generated.
 func ConsumerRequestId() consumer.Middleware {
 	return func(next consumer.Handler) consumer.Handler {
 		return consumer.HandlerFunc(func(ctx context.Context, delivery *consumer.Delivery) {
@@ -145,6 +159,8 @@ func ConsumerRequestId() consumer.Middleware {
 	}
 }
 
+// GetHeaderValue retrieves the value of a header with the specified key from
+// the provided headers slice. Returns an empty string if the key is not found.
 func GetHeaderValue(headers []kgo.RecordHeader, key string) string {
 	for _, header := range headers {
 		if header.Key == key {

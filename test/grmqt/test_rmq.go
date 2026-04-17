@@ -1,3 +1,6 @@
+// Package grmqt provides test helpers for RabbitMQ operations.
+// It creates isolated virtual hosts for each test and automatically
+// cleans them up after the test completes.
 package grmqt
 
 import (
@@ -11,6 +14,8 @@ import (
 	"github.com/txix-open/isp-kit/test"
 )
 
+// Client provides a test helper for RabbitMQ operations.
+// It manages a dedicated connection and virtual host for each test.
 type Client struct {
 	connCfg  grmqx.Connection
 	t        *test.Test
@@ -18,6 +23,11 @@ type Client struct {
 	GrmqxCli *grmqx.Client
 }
 
+// New creates a new RabbitMQ test client with an isolated virtual host.
+// The virtual host is created before the test and automatically deleted
+// when the test completes. Connection parameters can be overridden using
+// environment variables: RMQ_HOST, RMQ_PORT, RMQ_USER, RMQ_PASS.
+//
 // nolint:nosprintfhostport,noctx,bodyclose,mnd
 func New(t *test.Test) *Client {
 	host := t.Config().Optional().String("RMQ_HOST", "127.0.0.1")
@@ -72,10 +82,12 @@ func New(t *test.Test) *Client {
 	}
 }
 
+// ConnectionConfig returns the connection configuration used by the client.
 func (c *Client) ConnectionConfig() grmqx.Connection {
 	return c.connCfg
 }
 
+// QueueLength returns the number of messages in the specified queue.
 func (c *Client) QueueLength(queue string) int {
 	var (
 		q   amqp091.Queue
@@ -88,12 +100,15 @@ func (c *Client) QueueLength(queue string) int {
 	return q.Messages
 }
 
+// Upgrade upgrades the RabbitMQ client with the provided configuration.
 func (c *Client) Upgrade(config grmqx.Config) {
 	config.Url = c.connCfg.Url()
 	err := c.GrmqxCli.Upgrade(context.Background(), config)
 	c.t.Assert().NoError(err)
 }
 
+// PublishJson publishes a JSON-encoded message to the specified exchange
+// and routing key. Panics if JSON marshaling or publishing fails.
 func (c *Client) PublishJson(exchange string, routingKey string, data any) {
 	body, err := json.Marshal(data)
 	c.t.Assert().NoError(err)
@@ -104,6 +119,8 @@ func (c *Client) PublishJson(exchange string, routingKey string, data any) {
 	c.Publish(exchange, routingKey, pub)
 }
 
+// Publish publishes one or more messages to the specified exchange and routing key.
+// Panics if publishing fails.
 func (c *Client) Publish(exchange string, routingKey string, messages ...amqp091.Publishing) {
 	c.useChannel(func(ch *amqp091.Channel) {
 		for _, message := range messages {
@@ -113,6 +130,8 @@ func (c *Client) Publish(exchange string, routingKey string, messages ...amqp091
 	})
 }
 
+// DrainMessage retrieves and returns a single message from the specified queue.
+// Panics if no message is available.
 func (c *Client) DrainMessage(queue string) amqp091.Delivery {
 	var (
 		msg amqp091.Delivery
@@ -129,6 +148,8 @@ func (c *Client) DrainMessage(queue string) amqp091.Delivery {
 	return msg
 }
 
+// useChannel creates a new channel, executes the provided function, and
+// ensures the channel is closed afterwards. Panics if channel creation fails.
 func (c *Client) useChannel(f func(ch *amqp091.Channel)) {
 	ch, err := c.conn.Channel()
 	c.t.Assert().NoError(err)

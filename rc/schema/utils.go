@@ -18,6 +18,10 @@ const (
 	tagCustomSchema = "schemaGen"
 )
 
+// GetNameAndRequiredFlag extracts the JSON field name and determines if the field is required.
+// It checks the struct field's json tag for the name and validate tag for the "required" constraint.
+// Returns the field name and a boolean indicating if the field is required.
+// Unexported fields (those with non-empty PkgPath) are ignored.
 func GetNameAndRequiredFlag(field reflect.StructField) (string, bool) {
 	if field.PkgPath != "" { // unexported field, ignore it
 		return "", false
@@ -37,10 +41,15 @@ func GetNameAndRequiredFlag(field reflect.StructField) (string, bool) {
 	return name, false
 }
 
-// nolint:nestif
+// SetProperties populates a JSON schema with properties from struct field tags.
+// It processes the following tags:
+//   - "schema": sets Title and Description (format: "title,description")
+//   - "default": sets the Default value
+//   - "validate": sets validation constraints (min, max, oneof, etc.)
+//   - "schemaGen": applies a custom generator by name
 func SetProperties(field reflect.StructField, s *jsonschema.Schema) {
 	schema, ok := field.Tag.Lookup(tagSchema)
-	if ok {
+	if ok { //nolint:nestif
 		parts := strings.SplitN(schema, ",", 2)
 		if len(parts) > 0 {
 			if len(parts) == 2 {
@@ -67,6 +76,8 @@ func SetProperties(field reflect.StructField, s *jsonschema.Schema) {
 	}
 }
 
+// setValidators applies validation constraints from struct field tags to the schema.
+// Supported constraints: max/lte, min/gte, oneof.
 func setValidators(field reflect.StructField, s *jsonschema.Schema) {
 	validators := getValidatorsMap(field)
 	if validators == nil {
@@ -84,6 +95,9 @@ func setValidators(field reflect.StructField, s *jsonschema.Schema) {
 	}
 }
 
+// setMax sets the maximum constraint on a schema based on type.
+// For strings, it sets MaxLength; for integers, Maximum; for arrays, MaxItems.
+// Returns early if the value cannot be parsed as an unsigned integer.
 func setMax(s *jsonschema.Schema, v string) {
 	value, err := strconv.ParseUint(v, 10, 64)
 	if err != nil {
@@ -99,6 +113,9 @@ func setMax(s *jsonschema.Schema, v string) {
 	}
 }
 
+// setMin sets the minimum constraint on a schema based on type.
+// For strings, it sets MinLength; for integers, Minimum; for arrays, MinItems.
+// Returns early if the value cannot be parsed as an unsigned integer.
 func setMin(s *jsonschema.Schema, v string) {
 	value, err := strconv.ParseUint(v, 10, 64)
 	if err != nil {
@@ -114,6 +131,8 @@ func setMin(s *jsonschema.Schema, v string) {
 	}
 }
 
+// setOneOf sets an Enum list on the schema for string or integer types.
+// Returns early if the schema type is not string or integer.
 func setOneOf(s *jsonschema.Schema, v string) {
 	if s.Type != "string" && s.Type != "integer" {
 		return
@@ -123,6 +142,8 @@ func setOneOf(s *jsonschema.Schema, v string) {
 	}
 }
 
+// getValidatorsMap extracts validation constraints from the "validate" struct tag.
+// Returns a map of constraint names to their values, or nil if no validate tag exists.
 func getValidatorsMap(field reflect.StructField) tagOptionsMap {
 	value, ok := field.Tag.Lookup("validate")
 	if !ok {
@@ -135,8 +156,11 @@ func getValidatorsMap(field reflect.StructField) tagOptionsMap {
 	return parseTagIntoMap(value)
 }
 
+// tagOptionsMap represents a map of tag option names to their values.
 type tagOptionsMap map[string]string
 
+// parseTagIntoMap converts a comma-separated tag string into a map.
+// Supports both key-only (e.g., "required") and key=value (e.g., "oneof='a','b'") formats.
 func parseTagIntoMap(tag string) tagOptionsMap {
 	optionsMap := make(tagOptionsMap)
 	for option := range strings.SplitSeq(tag, ",") {
@@ -152,12 +176,15 @@ func parseTagIntoMap(tag string) tagOptionsMap {
 	return optionsMap
 }
 
-// nolint:nestif
+// GetFieldName extracts the JSON field name from a struct field.
+// It checks the "json" tag for an explicit name; if absent, it uses the field name
+// converted to camelCase (first letter lowercase).
+// Returns the field name and true if the field should be included, or empty string and false if not.
 func GetFieldName(fieldType reflect.StructField) (string, bool) {
 	original := fieldType.Name
 	transform := true
 	value, ok := fieldType.Tag.Lookup("json")
-	if ok {
+	if ok { //nolint:nestif
 		opts := strings.Split(value, ",")
 		if len(opts) > 0 {
 			if opts[0] == "-" {
@@ -182,6 +209,9 @@ func GetFieldName(fieldType reflect.StructField) (string, bool) {
 
 var splitParamsRegex = regexp.MustCompile(`'[^']*'|\S+`)
 
+// parseOneOfParam parses a oneOf validation parameter string.
+// It handles both quoted values (e.g., "'a','b','c'") and unquoted values.
+// Returns a slice of parsed values with quotes removed.
 func parseOneOfParam(param string) []string {
 	values := splitParamsRegex.FindAllString(param, -1)
 	for i := range values {

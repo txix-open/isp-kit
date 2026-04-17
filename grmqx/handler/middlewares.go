@@ -9,6 +9,7 @@ import (
 	"github.com/txix-open/isp-kit/panic_recovery"
 )
 
+// ConsumerMetricStorage defines an interface for consumer metrics storage.
 type ConsumerMetricStorage interface {
 	ObserveConsumeDuration(exchange string, routingKey string, t time.Duration)
 	ObserveConsumeMsgSize(exchange string, routingKey string, size int)
@@ -18,6 +19,8 @@ type ConsumerMetricStorage interface {
 	IncRetryCount(exchange string, routingKey string)
 }
 
+// Metrics creates a middleware that collects consumer metrics including
+// message processing duration, message size, and result counts (success, requeue, retry, DLQ).
 func Metrics(metricStorage ConsumerMetricStorage) Middleware {
 	return func(next SyncHandlerAdapter) SyncHandlerAdapter {
 		return SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) Result {
@@ -44,6 +47,8 @@ func Metrics(metricStorage ConsumerMetricStorage) Middleware {
 	}
 }
 
+// Log creates a middleware that logs message processing results with appropriate log levels
+// based on the outcome (Ack, Requeue, Retry, or MoveToDlq).
 func Log(logger log.Logger) Middleware {
 	return func(next SyncHandlerAdapter) SyncHandlerAdapter {
 		return SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) Result {
@@ -107,7 +112,8 @@ func Log(logger log.Logger) Middleware {
 	}
 }
 
-// nolint:nonamedreturns
+// Recovery creates a middleware that recovers from panics during message processing.
+// On panic, the message is moved to the DLQ and the error is recorded.
 func Recovery() Middleware {
 	return func(next SyncHandlerAdapter) SyncHandlerAdapter {
 		return SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) (res Result) {

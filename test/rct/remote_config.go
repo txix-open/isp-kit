@@ -1,3 +1,6 @@
+// Package rct provides test helpers for remote configuration validation.
+// It validates that configuration structures match their JSON schemas and
+// can be properly unmarshaled from configuration files.
 package rct
 
 import (
@@ -12,6 +15,17 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
+// Test validates that the provided configuration structure matches its
+// generated JSON schema and can be properly unmarshaled from the default
+// configuration file. It also verifies that the configuration passes
+// validator tag validation.
+//
+// The function checks:
+//   - No deprecated 'valid' tags are present
+//   - The default configuration file is valid against the generated schema
+//   - The configuration can be unmarshaled from the file
+//   - The configuration passes validation
+//
 // nolint:lll
 func Test[T any](t *testing.T, defaultRemoteConfigPath string, remoteConfig T) {
 	require := require.New(t)
@@ -45,6 +59,9 @@ func Test[T any](t *testing.T, defaultRemoteConfigPath string, remoteConfig T) {
 	require.NoError(err)
 }
 
+// FindTag recursively searches a type for the specified struct tag.
+// It traverses structs, maps, arrays, and slices to find any field
+// that has the given tag. Returns true if the tag is found.
 func FindTag[T any](v T, tag string) bool {
 	t := reflect.TypeOf(v)
 	if t == nil {

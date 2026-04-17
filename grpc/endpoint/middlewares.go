@@ -17,7 +17,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// nolint:nonamedreturns
+// Recovery creates a middleware that catches panics and converts them to errors.
+// Prevents gRPC server crashes from handler panics by recovering and returning the error.
 func Recovery() grpc.Middleware {
 	return func(next grpc.HandlerFunc) grpc.HandlerFunc {
 		return func(ctx context.Context, message *isp.Message) (msg *isp.Message, err error) {
@@ -29,6 +30,11 @@ func Recovery() grpc.Middleware {
 	}
 }
 
+// ErrorHandler creates a middleware that handles errors from downstream handlers.
+// Logs errors at appropriate levels, enriches them with Sentry context, and
+// converts custom GrpcError types to gRPC status errors.
+// Returns a generic "internal service error" for unknown error types to prevent
+// information leakage.
 func ErrorHandler(logger log.Logger) grpc.Middleware {
 	return func(next grpc.HandlerFunc) grpc.HandlerFunc {
 		return func(ctx context.Context, message *isp.Message) (*isp.Message, error) {
@@ -60,6 +66,9 @@ func ErrorHandler(logger log.Logger) grpc.Middleware {
 	}
 }
 
+// RequestId creates a middleware that manages request IDs for tracing.
+// Extracts the request ID from incoming metadata, generates a new one if absent,
+// and injects it into the context for downstream use.
 func RequestId() grpc.Middleware {
 	return func(next grpc.HandlerFunc) grpc.HandlerFunc {
 		return func(ctx context.Context, message *isp.Message) (*isp.Message, error) {
@@ -83,6 +92,8 @@ func RequestId() grpc.Middleware {
 	}
 }
 
+// sentryRequest creates a Sentry request object from the gRPC context.
+// Extracts endpoint and application ID from metadata for error tracking.
 func sentryRequest(ctx context.Context) *sentry.Request {
 	md, _ := metadata.FromIncomingContext(ctx)
 	endpoint, _ := grpc.StringFromMd(grpc.ProxyMethodNameHeader, md)

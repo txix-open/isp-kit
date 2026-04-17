@@ -11,12 +11,16 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+// logConfig holds logging configuration for client middleware.
 type logConfig struct {
 	logRequestBody  bool
 	logResponseBody bool
 	combinedLog     bool
 }
 
+// RequestId is a middleware that propagates request IDs across service boundaries.
+// If no request ID is present in the context, it generates a new one.
+// The request ID is added to outgoing metadata for tracing purposes.
 func RequestId() request.Middleware {
 	return func(next request.RoundTripper) request.RoundTripper {
 		return func(ctx context.Context, builder *request.Builder, message *isp.Message) (*isp.Message, error) {
@@ -31,6 +35,9 @@ func RequestId() request.Middleware {
 	}
 }
 
+// Log creates a middleware that logs gRPC client requests and responses.
+// When logBody is true, request and response bodies are included in the logs.
+// Logs at Debug level for requests and responses.
 func Log(logger log.Logger, logBody bool) request.Middleware {
 	cfg := &logConfig{
 		logRequestBody:  logBody,
@@ -39,6 +46,8 @@ func Log(logger log.Logger, logBody bool) request.Middleware {
 	return logMiddleware(logger, cfg)
 }
 
+// LogWithOptions creates a middleware that logs gRPC client requests and responses with custom options.
+// Provides fine-grained control over what is logged (request body, response body, combined logs).
 func LogWithOptions(logger log.Logger, opts ...LogOption) request.Middleware {
 	cfg := &logConfig{
 		logRequestBody:  false,
@@ -55,6 +64,7 @@ func LogWithOptions(logger log.Logger, opts ...LogOption) request.Middleware {
 	return logMiddleware(logger, cfg)
 }
 
+// logMiddleware implements request/response logging with separate log entries.
 func logMiddleware(logger log.Logger, cfg *logConfig) request.Middleware {
 	return func(next request.RoundTripper) request.RoundTripper {
 		return func(ctx context.Context, builder *request.Builder, message *isp.Message) (*isp.Message, error) {
@@ -95,6 +105,7 @@ func logMiddleware(logger log.Logger, cfg *logConfig) request.Middleware {
 	}
 }
 
+// logCombinedMiddleware implements logging with a single combined log entry.
 func logCombinedMiddleware(logger log.Logger, cfg *logConfig) request.Middleware {
 	return func(next request.RoundTripper) request.RoundTripper {
 		return func(ctx context.Context, builder *request.Builder, message *isp.Message) (*isp.Message, error) {
@@ -129,10 +140,15 @@ func logCombinedMiddleware(logger log.Logger, cfg *logConfig) request.Middleware
 	}
 }
 
+// MetricStorage defines the interface for metric storage implementations.
+// Used by the Metrics middleware to collect timing information.
 type MetricStorage interface {
+	// ObserveDuration records the duration of a request for the given endpoint.
 	ObserveDuration(endpoint string, duration time.Duration)
 }
 
+// Metrics creates a middleware that collects timing metrics for gRPC client requests.
+// The storage implementation receives the endpoint name and request duration.
 func Metrics(storage MetricStorage) request.Middleware {
 	return func(next request.RoundTripper) request.RoundTripper {
 		return func(ctx context.Context, builder *request.Builder, message *isp.Message) (*isp.Message, error) {

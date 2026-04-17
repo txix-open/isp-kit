@@ -11,18 +11,26 @@ import (
 	"time"
 )
 
+// RoundTripper defines the interface for executing HTTP requests.
+// Implementations can wrap requests with middleware functionality.
 type RoundTripper interface {
 	RoundTrip(ctx context.Context, request *Request) (*Response, error)
 }
 
+// RoundTripperFunc is a function type that implements the RoundTripper interface.
 type RoundTripperFunc func(ctx context.Context, request *Request) (*Response, error)
 
+// RoundTrip executes an HTTP request using the function.
 func (f RoundTripperFunc) RoundTrip(ctx context.Context, request *Request) (*Response, error) {
 	return f(ctx, request)
 }
 
+// Middleware is a function that wraps a RoundTripper with additional functionality.
+// Middlewares are executed in the order they are added.
 type Middleware func(next RoundTripper) RoundTripper
 
+// Client is a high-level HTTP client with support for middleware, retries,
+// and flexible request/response handling.
 type Client struct {
 	cli          *http.Client
 	globalConfig *GlobalRequestConfig
@@ -31,6 +39,9 @@ type Client struct {
 	roundTripper RoundTripper
 }
 
+// StdClient is the default http.Client used by New() with optimized connection pooling
+// and HTTP/2 support.
+//
 // nolint:mnd,gochecknoglobals
 var (
 	StdClient = &http.Client{
@@ -52,10 +63,18 @@ var (
 	}
 )
 
+// New creates a new Client with default configuration.
+// It uses StdClient as the underlying http.Client.
+//
+// Options are applied in the order they are passed.
 func New(opts ...Option) *Client {
 	return NewWithClient(StdClient, opts...)
 }
 
+// NewWithClient creates a new Client with a custom http.Client.
+// This allows customization of the underlying transport and connection pooling.
+//
+// Options are applied in the order they are passed.
 func NewWithClient(cli *http.Client, opts ...Option) *Client {
 	c := &Client{
 		cli:          cli,
@@ -69,30 +88,43 @@ func NewWithClient(cli *http.Client, opts ...Option) *Client {
 	return c
 }
 
+// GlobalRequestConfig returns the global request configuration for this client.
+// Settings here apply to all requests made by this client.
 func (c *Client) GlobalRequestConfig() *GlobalRequestConfig {
 	return c.globalConfig
 }
 
+// Post creates a new POST request builder for the given URL.
 func (c *Client) Post(url string) *RequestBuilder {
 	return NewRequestBuilder(http.MethodPost, url, c.globalConfig, c.Execute)
 }
 
+// Get creates a new GET request builder for the given URL.
 func (c *Client) Get(url string) *RequestBuilder {
 	return NewRequestBuilder(http.MethodGet, url, c.globalConfig, c.Execute)
 }
 
+// Put creates a new PUT request builder for the given URL.
 func (c *Client) Put(url string) *RequestBuilder {
 	return NewRequestBuilder(http.MethodPut, url, c.globalConfig, c.Execute)
 }
 
+// Delete creates a new DELETE request builder for the given URL.
 func (c *Client) Delete(url string) *RequestBuilder {
 	return NewRequestBuilder(http.MethodDelete, url, c.globalConfig, c.Execute)
 }
 
+// Patch creates a new PATCH request builder for the given URL.
 func (c *Client) Patch(url string) *RequestBuilder {
 	return NewRequestBuilder(http.MethodPatch, url, c.globalConfig, c.Execute)
 }
 
+// Execute sends an HTTP request using the provided builder and returns the response.
+// It handles request construction, middleware execution, and response processing.
+//
+// If a responseBody is set on the builder and the response is successful,
+// the response body will be automatically unmarshalled into the target.
+//
 // nolint:cyclop
 func (c *Client) Execute(ctx context.Context, builder *RequestBuilder) (*Response, error) {
 	request, err := builder.newHttpRequest(ctx)
@@ -200,10 +232,14 @@ func (c *Client) executeWithRetries(ctx context.Context, request *Request) (*Res
 	return response, err
 }
 
+// defaultTransportDialContext creates a dial context function with the given dialer.
 func defaultTransportDialContext(dialer *net.Dialer) func(context.Context, string, string) (net.Conn, error) {
 	return dialer.DialContext
 }
 
+// joinMiddlewares chains multiple middlewares together, wrapping the root RoundTripper.
+// Middlewares are applied in reverse order (last middleware is executed first).
+//
 // nolint:ireturn
 func joinMiddlewares(root RoundTripper, mws ...Middleware) RoundTripper {
 	roundTripper := root

@@ -18,11 +18,15 @@ import (
 )
 
 const (
+	// defaultMaxRequestBodySize is the default maximum allowed request body size (64MB).
 	defaultMaxRequestBodySize = 64 * 1024 * 1024
 )
 
+// LogMiddleware is an alias for http.Middleware used for request/response logging.
 type LogMiddleware http2.Middleware
 
+// MaxRequestBodySize limits the size of the request body that can be read.
+// It wraps the request body with http.MaxBytesReader to enforce the limit.
 func MaxRequestBodySize(maxBytes int64) http2.Middleware {
 	return func(next http2.HandlerFunc) http2.HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -32,7 +36,9 @@ func MaxRequestBodySize(maxBytes int64) http2.Middleware {
 	}
 }
 
-//nolint:nonamedreturns
+// Recovery is a middleware that catches panics and converts them to errors.
+// It ensures the server remains stable even when handler code panics.
+// Safe for concurrent use.
 func Recovery() http2.Middleware {
 	return func(next http2.HandlerFunc) http2.HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) (err error) {
@@ -45,6 +51,10 @@ func Recovery() http2.Middleware {
 	}
 }
 
+// ErrorHandler is a middleware that logs errors and writes appropriate HTTP responses.
+// It uses the error's logging level and enriches Sentry events with request details.
+// For HttpError implementations, it writes the error using WriteError; otherwise,
+// it returns a generic internal service error to hide implementation details.
 func ErrorHandler(logger log.Logger) http2.Middleware {
 	return func(next http2.HandlerFunc) http2.HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -78,6 +88,9 @@ func ErrorHandler(logger log.Logger) http2.Middleware {
 	}
 }
 
+// RequestId is a middleware that manages request IDs for tracing and logging.
+// It uses the existing request ID from headers if present, or generates a new one.
+// The request ID is added to the context and response headers.
 func RequestId() http2.Middleware {
 	return func(next http2.HandlerFunc) http2.HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -94,6 +107,8 @@ func RequestId() http2.Middleware {
 	}
 }
 
+// sentryRequest creates a Sentry request object from an http.Request.
+// It determines the protocol based on TLS or X-Forwarded-Proto header.
 func sentryRequest(r *http.Request) *sentry.Request {
 	protocol := "https"
 	if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {

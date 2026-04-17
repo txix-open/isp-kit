@@ -1,3 +1,4 @@
+// Package publisher_tracing provides RabbitMQ publisher middleware for distributed tracing.
 package publisher_tracing
 
 import (
@@ -15,15 +16,18 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-const (
-	tracerName = "isp-kit/observability/tracing/rabbitmq"
-)
+// tracerName identifies the tracer for RabbitMQ publisher tracing.
+const tracerName = "isp-kit/observability/tracing/rabbitmq"
 
+// Config holds the configuration for the RabbitMQ publisher tracing middleware.
 type Config struct {
-	Provider   tracing.TracerProvider
+	// Provider is the tracer provider used to create tracers.
+	Provider tracing.TracerProvider
+	// Propagator is the text map propagator for context propagation.
 	Propagator tracing.Propagator
 }
 
+// NewConfig creates a new Config with default values.
 func NewConfig() Config {
 	return Config{
 		Provider:   tracing.DefaultProvider,
@@ -31,6 +35,9 @@ func NewConfig() Config {
 	}
 }
 
+// Middleware returns a RabbitMQ publisher middleware that creates spans for outgoing messages.
+// It injects trace context into message headers, creates a producer span, and records
+// delivery status. If the provider is a no-op, it returns a pass-through middleware.
 func (c Config) Middleware() publisher.Middleware {
 	if tracing.IsNoop(c.Provider) {
 		return func(next publisher.RoundTripper) publisher.RoundTripper {

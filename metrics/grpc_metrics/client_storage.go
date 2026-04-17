@@ -7,10 +7,14 @@ import (
 	"github.com/txix-open/isp-kit/metrics"
 )
 
+// ClientStorage collects metrics for gRPC client operations, primarily focusing
+// on request latency when calling external gRPC services.
 type ClientStorage struct {
 	duration *prometheus.SummaryVec
 }
 
+// NewClientStorage creates a new ClientStorage instance and registers its metrics
+// with the provided registry. Metrics are labeled by the gRPC endpoint.
 func NewClientStorage(reg *metrics.Registry) *ClientStorage {
 	s := &ClientStorage{
 		duration: metrics.GetOrRegister(reg, prometheus.NewSummaryVec(prometheus.SummaryOpts{
@@ -23,6 +27,7 @@ func NewClientStorage(reg *metrics.Registry) *ClientStorage {
 	return s
 }
 
+// ObserveDuration records the latency of a gRPC client request, labeled by endpoint.
 func (s *ClientStorage) ObserveDuration(endpoint string, duration time.Duration) {
 	s.duration.WithLabelValues(endpoint).Observe(metrics.Milliseconds(duration))
 }

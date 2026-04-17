@@ -9,6 +9,7 @@ import (
 	"github.com/txix-open/isp-kit/panic_recovery"
 )
 
+// ConsumerMetricStorage defines an interface for consumer metrics storage.
 type ConsumerMetricStorage interface {
 	ObserveConsumeDuration(exchange string, routingKey string, t time.Duration)
 	ObserveConsumeMsgSize(exchange string, routingKey string, size int)
@@ -17,6 +18,8 @@ type ConsumerMetricStorage interface {
 	IncRetryCount(exchange string, routingKey string)
 }
 
+// Metrics creates a middleware that collects consumer metrics for batch processing,
+// including message processing duration, message size, and result counts (success, retry, DLQ).
 func Metrics(metricStorage ConsumerMetricStorage) Middleware {
 	return func(next SyncHandlerAdapter) SyncHandlerAdapter {
 		return SyncHandlerAdapterFunc(func(batch BatchItems) {
@@ -42,6 +45,8 @@ func Metrics(metricStorage ConsumerMetricStorage) Middleware {
 	}
 }
 
+// Log creates a middleware that logs batch message processing results with appropriate log levels
+// based on the outcome (Ack, Retry, or MoveToDlq).
 func Log(logger log.Logger) Middleware {
 	return func(next SyncHandlerAdapter) SyncHandlerAdapter {
 		return SyncHandlerAdapterFunc(func(batch BatchItems) {
@@ -86,7 +91,8 @@ func Log(logger log.Logger) Middleware {
 	}
 }
 
-// nolint:nonamedreturns
+// Recovery creates a middleware that recovers from panics during batch message processing.
+// On panic, the error is logged but message acknowledgment state remains unchanged.
 func Recovery(logger log.Logger) Middleware {
 	return func(next SyncHandlerAdapter) SyncHandlerAdapter {
 		return SyncHandlerAdapterFunc(func(batch BatchItems) {

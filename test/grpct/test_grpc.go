@@ -1,3 +1,5 @@
+// Package grpct provides test helpers for gRPC server and client operations.
+// It creates mock gRPC servers on random local ports for testing.
 package grpct
 
 import (
@@ -10,12 +12,17 @@ import (
 	"github.com/txix-open/isp-kit/test"
 )
 
+// MockServer provides a mock gRPC server for testing.
+// It allows registering handlers for specific endpoints.
 type MockServer struct {
 	Wrapper endpoint.Wrapper
 	srv     *grpc.Server
 	router  *grpc.Mux
 }
 
+// NewMock creates a new mock gRPC server and client pair.
+// The server listens on a random local port and is automatically
+// shut down when the test completes.
 func NewMock(t *test.Test) (*MockServer, *client.Client) {
 	srv, cli := TestServer(t, grpc.NewMux())
 	router := grpc.NewMux()
@@ -27,11 +34,16 @@ func NewMock(t *test.Test) (*MockServer, *client.Client) {
 	}, cli
 }
 
+// Mock registers a handler for the specified endpoint.
+// Returns the MockServer for method chaining.
 func (m *MockServer) Mock(endpoint string, handler any) *MockServer {
 	m.router.Handle(endpoint, m.Wrapper.Endpoint(handler))
 	return m
 }
 
+// TestServer creates and starts a gRPC server with the provided service,
+// returning both the server and a configured client. The server listens
+// on a random local port and is automatically shut down when the test completes.
 func TestServer(t *test.Test, service isp.BackendServiceServer) (*grpc.Server, *client.Client) {
 	assert := t.Assert()
 

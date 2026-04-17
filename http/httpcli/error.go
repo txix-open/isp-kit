@@ -5,6 +5,8 @@ import (
 	"net/url"
 )
 
+// ErrorResponse represents an HTTP error response with status code and body.
+//
 // nolint:errname
 type ErrorResponse struct {
 	Url        *url.URL
@@ -12,6 +14,7 @@ type ErrorResponse struct {
 	Body       []byte
 }
 
+// Error returns a formatted error message containing the URL, status code, and body.
 func (e ErrorResponse) Error() string {
 	return fmt.Sprintf("http call error: url=%s status_code=%d, body=%s", e.Url.String(), e.StatusCode, e.Body)
 }

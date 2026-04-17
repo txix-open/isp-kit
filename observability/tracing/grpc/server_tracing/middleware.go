@@ -1,3 +1,4 @@
+// Package server_tracing provides gRPC server middleware for distributed tracing.
 package server_tracing
 
 import (
@@ -15,15 +16,18 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-const (
-	tracerName = "isp-kit/observability/tracing/grpc"
-)
+// tracerName identifies the tracer for gRPC server tracing.
+const tracerName = "isp-kit/observability/tracing/grpc"
 
+// Config holds the configuration for the gRPC server tracing middleware.
 type Config struct {
-	Provider   tracing.TracerProvider
+	// Provider is the tracer provider used to create tracers.
+	Provider tracing.TracerProvider
+	// Propagator is the text map propagator for context propagation.
 	Propagator tracing.Propagator
 }
 
+// NewConfig creates a new Config with default values.
 func NewConfig() Config {
 	return Config{
 		Provider:   tracing.DefaultProvider,
@@ -31,6 +35,9 @@ func NewConfig() Config {
 	}
 }
 
+// Middleware returns a gRPC server middleware that creates spans for incoming RPC calls.
+// It extracts trace context from request metadata, creates a server span, and records
+// errors at the appropriate log level. If the provider is a no-op, it returns a pass-through middleware.
 func (c Config) Middleware() grpc.Middleware {
 	if tracing.IsNoop(c.Provider) {
 		return func(next grpc.HandlerFunc) grpc.HandlerFunc {

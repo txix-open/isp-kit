@@ -5,6 +5,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// Level is an alias for zapcore.Level representing log severity.
 type Level = zapcore.Level
 
 const (

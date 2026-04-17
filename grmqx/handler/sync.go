@@ -1,3 +1,4 @@
+// Package handler provides synchronous message processing for RabbitMQ consumers.
 package handler
 
 import (
@@ -8,23 +9,30 @@ import (
 	"github.com/txix-open/isp-kit/log"
 )
 
+// SyncHandlerAdapter defines the interface for synchronous message handlers.
 type SyncHandlerAdapter interface {
 	Handle(ctx context.Context, delivery *consumer.Delivery) Result
 }
 
+// Middleware is a function that wraps a SyncHandlerAdapter.
 type Middleware func(next SyncHandlerAdapter) SyncHandlerAdapter
 
+// SyncHandlerAdapterFunc is an adapter that allows using functions as SyncHandlerAdapters.
 type SyncHandlerAdapterFunc func(ctx context.Context, delivery *consumer.Delivery) Result
 
+// Handle handles a message delivery using the function.
 func (a SyncHandlerAdapterFunc) Handle(ctx context.Context, delivery *consumer.Delivery) Result {
 	return a(ctx, delivery)
 }
 
+// Sync wraps a handler with middleware and manages message acknowledgment.
 type Sync struct {
 	logger  log.Logger
 	handler SyncHandlerAdapter
 }
 
+// NewSync creates a new Sync handler with the specified logger, adapter, and middleware.
+// Middleware functions are applied in reverse order (last to first).
 func NewSync(logger log.Logger, adapter SyncHandlerAdapter, middlewares ...Middleware) Sync {
 	s := Sync{
 		logger: logger,
@@ -36,6 +44,8 @@ func NewSync(logger log.Logger, adapter SyncHandlerAdapter, middlewares ...Middl
 	return s
 }
 
+// Handle processes a message delivery and performs the appropriate action
+// based on the Result (Ack, Requeue, Retry, or MoveToDlq).
 func (r Sync) Handle(ctx context.Context, delivery *consumer.Delivery) {
 	result := r.handler.Handle(ctx, delivery)
 

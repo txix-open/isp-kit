@@ -1,3 +1,6 @@
+// Package httplog provides HTTP request/response logging middleware.
+// It supports separate request and response body logging, combined logging,
+// and content-type filtering.
 package httplog
 
 import (
@@ -16,18 +19,21 @@ import (
 )
 
 const (
+	// applicationNameHeader is the HTTP header for base64-encoded application name.
 	applicationNameHeader = "X-Application-Name"
-	applicationIdHeader   = "X-Application-Identity"
+	// applicationIdHeader is the HTTP header for application identity (numeric ID).
+	applicationIdHeader = "X-Application-Identity"
 )
 
-// nolint:gochecknoglobals
 var (
+	// defaultLogBodyContentTypes specifies the content types for which body logging is enabled.
 	defaultLogBodyContentTypes = []string{
 		"application/json",
 		"text/xml",
 	}
 )
 
+// logConfig holds the configuration for the logging middleware.
 type logConfig struct {
 	logBodyContentTypes []string
 	logRequestBody      bool
@@ -35,6 +41,8 @@ type logConfig struct {
 	combinedLog         bool
 }
 
+// Log creates a logging middleware that logs requests and responses separately.
+// If logBody is true, it logs request and response bodies for supported content types.
 func Log(logger log.Logger, logBody bool) endpoint.LogMiddleware {
 	cfg := &logConfig{
 		logBodyContentTypes: defaultLogBodyContentTypes,
@@ -44,6 +52,8 @@ func Log(logger log.Logger, logBody bool) endpoint.LogMiddleware {
 	return middleware(logger, cfg)
 }
 
+// CombinedLog creates a logging middleware that logs requests and responses in a single entry.
+// If logBody is true, it logs request and response bodies for supported content types.
 func CombinedLog(logger log.Logger, logBody bool) endpoint.LogMiddleware {
 	cfg := &logConfig{
 		logBodyContentTypes: defaultLogBodyContentTypes,
@@ -53,6 +63,9 @@ func CombinedLog(logger log.Logger, logBody bool) endpoint.LogMiddleware {
 	return combinedLogMiddleware(logger, cfg)
 }
 
+// LogWithOptions creates a logging middleware with custom configuration options.
+// By default, body logging is disabled. Use options like WithLogBody, WithCombinedLog
+// to customize the behavior.
 func LogWithOptions(logger log.Logger, opts ...Option) endpoint.LogMiddleware {
 	cfg := &logConfig{
 		logBodyContentTypes: defaultLogBodyContentTypes,
@@ -70,6 +83,7 @@ func LogWithOptions(logger log.Logger, opts ...Option) endpoint.LogMiddleware {
 	return middleware(logger, cfg)
 }
 
+// middleware creates a logging middleware that logs requests and responses separately.
 func middleware(logger log.Logger, cfg *logConfig) endpoint.LogMiddleware {
 	return func(next http2.HandlerFunc) http2.HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -118,6 +132,7 @@ func middleware(logger log.Logger, cfg *logConfig) endpoint.LogMiddleware {
 	}
 }
 
+// combinedLogMiddleware creates a logging middleware that logs requests and responses in a single entry.
 func combinedLogMiddleware(logger log.Logger, cfg *logConfig) endpoint.LogMiddleware {
 	return func(next http2.HandlerFunc) http2.HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
@@ -164,6 +179,8 @@ func combinedLogMiddleware(logger log.Logger, cfg *logConfig) endpoint.LogMiddle
 	}
 }
 
+// matchContentType checks if the given content type matches any of the available content types.
+// It uses prefix matching to handle content types with parameters (e.g., "application/json; charset=utf-8").
 func matchContentType(contentType string, availableContentTypes []string) bool {
 	for _, content := range availableContentTypes {
 		if strings.HasPrefix(contentType, content) {
@@ -173,6 +190,8 @@ func matchContentType(contentType string, availableContentTypes []string) bool {
 	return false
 }
 
+// applicationLogFields extracts application-related log fields from the request.
+// It decodes the base64-encoded application name and parses the application ID.
 func applicationLogFields(r *http.Request) []log.Field {
 	logFields := make([]log.Field, 0)
 	appName := r.Header.Get(applicationNameHeader)

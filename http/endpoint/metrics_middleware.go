@@ -10,16 +10,20 @@ import (
 	"github.com/txix-open/isp-kit/metrics/http_metrics"
 )
 
+// scSource is an interface for retrieving the HTTP status code from a response.
 type scSource interface {
 	StatusCode() int
 }
 
+// writerWrapper wraps http.ResponseWriter to capture the status code.
+// It defaults to http.StatusOK if WriteHeader is not called.
 type writerWrapper struct {
 	http.ResponseWriter
 
 	statusCode int
 }
 
+// StatusCode returns the captured status code, or http.StatusOK if not set.
 func (w *writerWrapper) StatusCode() int {
 	if w.statusCode == 0 {
 		return http.StatusOK
@@ -27,11 +31,15 @@ func (w *writerWrapper) StatusCode() int {
 	return w.statusCode
 }
 
+// WriteHeader captures the status code and delegates to the underlying ResponseWriter.
 func (w *writerWrapper) WriteHeader(statusCode int) {
 	w.statusCode = statusCode
 	w.ResponseWriter.WriteHeader(statusCode)
 }
 
+// Metrics is a middleware that collects HTTP server metrics for each endpoint.
+// It records request duration, status code counts, and request/response body sizes.
+// If the endpoint is not available in the context, it skips metrics collection.
 func Metrics(storage *http_metrics.ServerStorage) http2.Middleware {
 	return func(next http2.HandlerFunc) http2.HandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {

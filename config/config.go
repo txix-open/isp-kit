@@ -1,3 +1,33 @@
+// Package config provides a flexible configuration management system with support for
+// multiple sources, environment variable overrides, and type-safe value retrieval.
+//
+// The package supports reading configuration from YAML files, environment variables,
+// and custom sources. Configuration values can be accessed as mandatory (required) or
+// optional (with defaults) values for common types like strings, integers, booleans,
+// and durations.
+//
+// Example usage:
+//
+//	cfg, err := config.New(
+//		config.WithEnvPrefix("MYAPP"),
+//		config.WithExtraSource(config.NewYamlConfig("config.yaml")),
+//	)
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//
+//	// Read mandatory values
+//	host, err := cfg.Mandatory().String("server.host")
+//	port, err := cfg.Mandatory().Int("server.port")
+//
+//	// Read optional values with defaults
+//	timeout := cfg.Optional().Duration("server.timeout", 30*time.Second)
+//
+//	// Decode into a struct
+//	var settings ServerSettings
+//	if err := cfg.Read(&settings); err != nil {
+//		log.Fatal(err)
+//	}
 package config
 
 import (
@@ -10,10 +40,15 @@ import (
 	"github.com/txix-open/bellows"
 )
 
+// Validator defines an interface for validating configuration values.
+// Implementations should return an error if the configuration structure is invalid.
 type Validator interface {
 	ValidateToError(value any) error
 }
 
+// Config manages application configuration from multiple sources.
+// It supports loading from YAML files, environment variables, and custom sources,
+// with automatic normalization of keys and value expansion.
 type Config struct {
 	config    map[string]string
 	optional  Optional
@@ -24,6 +59,11 @@ type Config struct {
 	extraSources []Source
 }
 
+// New creates a new Config instance with the provided options.
+// It loads configuration from extra sources and environment variables.
+// Environment variables are filtered by the envPrefix if set.
+// Keys are normalized to lowercase for case-insensitive access.
+// Returns an error if any extra source fails to load.
 func New(opts ...Option) (*Config, error) {
 	config := map[string]string{}
 	mandatory := Mandatory{config: config}
@@ -61,22 +101,33 @@ func New(opts ...Option) (*Config, error) {
 	return cfg, nil
 }
 
+// Set assigns a value to the specified key.
+// The value is converted to a string representation.
 func (c *Config) Set(key string, value any) {
 	c.config[key] = fmt.Sprintf("%v", value)
 }
 
+// Delete removes a value by configuration key.
 func (c *Config) Delete(key string) {
 	delete(c.config, key)
 }
 
+// Mandatory returns a Mandatory accessor for required configuration values.
+// Values accessed through Mandatory will return an error if the key is not found.
 func (c *Config) Mandatory() Mandatory {
 	return c.mandatory
 }
 
+// Optional returns an Optional accessor for configuration values with defaults.
+// Values accessed through Optional will return the provided default if the key is not found.
 func (c *Config) Optional() Optional {
 	return c.optional
 }
 
+// Read decodes the configuration into the provided pointer.
+// It uses mapstructure for decoding with support for type conversions (e.g., string to time.Duration).
+// If a Validator is configured, it validates the decoded structure before returning.
+// Returns an error if decoding or validation fails.
 func (c *Config) Read(ptr any) error {
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		DecodeHook:       mapstructure.ComposeDecodeHookFunc(mapstructure.StringToTimeDurationHookFunc()),

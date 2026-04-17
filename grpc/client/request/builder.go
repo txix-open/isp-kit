@@ -1,3 +1,5 @@
+// Package request provides a fluent builder for constructing and executing gRPC requests.
+// It handles JSON marshaling/unmarshaling, metadata management, and timeout configuration.
 package request
 
 import (
@@ -13,9 +15,13 @@ import (
 )
 
 const (
+	// defaultTimeout is the default request timeout when none is specified.
 	defaultTimeout = 15 * time.Second
 )
 
+// Builder provides a fluent API for constructing and executing gRPC requests.
+// It handles JSON marshaling, metadata management, and timeout configuration.
+// Builder is not safe for concurrent use; create a new instance for each request.
 type Builder struct {
 	Endpoint      string
 	MD            metadata.MD
@@ -26,6 +32,8 @@ type Builder struct {
 	roundTripper  RoundTripper
 }
 
+// NewBuilder creates a new Builder for the specified endpoint.
+// Initializes with default timeout and empty metadata.
 func NewBuilder(roundTripper RoundTripper, endpoint string) *Builder {
 	return &Builder{
 		Endpoint:     endpoint,
@@ -35,31 +43,45 @@ func NewBuilder(roundTripper RoundTripper, endpoint string) *Builder {
 	}
 }
 
+// ApplicationId sets the application identity header for the request.
+// Returns the Builder for method chaining.
 func (req *Builder) ApplicationId(appId int) *Builder {
 	req.applicationId = appId
 	return req
 }
 
+// JsonRequestBody sets the request body as a JSON-encodable value.
+// Returns the Builder for method chaining.
 func (req *Builder) JsonRequestBody(reqBody any) *Builder {
 	req.requestBody = reqBody
 	return req
 }
 
+// JsonResponseBody sets the pointer to unmarshal the JSON response into.
+// Returns the Builder for method chaining.
 func (req *Builder) JsonResponseBody(respPtr any) *Builder {
 	req.responsePtr = respPtr
 	return req
 }
 
+// Timeout sets the request timeout duration.
+// A timeout of zero or negative disables the timeout.
+// Returns the Builder for method chaining.
 func (req *Builder) Timeout(timeout time.Duration) *Builder {
 	req.timeout = timeout
 	return req
 }
 
+// AppendMetadata adds one or more values to the metadata key.
+// Returns the Builder for method chaining.
 func (req *Builder) AppendMetadata(k string, v ...string) *Builder {
 	req.MD[k] = append(req.MD[k], v...)
 	return req
 }
 
+// Do executes the request and unmarshals the response if a response pointer was provided.
+// Returns an error if JSON marshaling, request execution, or response unmarshaling fails.
+// Automatically applies the configured timeout to the request context.
 func (req *Builder) Do(ctx context.Context) error {
 	var (
 		reqCtx = ctx
