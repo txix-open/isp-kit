@@ -1,3 +1,6 @@
+// Package stompx provides a high-level wrapper over the STOMP protocol,
+// implementing convenient tools for creating message consumers and publishers,
+// with support for middleware, logging, retries, and management of consumer and publisher groups.
 package stompx
 
 import (
@@ -16,6 +19,8 @@ type state struct {
 	publishers []*publisher.Publisher
 }
 
+// Client manages a group of consumers and publishers, capable of updating
+// connections and restarting when configuration changes.
 type Client struct {
 	locker  sync.Locker
 	state   *state
@@ -23,6 +28,7 @@ type Client struct {
 	logger  log.Logger
 }
 
+// New creates a new Client with the provided logger.
 func New(logger log.Logger) *Client {
 	return &Client{
 		locker:  &sync.Mutex{},
@@ -32,6 +38,7 @@ func New(logger log.Logger) *Client {
 	}
 }
 
+// Close terminates all active connections.
 func (c *Client) Close() error {
 	c.locker.Lock()
 	defer c.locker.Unlock()
@@ -45,6 +52,7 @@ func (c *Client) Close() error {
 	return nil
 }
 
+// Shutdown gracefully shuts down all consumers and publishers.
 func (c *Client) Shutdown() {
 	closeGroup, _ := errgroup.WithContext(context.Background())
 	for _, consumer := range c.state.consumers {
@@ -64,10 +72,16 @@ func (c *Client) Shutdown() {
 	_ = closeGroup.Wait()
 }
 
+// Upgrade updates the configuration and synchronously initializes the client
+// with a guarantee that all components are ready. It returns the first error
+// encountered during initialization, or nil if successful.
 func (c *Client) Upgrade(ctx context.Context, config Config) error {
 	return c.upgrade(ctx, false, config)
 }
 
+// UpgradeAndServe updates the configuration and restarts connections.
+// It stops old connections, initializes new consumers and publishers,
+// and starts message processing. This method blocks and serves indefinitely.
 func (c *Client) UpgradeAndServe(ctx context.Context, config Config) {
 	_ = c.upgrade(ctx, true, config)
 }

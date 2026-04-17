@@ -1,18 +1,25 @@
+// Package kafkat provides test helpers for Kafka operations using the
+// franz-go client. It creates isolated topics for each test and
+// automatically cleans them up after the test completes.
 package kafkat
 
 import (
 	"context"
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/twmb/franz-go/pkg/sasl/plain"
-	"os"
-	"time"
 
 	"github.com/txix-open/isp-kit/kafkax"
 	"github.com/txix-open/isp-kit/test"
 )
 
+// Kafka provides a test helper for Kafka operations.
+// It manages Kafka client connections and automatically cleans up
+// created topics after each test.
 type Kafka struct {
 	test     *test.Test
 	client   *kgo.Client
@@ -23,6 +30,9 @@ type Kafka struct {
 	topics   []string
 }
 
+// NewKafka creates a new Kafka test client.
+// Connection parameters can be overridden using environment variables:
+// KAFKA_ADDRESS, KAFKA_USERNAME, KAFKA_PASSWORD.
 func NewKafka(t *test.Test) *Kafka {
 	addr := t.Config().Optional().String("KAFKA_ADDRESS", "127.0.0.1:9092")
 	username := t.Config().Optional().String("KAFKA_USERNAME", "user")
@@ -61,7 +71,8 @@ func NewKafka(t *test.Test) *Kafka {
 	return cli
 }
 
-// WriteMessages публикует сообщения в топик, указанный в сообщении
+// WriteMessages publishes one or more messages to their respective topics.
+// Panics if any message fails to produce.
 func (k *Kafka) WriteMessages(msgs ...*kgo.Record) {
 	results := k.client.ProduceSync(context.Background(), msgs...)
 	for _, result := range results {
@@ -71,6 +82,8 @@ func (k *Kafka) WriteMessages(msgs ...*kgo.Record) {
 	}
 }
 
+// ReadMessage retrieves a single message from the specified topic at the
+// given offset. Panics if the message cannot be read.
 func (k *Kafka) ReadMessage(topic string, offset int64) *kgo.Record {
 	saslMechanism := plain.Auth{
 		User: k.username,
@@ -102,16 +115,22 @@ func (k *Kafka) ReadMessage(topic string, offset int64) *kgo.Record {
 	return nil
 }
 
+// Address returns the Kafka broker address.
 func (k *Kafka) Address() string {
 	return k.address
 }
 
+// CreateDefaultTopic creates a new topic with a single partition.
+// The topic is automatically deleted when the test completes.
+// Panics if topic creation fails.
 func (k *Kafka) CreateDefaultTopic(topic string) {
 	_, err := k.adm.CreateTopic(context.Background(), 1, -1, nil, topic)
 	k.test.Assert().NoError(err)
 	k.topics = append(k.topics, topic)
 }
 
+// PublisherConfig returns a PublisherConfig for the specified topic,
+// pre-configured with the Kafka connection details.
 func (k *Kafka) PublisherConfig(topic string) kafkax.PublisherConfig {
 	return kafkax.PublisherConfig{
 		Addresses:             []string{k.address},
@@ -124,6 +143,8 @@ func (k *Kafka) PublisherConfig(topic string) kafkax.PublisherConfig {
 	}
 }
 
+// ConsumerConfig returns a ConsumerConfig for the specified topic and
+// consumer group, pre-configured with the Kafka connection details.
 func (k *Kafka) ConsumerConfig(topic, groupId string) kafkax.ConsumerConfig {
 	return kafkax.ConsumerConfig{
 		Addresses:   []string{k.address},
@@ -137,6 +158,8 @@ func (k *Kafka) ConsumerConfig(topic, groupId string) kafkax.ConsumerConfig {
 	}
 }
 
+// deleteTopics deletes all topics that were created during the test.
+// Panics if deletion fails.
 func (k *Kafka) deleteTopics() {
 	_, err := k.adm.DeleteTopics(context.Background(), k.topics...)
 	k.test.Assert().NoError(err)

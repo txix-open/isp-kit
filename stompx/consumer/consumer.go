@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Consumer manages a connection to a STOMP broker and processes messages from a queue.
 type Consumer struct {
 	Config
 
@@ -19,6 +20,7 @@ type Consumer struct {
 	closeConsumer chan struct{}
 }
 
+// New creates a new Consumer with the provided configuration.
 func New(config Config) (*Consumer, error) {
 	conn, err := stomp.Dial("tcp", config.Address, config.ConnOpts...)
 	if err != nil {
@@ -41,6 +43,8 @@ func New(config Config) (*Consumer, error) {
 	}, nil
 }
 
+// Run starts the consumer and begins processing messages.
+// It blocks until an error occurs or the consumer is closed.
 func (c *Consumer) Run() error {
 	for range c.Concurrency {
 		c.workersWg.Add(1)
@@ -58,6 +62,7 @@ func (c *Consumer) Run() error {
 	}
 }
 
+// Close gracefully shuts down the consumer, disconnecting from the broker.
 func (c *Consumer) Close() error {
 	defer func() {
 		c.Observer.CloseDone(c)

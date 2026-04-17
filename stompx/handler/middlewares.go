@@ -8,8 +8,10 @@ import (
 	"github.com/txix-open/isp-kit/panic_recovery"
 )
 
+// Middleware is a function that wraps a HandlerAdapter with additional functionality.
 type Middleware func(next HandlerAdapter) HandlerAdapter
 
+// Log creates a middleware that logs message processing results.
 func Log(logger log.Logger) Middleware {
 	return func(next HandlerAdapter) HandlerAdapter {
 		return AdapterFunc(func(ctx context.Context, msg *stomp.Message) Result {
@@ -44,7 +46,7 @@ func Log(logger log.Logger) Middleware {
 	}
 }
 
-// nolint:nonamedreturns
+// Recovery creates a middleware that recovers from panics and requeues the message.
 func Recovery() Middleware {
 	return func(next HandlerAdapter) HandlerAdapter {
 		return AdapterFunc(func(ctx context.Context, msg *stomp.Message) (res Result) {
