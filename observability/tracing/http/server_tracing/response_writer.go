@@ -18,6 +18,7 @@ type scSource interface {
 // writerWrapper wraps an http.ResponseWriter to capture the status code.
 type writerWrapper struct {
 	http.ResponseWriter
+
 	// statusCode holds the captured HTTP status code.
 	statusCode int
 }

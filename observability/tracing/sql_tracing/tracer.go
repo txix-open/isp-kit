@@ -76,9 +76,9 @@ func (t Tracer) TraceQueryStart(ctx context.Context, _ *pgx.Conn, data pgx.Trace
 	}
 
 	spanName := fmt.Sprintf("SQL query %s", label)
-	ctx, span := t.tracer.Start(ctx, spanName, opts...)
+	ctx, span := t.tracer.Start(ctx, spanName, opts...) //nolint:spancheck
 
-	return context.WithValue(ctx, contextKeyValue, span)
+	return context.WithValue(ctx, contextKeyValue, span) //nolint:spancheck
 }
 
 // TraceQueryEnd ends the span for a database query and records any errors.

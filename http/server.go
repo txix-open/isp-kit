@@ -1,3 +1,4 @@
+// nolint:mnd
 package http
 
 import (

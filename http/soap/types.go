@@ -94,6 +94,7 @@ Loop:
 
 // Fault represents a SOAP fault containing error information.
 // It follows the SOAP 1.1 fault structure with code, string, actor, and optional detail.
+// nolint:errname
 type Fault struct {
 	XMLName xml.Name `xml:"http://schemas.xmlsoap.org/soap/envelope/ Fault"`
 

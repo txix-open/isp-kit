@@ -178,6 +178,7 @@ func SetException(e *sentry.Event, exception error) {
 	slices.Reverse(e.Exception)
 }
 
+// nolint:forcetypeassert
 // fieldToAny converts a log.Field to a Go value.
 // It handles various field types including strings, booleans, times, durations, and stringers.
 func fieldToAny(field log.Field) any {

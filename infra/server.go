@@ -5,6 +5,7 @@ package infra
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -21,7 +22,7 @@ func NewServer() *Server {
 	mux := http.NewServeMux()
 	return &Server{
 		mux: mux,
-		s:   &http.Server{Handler: mux},
+		s:   &http.Server{Handler: mux, ReadHeaderTimeout: 1 * time.Second},
 	}
 }
 

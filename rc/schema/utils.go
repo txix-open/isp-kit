@@ -49,7 +49,7 @@ func GetNameAndRequiredFlag(field reflect.StructField) (string, bool) {
 //   - "schemaGen": applies a custom generator by name
 func SetProperties(field reflect.StructField, s *jsonschema.Schema) {
 	schema, ok := field.Tag.Lookup(tagSchema)
-	if ok {
+	if ok { //nolint:nestif
 		parts := strings.SplitN(schema, ",", 2)
 		if len(parts) > 0 {
 			if len(parts) == 2 {
@@ -184,7 +184,7 @@ func GetFieldName(fieldType reflect.StructField) (string, bool) {
 	original := fieldType.Name
 	transform := true
 	value, ok := fieldType.Tag.Lookup("json")
-	if ok {
+	if ok { //nolint:nestif
 		opts := strings.Split(value, ",")
 		if len(opts) > 0 {
 			if opts[0] == "-" {

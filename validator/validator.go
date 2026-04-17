@@ -88,7 +88,7 @@ func (a Adapter) ValidateToError(v any) error {
 		descriptions = append(descriptions, fmt.Sprintf("%s -> %s", field, err))
 	}
 	err := strings.Join(descriptions, "; ")
-	return errors.New(err)
+	return errors.New(err) //nolint:err113
 }
 
 const (
