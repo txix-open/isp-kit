@@ -15,17 +15,20 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 )
 
-// nolint:gochecknoglobals
-var (
-	DefaultPropagator Propagator     = propagation.TraceContext{}
-	DefaultProvider   TracerProvider = NewNoopProvider()
-)
+// DefaultPropagator is the default text map propagator using W3C Trace Context.
+var DefaultPropagator Propagator = propagation.TraceContext{}
 
+// DefaultProvider is the global default tracer provider, initially set to a no-op provider.
+var DefaultProvider TracerProvider = NewNoopProvider()
+
+// RequestId is the attribute key used to store the request ID in spans.
 const (
 	RequestId = attribute.Key("app.request_id")
 )
 
-// nolint:ireturn
+// NewProviderFromConfiguration creates a new tracer provider from the given configuration.
+// It returns a no-op provider if tracing is disabled. The provider is configured to export
+// traces via OTLP over HTTP to the specified address.
 func NewProviderFromConfiguration(ctx context.Context, logger log.Logger, config Config) (Provider, error) {
 	if !config.Enable {
 		return NewNoopProvider(), nil
@@ -66,7 +69,7 @@ func NewProviderFromConfiguration(ctx context.Context, logger log.Logger, config
 	provider := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter),
 		sdktrace.WithResource(res),
-		sdktrace.WithSampler(sdktrace.AlwaysSample()), // TODO consider configuration, but pass all for now
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
 	)
 	return provider, nil
 }

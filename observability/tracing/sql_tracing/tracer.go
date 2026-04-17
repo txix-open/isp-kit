@@ -17,22 +17,22 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-const (
-	QueryParametersKey = attribute.Key("pgx.query.parameters")
-)
+// QueryParametersKey is the attribute key for storing query arguments.
+var QueryParametersKey = attribute.Key("pgx.query.parameters")
 
+// contextKey is used for storing the span in the context.
 type contextKey struct{}
 
-// nolint:gochecknoglobals
-var (
-	contextKeyValue = contextKey{}
-)
+// contextKeyValue is the global context key instance.
+var contextKeyValue = contextKey{}
 
+// Tracer implements pgx.QueryTracer for tracing SQL queries.
 type Tracer struct {
 	tracer trace.Tracer
 	config Config
 }
 
+// NewTracer creates a new Tracer with the given tracer and configuration.
 func NewTracer(tracer trace.Tracer, config Config) Tracer {
 	return Tracer{
 		tracer: tracer,
@@ -40,7 +40,10 @@ func NewTracer(tracer trace.Tracer, config Config) Tracer {
 	}
 }
 
-// nolint:spancheck
+// TraceQueryStart creates a span for the beginning of a database query.
+// It extracts the operation label from context or from the SQL statement
+// (for BEGIN/COMMIT). The span includes the SQL statement and arguments
+// if configured. Returns the context with the span attached.
 func (t Tracer) TraceQueryStart(ctx context.Context, _ *pgx.Conn, data pgx.TraceQueryStartData) context.Context {
 	label := sql_metrics.OperationLabelFromContext(ctx)
 	if label == "" && strings.HasPrefix(data.SQL, "begin") {
@@ -78,6 +81,8 @@ func (t Tracer) TraceQueryStart(ctx context.Context, _ *pgx.Conn, data pgx.Trace
 	return context.WithValue(ctx, contextKeyValue, span)
 }
 
+// TraceQueryEnd ends the span for a database query and records any errors.
+// It skips recording errors for sql.ErrNoRows.
 func (t Tracer) TraceQueryEnd(ctx context.Context, _ *pgx.Conn, data pgx.TraceQueryEndData) {
 	span, _ := ctx.Value(contextKeyValue).(trace.Span)
 	if span == nil {
