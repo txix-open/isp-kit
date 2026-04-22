@@ -205,7 +205,7 @@ func TestQueuesDeleteUninitializedClient(t *testing.T) {
 
 	cli := grmqx.New(test.Logger())
 	err := cli.DeleteQueues(t.Context(), "some-queue")
-	require.EqualError(err, "client is not initialized")
+	require.Contains(err.Error(), "client is not initialized")
 }
 
 func queueExists(t *testing.T, url string, queue string) bool {
@@ -222,6 +222,86 @@ func queueExists(t *testing.T, url string, queue string) bool {
 	}
 	defer ch.Close()
 
-	_, err = ch.QueueInspect(queue)
+	_, err = ch.QueueDeclarePassive(queue, false, false, false, false, nil)
 	return err == nil
+}
+
+func TestQueueInspect(t *testing.T) {
+	t.Parallel()
+	test, require := test.New(t)
+
+	testCli := grmqt.New(test)
+	config := grmqx.NewConfig(
+		testCli.ConnectionConfig().Url(),
+		grmqx.WithDeclarations(grmqx.TopologyFromConsumers(grmqx.Consumer{Queue: "test_queue_inspect"})),
+	)
+	err := testCli.GrmqxCli.Upgrade(t.Context(), config)
+	require.NoError(err)
+
+	cli := grmqx.New(test.Logger())
+	t.Cleanup(func() {
+		cli.Close()
+	})
+	err = cli.Upgrade(t.Context(), config)
+	require.NoError(err)
+
+	queue, err := cli.QueueInspect("test_queue_inspect")
+	require.NoError(err)
+	require.EqualValues("test_queue_inspect", queue.Name)
+
+	_, err = cli.QueueInspect("")
+	require.ErrorContains(err, "queue name is empty")
+
+	queue, err = cli.QueueInspect("non_existent_queue_xyz")
+	require.Error(err)
+	require.ErrorContains(err, "queue does not exist")
+	require.Empty(queue.Name)
+
+	disconnectedCli := grmqx.New(test.Logger())
+	t.Cleanup(func() {
+		disconnectedCli.Close()
+	})
+	_, err = disconnectedCli.QueueInspect("some_queue")
+	require.ErrorContains(err, "client is not initialized")
+}
+
+func TestQueuesDeleteWithInspect(t *testing.T) {
+	t.Parallel()
+	test, require := test.New(t)
+
+	const existingQueue = "existing_queue"
+	const nonExistentQueue = "non_existent_queue_xyz"
+
+	testCli := grmqt.New(test)
+	consumerCfg := grmqx.Consumer{
+		Queue: existingQueue,
+	}
+	config := grmqx.NewConfig(
+		testCli.ConnectionConfig().Url(),
+		grmqx.WithDeclarations(grmqx.TopologyFromConsumers(consumerCfg)),
+	)
+
+	err := testCli.GrmqxCli.Upgrade(t.Context(), config)
+	require.NoError(err)
+
+	require.True(queueExists(t, testCli.ConnectionConfig().Url(), existingQueue))
+
+	emptyResult, err := testCli.GrmqxCli.DeleteQueuesWithInspect(t.Context())
+	require.ErrorIs(err, grmqx.ErrQueuesNameIsEmpty)
+	require.Nil(emptyResult)
+
+	results, err := testCli.GrmqxCli.DeleteQueuesWithInspect(t.Context(), "")
+	require.NoError(err)
+	require.Len(results, 1)
+	require.Error(results[""])
+
+	results, err = testCli.GrmqxCli.DeleteQueuesWithInspect(t.Context(), existingQueue, nonExistentQueue, "")
+	require.NoError(err)
+	require.NotNil(results)
+	require.Len(results, 3)
+	require.Error(results[nonExistentQueue])
+	require.Contains(results[nonExistentQueue].Error(), grmqx.ErrNotExistQueue.Error())
+	require.Error(results[""])
+	require.Contains(results[""].Error(), grmqx.ErrQueueNameIsEmpty.Error())
+	require.NoError(results[existingQueue])
 }
