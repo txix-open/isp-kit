@@ -7,6 +7,7 @@ package grmqx
 import (
 	"context"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,6 +22,11 @@ const (
 	DefaultHeartbeat = 3 * time.Second
 	// DefaultDialTimeout specifies the default timeout for establishing connections.
 	DefaultDialTimeout = 5 * time.Second
+)
+
+var (
+	// ErrNotExistQueue returned when trying to operate a queue that doesn't exist.
+	ErrNotExistQueue = errors.New("queue does not exist")
 )
 
 // Client manages RabbitMQ connections and the lifecycle of consumers and publishers.
@@ -84,27 +90,38 @@ func (c *Client) Close() {
 	}
 }
 
-// DeleteQueues deletes the specified queues from the broker.
-// If an error occurs while deleting a specific queue, it is logged and processing
-// continues for remaining queues. Returns immediately without error if no queue names are provided.
-func (c *Client) DeleteQueues(ctx context.Context, queueNames ...string) error {
-	if len(queueNames) == 0 {
-		return nil
-	}
-
+// QueueInspect To get information about a queue named `name'. Provides data on the number of messages in the queue
+// and connections.
+// The queue name must not be empty.
+func (c *Client) QueueInspect(name string) (amqp091.Queue, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	if c.cli == nil {
-		return errors.New("client is not initialized")
-	}
-	conn := c.cli.UnsafeConnection()
-	if conn == nil {
-		return errors.New("rabbit mq is not connected")
-	}
-	ch, err := conn.Channel()
+	ch, err := c.getChannel()
 	if err != nil {
-		return errors.WithMessage(err, "open channel")
+		return amqp091.Queue{}, errors.WithMessage(err, "get channel")
+	}
+	defer ch.Close()
+
+	queue, err := c.queueInspect(name, ch)
+	if err != nil {
+		return amqp091.Queue{}, err
+	}
+
+	return queue, nil
+}
+
+// DeleteQueues deletes the specified queues from the broker.
+// If an error occurs while deleting a specific queue, it is logged and processing
+// continues for remaining queues. Returns immediately without error if no queue names are provided.
+// The queue list should not be empty.
+func (c *Client) DeleteQueues(ctx context.Context, queueNames ...string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	ch, err := c.getChannel()
+	if err != nil {
+		return errors.WithMessage(err, "get channel")
 	}
 	defer ch.Close()
 
@@ -119,10 +136,74 @@ func (c *Client) DeleteQueues(ctx context.Context, queueNames ...string) error {
 		}
 		_, err = ch.QueueDelete(name, false, false, false)
 		if err != nil {
-			c.logger.Warn(ctx, "failed delete queue", log.String("name", name))
+			c.logger.Warn(ctx, "failed delete queue", log.String("name", name), log.String("error", err.Error()))
 		}
 	}
 	return nil
+}
+
+// DeleteQueuesWithInspect Delete queues by the list of names `queueNames'. Queues are inspected before they are
+// deleted, and those with messages and/or connections will not be deleted. Returns the queue name card - error.
+// If the queue was deleted without errors, the error value will be `nil`
+// The queue list should not be empty.
+func (c *Client) DeleteQueuesWithInspect(ctx context.Context, queueNames ...string) (map[string]error, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	rslt := make(map[string]error)
+	for _, name := range queueNames {
+		select {
+		case <-ctx.Done():
+			return rslt, ctx.Err()
+		default:
+		}
+
+		ch, err := c.getChannel()
+		if err != nil {
+			return nil, errors.WithMessage(err, "get channel for inspect")
+		}
+		queue, err := c.queueInspect(name, ch)
+		if err == nil {
+			if queue.Consumers > 0 {
+				rslt[name] = errors.Errorf("The queue in use cannot be deleted. Consumers num: %d", queue.Consumers)
+				continue
+			}
+
+			if queue.Messages > 0 {
+				rslt[name] = errors.Errorf("The queue containing messages cannot be deleted. Messages num: %d", queue.Messages)
+				continue
+			}
+
+			rslt[name] = nil
+			continue
+		}
+		rslt[name] = errors.WithMessage(err, "queue inspect")
+		_ = ch.Close()
+	}
+
+	ch, err := c.getChannel()
+	if err != nil {
+		return nil, errors.WithMessage(err, "get channel for delete")
+	}
+	for name, errorInspect := range rslt {
+		select {
+		case <-ctx.Done():
+			return rslt, ctx.Err()
+		default:
+		}
+
+		if errorInspect == nil {
+			_, deleteError := ch.QueueDelete(name, false, false, false)
+
+			if deleteError != nil {
+				c.logger.Warn(ctx, "failed delete queue", log.String("name", name), log.String("error", deleteError.Error()))
+				rslt[name] = errors.WithMessage(deleteError, "queue delete")
+			}
+		}
+	}
+	_ = ch.Close()
+
+	return rslt, nil
 }
 
 func (c *Client) upgrade(ctx context.Context, config Config, justServe bool) error {
@@ -180,4 +261,39 @@ func (c *Client) upgrade(ctx context.Context, config Config, justServe bool) err
 	c.cli = cli
 	c.prevCfg = config
 	return nil
+}
+
+// queueInspect Using the transmitted channel "ch", it searches for a queue named "name" and returns it.
+// WARNING: if there is no queue, the channel will be closed due to the features of the basic library.
+// For an empty queue name, the channel will not be closed, because it will immediately return with an error.
+func (c *Client) queueInspect(name string, ch *amqp091.Channel) (amqp091.Queue, error) {
+	queue, err := ch.QueueDeclarePassive(name, false, false, false, false, nil)
+	if err != nil {
+		is404err := strings.Contains(err.Error(), "Exception (404)")
+		if is404err {
+			return amqp091.Queue{}, ErrNotExistQueue
+		}
+
+		return amqp091.Queue{}, errors.WithMessagef(err, "inspect queue %s", name)
+	}
+
+	return queue, nil
+}
+
+// getChannel returns the active channel for the current connection.
+// It is necessary to close this channel after use.
+func (c *Client) getChannel() (*amqp091.Channel, error) {
+	if c.cli == nil {
+		return nil, errors.New("client is not initialized")
+	}
+	conn := c.cli.UnsafeConnection()
+	if conn == nil {
+		return nil, errors.New("rabbit mq is not connected")
+	}
+	ch, err := conn.Channel()
+	if err != nil {
+		return nil, errors.WithMessage(err, "open channel")
+	}
+
+	return ch, nil
 }
