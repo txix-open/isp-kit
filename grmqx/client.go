@@ -27,10 +27,6 @@ const (
 var (
 	// ErrNotExistQueue returned when trying to operate a queue that doesn't exist.
 	ErrNotExistQueue = errors.New("queue does not exist")
-	// ErrQueueNameIsEmpty returned when queue name is empty.
-	ErrQueueNameIsEmpty = errors.New("queue name is empty")
-	// ErrQueuesNameIsEmpty returned when multiple queue names list is empty.
-	ErrQueuesNameIsEmpty = errors.New("queues name is empty")
 )
 
 // Client manages RabbitMQ connections and the lifecycle of consumers and publishers.
@@ -96,6 +92,7 @@ func (c *Client) Close() {
 
 // QueueInspect To get information about a queue named `name'. Provides data on the number of messages in the queue
 // and connections.
+// The queue name must not be empty.
 func (c *Client) QueueInspect(name string) (amqp091.Queue, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -117,12 +114,8 @@ func (c *Client) QueueInspect(name string) (amqp091.Queue, error) {
 // DeleteQueues deletes the specified queues from the broker.
 // If an error occurs while deleting a specific queue, it is logged and processing
 // continues for remaining queues. Returns immediately without error if no queue names are provided.
-
+// The queue list should not be empty.
 func (c *Client) DeleteQueues(ctx context.Context, queueNames ...string) error {
-	if len(queueNames) == 0 {
-		return ErrQueuesNameIsEmpty
-	}
-
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -152,11 +145,8 @@ func (c *Client) DeleteQueues(ctx context.Context, queueNames ...string) error {
 // DeleteQueuesWithInspect Delete queues by the list of names `queueNames'. Queues are inspected before they are
 // deleted, and those with messages and/or connections will not be deleted. Returns the queue name card - error.
 // If the queue was deleted without errors, the error value will be `nil`
+// The queue list should not be empty.
 func (c *Client) DeleteQueuesWithInspect(ctx context.Context, queueNames ...string) (map[string]error, error) {
-	if len(queueNames) == 0 {
-		return nil, ErrQueuesNameIsEmpty
-	}
-
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -277,10 +267,6 @@ func (c *Client) upgrade(ctx context.Context, config Config, justServe bool) err
 // WARNING: if there is no queue, the channel will be closed due to the features of the basic library.
 // For an empty queue name, the channel will not be closed, because it will immediately return with an error.
 func (c *Client) queueInspect(name string, ch *amqp091.Channel) (amqp091.Queue, error) {
-	if len(name) == 0 {
-		return amqp091.Queue{}, ErrQueueNameIsEmpty
-	}
-
 	queue, err := ch.QueueDeclarePassive(name, false, false, false, false, nil)
 	if err != nil {
 		is404err := strings.Contains(err.Error(), "Exception (404)")

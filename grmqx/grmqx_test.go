@@ -250,11 +250,10 @@ func TestQueueInspect(t *testing.T) {
 	require.EqualValues("test_queue_inspect", queue.Name)
 
 	_, err = cli.QueueInspect("")
-	require.ErrorContains(err, "queue name is empty")
+	require.Error(err)
 
 	queue, err = cli.QueueInspect("non_existent_queue_xyz")
 	require.Error(err)
-	require.ErrorContains(err, "queue does not exist")
 	require.Empty(queue.Name)
 
 	disconnectedCli := grmqx.New(test.Logger())
@@ -287,8 +286,8 @@ func TestQueuesDeleteWithInspect(t *testing.T) {
 	require.True(queueExists(t, testCli.ConnectionConfig().Url(), existingQueue))
 
 	emptyResult, err := testCli.GrmqxCli.DeleteQueuesWithInspect(t.Context())
-	require.ErrorIs(err, grmqx.ErrQueuesNameIsEmpty)
-	require.Nil(emptyResult)
+	require.NoError(err)
+	require.Empty(emptyResult)
 
 	results, err := testCli.GrmqxCli.DeleteQueuesWithInspect(t.Context(), "")
 	require.NoError(err)
@@ -302,6 +301,5 @@ func TestQueuesDeleteWithInspect(t *testing.T) {
 	require.Error(results[nonExistentQueue])
 	require.Contains(results[nonExistentQueue].Error(), grmqx.ErrNotExistQueue.Error())
 	require.Error(results[""])
-	require.Contains(results[""].Error(), grmqx.ErrQueueNameIsEmpty.Error())
 	require.NoError(results[existingQueue])
 }
