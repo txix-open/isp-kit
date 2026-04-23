@@ -25,8 +25,11 @@ const (
 )
 
 var (
-	ErrNotExistQueue     = errors.New("queue does not exist")
-	ErrQueueNameIsEmpty  = errors.New("queue name is empty")
+	// ErrNotExistQueue returned when trying to operate a queue that doesn't exist.
+	ErrNotExistQueue = errors.New("queue does not exist")
+	// ErrQueueNameIsEmpty returned when queue name is empty.
+	ErrQueueNameIsEmpty = errors.New("queue name is empty")
+	// ErrQueuesNameIsEmpty returned when multiple queue names list is empty.
 	ErrQueuesNameIsEmpty = errors.New("queues name is empty")
 )
 
@@ -91,6 +94,8 @@ func (c *Client) Close() {
 	}
 }
 
+// QueueInspect To get information about a queue named `name'. Provides data on the number of messages in the queue
+// and connections.
 func (c *Client) QueueInspect(name string) (amqp091.Queue, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -144,6 +149,9 @@ func (c *Client) DeleteQueues(ctx context.Context, queueNames ...string) error {
 	return nil
 }
 
+// DeleteQueuesWithInspect Delete queues by the list of names `queueNames'. Queues are inspected before they are
+// deleted, and those with messages and/or connections will not be deleted. Returns the queue name card - error.
+// If the queue was deleted without errors, the error value will be `nil`
 func (c *Client) DeleteQueuesWithInspect(ctx context.Context, queueNames ...string) (map[string]error, error) {
 	if len(queueNames) == 0 {
 		return nil, ErrQueuesNameIsEmpty
