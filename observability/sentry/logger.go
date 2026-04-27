@@ -112,14 +112,14 @@ func EventFromLog(
 ) *sentry.Event {
 	errInLog, _ := message.(error)
 
-	extra := make(map[string]any, len(fields))
+	tags := make(map[string]string, len(fields))
 	for _, field := range log.ContextLogValues(ctx) {
-		value := fieldToAny(field)
-		extra[field.Key] = value
+		value := fieldToString(field)
+		tags[field.Key] = value
 	}
 	for _, field := range fields {
-		value := fieldToAny(field)
-		extra[field.Key] = value
+		value := fieldToString(field)
+		tags[field.Key] = value
 		errField := errorFromField(field)
 		if errInLog == nil {
 			errInLog = errField
@@ -128,11 +128,11 @@ func EventFromLog(
 
 	requestId := requestid.FromContext(ctx)
 	if requestId != "" {
-		extra["requestId"] = requestId
+		tags["requestId"] = requestId
 	}
 
 	event := &sentry.Event{
-		Extra:     extra,
+		Tags:      tags,
 		Level:     level,
 		Message:   fmt.Sprintf("%v", message),
 		Timestamp: time.Now(),
@@ -179,14 +179,14 @@ func SetException(e *sentry.Event, exception error) {
 }
 
 // nolint:forcetypeassert
-// fieldToAny converts a log.Field to a Go value.
+// fieldToString converts a log.Field to a Go string.
 // It handles various field types including strings, booleans, times, durations, and stringers.
-func fieldToAny(field log.Field) any {
+func fieldToString(field log.Field) string {
 	switch {
 	case field.String != "":
 		return field.String
 	case field.Type == zapcore.BoolType:
-		return field.Integer == 1
+		return fmt.Sprintf("%v", field.Integer == 1)
 	case field.Type == zapcore.ByteStringType:
 		return string(field.Interface.([]byte))
 	case field.Type == zapcore.StringerType:
@@ -198,7 +198,7 @@ func fieldToAny(field log.Field) any {
 	case field.Interface != nil:
 		return fmt.Sprintf("%v", field.Interface)
 	default:
-		return field.Integer
+		return fmt.Sprintf("%v", field.Integer)
 	}
 }
 

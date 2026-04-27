@@ -134,7 +134,7 @@ func (s SdkHub) CatchError(ctx context.Context, err error, level log.Level) {
 
 	requestId := requestid.FromContext(ctx)
 	if requestId != "" {
-		event.Extra = map[string]any{
+		event.Tags = map[string]string{
 			RequestIdKey: requestId,
 		}
 	}
