@@ -1,3 +1,5 @@
+## v1.67.3
+* Добавлена версия `NewWithRequestAndResponse` для `endpoint/v2` — поддержка сигнатуры `func(ctx context.Context, r *http.Request) (Res, error)`
 ## v1.67.2
 * обновлены завимисоти
 * для `sentry` исправлена потеря обратной совместимости (`Event.Extra` -> `Event.Tags`)
