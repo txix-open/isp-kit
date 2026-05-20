@@ -76,6 +76,27 @@ func (fn withRequest) Wrap(wrapper Wrapper) http2.HandlerFunc {
 	}
 }
 
+// withRequestAndResponse is an endpoint type that has direct access to http.Request and returns a typed response.
+type withRequestAndResponse[Res any] func(ctx context.Context, r *http.Request) (Res, error)
+
+// NewWithRequestAndResponse creates an endpoint with direct access to http.Request and automatic response mapping.
+// Useful when you need direct access to request details while still returning a typed response.
+func NewWithRequestAndResponse[Res any](fn func(ctx context.Context, r *http.Request) (Res, error)) withRequestAndResponse[Res] {
+	return fn
+}
+
+// Wrap implements Wrappable for withRequestAndResponse endpoints.
+func (fn withRequestAndResponse[Res]) Wrap(wrapper Wrapper) http2.HandlerFunc {
+	return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+		resp, err := fn(ctx, r)
+		if err != nil {
+			return err
+		}
+
+		return wrapper.BodyMapper.Map(ctx, resp, w)
+	}
+}
+
 // defaultHttp is an endpoint type that uses the standard http.HandlerFunc signature.
 type defaultHttp http2.HandlerFunc
 

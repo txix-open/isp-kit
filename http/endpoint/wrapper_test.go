@@ -26,10 +26,11 @@ func TestEndpoint(t *testing.T) {
 type endpointTestSuite struct {
 	suite.Suite
 
-	test               *test.Test
-	apiCli             *httpcli.Client
-	noRespCounter      *atomic.Int64
-	withHttpReqCounter *atomic.Int64
+	test                      *test.Test
+	apiCli                    *httpcli.Client
+	noRespCounter             *atomic.Int64
+	withHttpReqCounter        *atomic.Int64
+	withHttpReqAndRespCounter *atomic.Int64
 }
 
 func (s *endpointTestSuite) SetupTest() {
@@ -38,12 +39,14 @@ func (s *endpointTestSuite) SetupTest() {
 
 	s.noRespCounter = new(atomic.Int64)
 	s.withHttpReqCounter = new(atomic.Int64)
-	c := newController(s.noRespCounter, s.withHttpReqCounter)
+	s.withHttpReqAndRespCounter = new(atomic.Int64)
+	c := newController(s.noRespCounter, s.withHttpReqCounter, s.withHttpReqAndRespCounter)
 
 	r := router.New()
 	r.POST("/basic", w.EndpointV2(endpoint.New(c.Basic)))
 	r.POST("/without-resp", w.EndpointV2(endpoint.NewWithoutResponse(c.WithoutResponse)))
 	r.POST("/with-http-req", w.EndpointV2(endpoint.NewWithRequest(c.WithHttpRequest)))
+	r.POST("/with-http-req-and-resp", w.EndpointV2(endpoint.NewWithRequestAndResponse(c.WithHttpRequestAndResponse)))
 	r.POST("/default", w.EndpointV2(endpoint.NewDefaultHttp(c.DefaultHttp)))
 
 	_, s.apiCli = httpt.TestServer(s.test, r, httpcli.WithMiddlewares(httpclix.Log(s.test.Logger())))
@@ -103,6 +106,22 @@ func (s *endpointTestSuite) TestEndpoint_DefaultHttp() {
 	s.Require().Equal(req.Input, resp.Output)
 }
 
+func (s *endpointTestSuite) TestEndpoint_WithHttpRequestAndResponse() {
+	s.Require().Zero(s.withHttpReqAndRespCounter.Load())
+	var (
+		req  = fake.It[request]()
+		resp = new(response)
+	)
+	err := s.apiCli.Post("/with-http-req-and-resp").
+		JsonRequestBody(req).
+		JsonResponseBody(resp).
+		StatusCodeToError().
+		DoWithoutResponse(s.T().Context())
+	s.Require().NoError(err)
+	s.Require().Equal(req.Input, resp.Output)
+	s.Require().EqualValues(1, s.withHttpReqAndRespCounter.Load())
+}
+
 type request struct {
 	Input string `validate:"required"`
 }
@@ -112,14 +131,16 @@ type response struct {
 }
 
 type controller struct {
-	noRespCounter      *atomic.Int64
-	withHttpReqCounter *atomic.Int64
+	noRespCounter         *atomic.Int64
+	withHttpReqCounter    *atomic.Int64
+	withHttpReqAndRespCnt *atomic.Int64
 }
 
-func newController(noRespCounter *atomic.Int64, withHttpReqCounter *atomic.Int64) controller {
+func newController(noRespCounter *atomic.Int64, withHttpReqCounter *atomic.Int64, withHttpReqAndRespCounter *atomic.Int64) controller {
 	return controller{
-		noRespCounter:      noRespCounter,
-		withHttpReqCounter: withHttpReqCounter,
+		noRespCounter:         noRespCounter,
+		withHttpReqCounter:    withHttpReqCounter,
+		withHttpReqAndRespCnt: withHttpReqAndRespCounter,
 	}
 }
 
@@ -135,6 +156,16 @@ func (c *controller) WithoutResponse(ctx context.Context, req request) error {
 func (c *controller) WithHttpRequest(ctx context.Context, r *http.Request) error {
 	c.withHttpReqCounter.Add(1)
 	return nil
+}
+
+func (c *controller) WithHttpRequestAndResponse(ctx context.Context, r *http.Request) (response, error) {
+	c.withHttpReqAndRespCnt.Add(1)
+	reqBody := new(request)
+	err := json.NewDecoder(r.Body).Decode(reqBody)
+	if err != nil {
+		return response{}, err
+	}
+	return response{Output: reqBody.Input}, nil
 }
 
 func (c *controller) DefaultHttp(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
