@@ -17,7 +17,7 @@ import (
 	"github.com/txix-open/isp-kit/db"
 	"github.com/txix-open/isp-kit/dbx"
 	"github.com/txix-open/isp-kit/metrics"
-	"github.com/txix-open/isp-kit/metrics/db_metrics"
+	"github.com/txix-open/isp-kit/metrics/pgx_metrics"
 	"github.com/txix-open/isp-kit/metrics/sql_metrics"
 	"github.com/txix-open/isp-kit/observability/tracing/sql_tracing"
 )
@@ -99,8 +99,7 @@ func (c *Client) Upgrade(ctx context.Context, config dbx.Config) error {
 
 	c.prevCfg.Store(config)
 
-	db_metrics.Register(metrics.DefaultRegistry, newCli.Client.DB.DB, config.Database)
-
+	pgx_metrics.Register(metrics.DefaultRegistry, newCli.Client, config.Database)
 	return nil
 }
 

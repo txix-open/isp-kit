@@ -7,7 +7,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -19,7 +19,9 @@ import (
 type Client struct {
 	*sqlx.DB
 
+	pool         *pgxpool.Pool
 	queryTracers tracers
+	connSettings ConnectionSettings
 }
 
 // Open establishes a connection to a PostgreSQL database using the provided DSN.
@@ -31,13 +33,20 @@ func Open(ctx context.Context, dsn string, opts ...Option) (*Client, error) {
 		opt(db)
 	}
 
-	cfg, err := pgx.ParseConfig(dsn)
+	cfg, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		return nil, errors.WithMessage(err, "parse config")
 	}
-	cfg.Tracer = db.queryTracers
+	cfg.ConnConfig.Tracer = db.queryTracers
+	cfg.MaxConns = db.connSettings.maxConns
+	cfg.MinIdleConns = db.connSettings.minIdleConns
+	cfg.MaxConnIdleTime = db.connSettings.maxConnsIdleTime
 
-	sqlDb := stdlib.OpenDB(*cfg)
+	pool, err := pgxpool.NewWithConfig(ctx, cfg)
+	if err != nil {
+		return nil, errors.WithMessage(err, "create pool")
+	}
+	sqlDb := stdlib.OpenDBFromPool(pool)
 
 	pgDb := sqlx.NewDb(sqlDb, "pgx")
 	pgDb.MapperFunc(ToSnakeCase)
@@ -47,7 +56,15 @@ func Open(ctx context.Context, dsn string, opts ...Option) (*Client, error) {
 	}
 
 	db.DB = pgDb
+	db.pool = pool
 	return db, nil
+}
+
+// Close closes SQL wrapper and underlying connection pool.
+func (db *Client) Close() error {
+	err := db.DB.Close()
+	db.pool.Close()
+	return err
 }
 
 // RunInTransaction executes the provided function within a database transaction.
@@ -126,6 +143,10 @@ func (db *Client) IsReadOnly(ctx context.Context) (bool, error) {
 		return false, err
 	}
 	return isReadOnly == "on", nil
+}
+
+func (db *Client) Stat() *pgxpool.Stat {
+	return db.pool.Stat()
 }
 
 func txContext(ctx context.Context, label string) context.Context {

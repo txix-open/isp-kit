@@ -52,7 +52,19 @@ func Open(ctx context.Context, config Config, opts ...Option) (cli *Client, err 
 		opt(cli)
 	}
 
-	dbCli, err := db.Open(ctx, config.Dsn(cli.applicationName), db.WithQueryTracer(cli.queryTraces...))
+	maxOpenConn := defaultMaxOpenConn
+	if config.MaxOpenConn > 0 {
+		maxOpenConn = config.MaxOpenConn
+	}
+
+	dbCli, err := db.Open(
+		ctx,
+		config.Dsn(cli.applicationName),
+		db.WithQueryTracer(cli.queryTraces...),
+		db.WithMaxOpenConns(int32(maxOpenConn)),  //nolint:gosec
+		db.WithMinIdleConns(int32(minIdleConns)), //nolint:gosec
+		db.WithMaxConnIdleTime(connMaxIdleTimeout),
+	)
 	if err != nil {
 		return nil, errors.WithMessage(err, "open db")
 	}
@@ -61,15 +73,6 @@ func Open(ctx context.Context, config Config, opts ...Option) (cli *Client, err 
 			_ = dbCli.Close()
 		}
 	}()
-
-	maxOpenConn := defaultMaxOpenConn
-	if config.MaxOpenConn > 0 {
-		maxOpenConn = config.MaxOpenConn
-	}
-	maxIdleConns := max(maxOpenConn/minIdleConns, minIdleConns)
-	dbCli.SetMaxOpenConns(maxOpenConn)
-	dbCli.SetMaxIdleConns(maxIdleConns)
-	dbCli.SetConnMaxIdleTime(connMaxIdleTimeout)
 
 	isReadOnly, err := dbCli.IsReadOnly(ctx)
 	if err != nil {
