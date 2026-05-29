@@ -22,8 +22,8 @@ var (
 )
 
 const (
-	minIdleConns       = 2
-	connMaxIdleTimeout = 90 * time.Second
+	minIdleConns           = 2
+	defaultMaxConnIdleTime = 90 * time.Second
 )
 
 // MigrationRunner defines the interface for running database migrations.
@@ -57,13 +57,18 @@ func Open(ctx context.Context, config Config, opts ...Option) (cli *Client, err 
 		maxOpenConn = config.MaxOpenConn
 	}
 
+	maxConnIdleTime := defaultMaxConnIdleTime
+	if config.MaxConnIdleTimeSec > 0 {
+		maxConnIdleTime = time.Duration(config.MaxConnIdleTimeSec) * time.Second
+	}
+
 	dbCli, err := db.Open(
 		ctx,
 		config.Dsn(cli.applicationName),
 		db.WithQueryTracer(cli.queryTraces...),
 		db.WithMaxOpenConns(int32(maxOpenConn)),  //nolint:gosec
 		db.WithMinIdleConns(int32(minIdleConns)), //nolint:gosec
-		db.WithMaxConnIdleTime(connMaxIdleTimeout),
+		db.WithMaxConnIdleTime(maxConnIdleTime),
 	)
 	if err != nil {
 		return nil, errors.WithMessage(err, "open db")
