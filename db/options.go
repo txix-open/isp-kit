@@ -1,6 +1,8 @@
 package db
 
 import (
+	"time"
+
 	"github.com/jackc/pgx/v5"
 )
 
@@ -12,5 +14,23 @@ type Option func(db *Client)
 func WithQueryTracer(tracers ...pgx.QueryTracer) Option {
 	return func(db *Client) {
 		db.queryTracers = append(db.queryTracers, tracers...)
+	}
+}
+
+func WithMaxOpenConns(maxConns int32) Option {
+	return func(db *Client) {
+		db.connSettings.maxConns = maxConns
+	}
+}
+
+func WithMinIdleConns(minIdleConns int32) Option {
+	return func(db *Client) {
+		db.connSettings.minIdleConns = minIdleConns
+	}
+}
+
+func WithMaxConnIdleTime(maxIdleTime time.Duration) Option {
+	return func(db *Client) {
+		db.connSettings.maxConnsIdleTime = maxIdleTime
 	}
 }
