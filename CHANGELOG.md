@@ -1,3 +1,6 @@
+## v1.68.0
+* Для пула подключений к БД (модуль `db` и все его wrapper'ы) теперь используется `pgx_pool`
+* Добавлены метрики для `pgx_pool`
 ## v1.67.3
 * Добавлена версия `NewWithRequestAndResponse` для `endpoint/v2` — поддержка сигнатуры `func(ctx context.Context, r *http.Request) (Res, error)`
 ## v1.67.2
