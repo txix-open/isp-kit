@@ -34,7 +34,7 @@ func (c Connection) Url() string {
 		Scheme: "amqp",
 		User:   nil,
 		Host:   fmt.Sprintf("%s:%d", c.Host, c.Port),
-		Path:   c.Vhost,
+		Path:   "/" + c.Vhost,
 	}
 	if c.Username != "" {
 		u.User = url.UserPassword(c.Username, c.Password)
