@@ -12,6 +12,10 @@ type Request struct {
 	retryOptions *retryOptions
 	body         []byte
 	timeout      time.Duration
+
+	decodeResponse  bool
+	encodeRequest   bool
+	encodeThreshold int
 }
 
 // Body returns the request body as bytes.

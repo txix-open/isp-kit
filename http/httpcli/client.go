@@ -8,7 +8,10 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
+
+	"github.com/txix-open/isp-kit/codec"
 )
 
 // RoundTripper defines the interface for executing HTTP requests.
@@ -29,6 +32,12 @@ func (f RoundTripperFunc) RoundTrip(ctx context.Context, request *Request) (*Res
 // Middlewares are executed in the order they are added.
 type Middleware func(next RoundTripper) RoundTripper
 
+type Codec interface {
+	Type() string
+	EncodeBytes(b []byte) ([]byte, error)
+	Decode(r io.ReadCloser) (io.ReadCloser, error)
+}
+
 // Client is a high-level HTTP client with support for middleware, retries,
 // and flexible request/response handling.
 type Client struct {
@@ -37,6 +46,8 @@ type Client struct {
 	mws          []Middleware
 
 	roundTripper RoundTripper
+
+	codec Codec
 }
 
 // StdClient is the default http.Client used by New() with optimized connection pooling
@@ -79,6 +90,7 @@ func NewWithClient(cli *http.Client, opts ...Option) *Client {
 	c := &Client{
 		cli:          cli,
 		globalConfig: NewGlobalRequestConfig(),
+		codec:        codec.Default,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -125,7 +137,7 @@ func (c *Client) Patch(url string) *RequestBuilder {
 // If a responseBody is set on the builder and the response is successful,
 // the response body will be automatically unmarshalled into the target.
 //
-// nolint:cyclop
+// nolint:cyclop,funlen
 func (c *Client) Execute(ctx context.Context, builder *RequestBuilder) (*Response, error) {
 	request, err := builder.newHttpRequest(ctx)
 	if err != nil {
@@ -150,9 +162,12 @@ func (c *Client) Execute(ctx context.Context, builder *RequestBuilder) (*Respons
 	}
 
 	rr := &Request{
-		Raw:          request,
-		timeout:      builder.timeout,
-		retryOptions: builder.retryOptions,
+		Raw:             request,
+		timeout:         builder.timeout,
+		retryOptions:    builder.retryOptions,
+		decodeResponse:  builder.decodeResponse,
+		encodeRequest:   builder.encodeRequest,
+		encodeThreshold: builder.encodeThreshold,
 	}
 
 	if builder.multipartData != nil {
@@ -164,11 +179,17 @@ func (c *Client) Execute(ctx context.Context, builder *RequestBuilder) (*Respons
 	if builder.requestBody != nil {
 		buff := acquireBuffer()
 		defer releaseBuffer(buff)
+
 		err := builder.requestBody.Write(request, buff)
 		if err != nil {
 			return nil, err
 		}
+
 		rr.body = buff.Bytes()
+	}
+
+	if builder.acceptEncodedResponse {
+		request.Header.Set("Accept-Encoding", strings.Join([]string{c.codec.Type(), "identity"}, ", "))
 	}
 
 	roundTripper := c.roundTripper
@@ -202,6 +223,15 @@ func (c *Client) executeWithRetries(ctx context.Context, request *Request) (*Res
 		err      error
 	)
 	origCtx := ctx
+
+	if request.encodeRequest && len(request.body) > request.encodeThreshold {
+		request.Raw.Header.Set("Content-Encoding", c.codec.Type())
+		request.body, err = c.codec.EncodeBytes(request.body)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	_ = request.retryOptions.retrier.Do(ctx, func() error {
 		if response != nil {
 			response.Close() // prevent context and buffer leak from previous failed attempt
@@ -229,7 +259,23 @@ func (c *Client) executeWithRetries(ctx context.Context, request *Request) (*Res
 		return retryErr
 	})
 
-	return response, err
+	if err != nil || !request.decodeResponse {
+		return response, err
+	}
+
+	enc := response.Raw.Header.Get("Content-Encoding")
+	if enc != c.codec.Type() {
+		return response, nil
+	}
+
+	response.Raw.Body, err = c.codec.Decode(response.Raw.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	response.Raw.Header.Del("Content-Encoding")
+	response.Raw.Header.Del("Content-Length")
+	return response, nil
 }
 
 // defaultTransportDialContext creates a dial context function with the given dialer.

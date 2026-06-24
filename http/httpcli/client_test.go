@@ -1,4 +1,4 @@
-// nolint:gosec
+// nolint:gosec,errcheck,goconst
 package httpcli_test
 
 import (
@@ -19,6 +19,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/txix-open/isp-kit/codec"
+	"github.com/txix-open/isp-kit/http/apierrors"
 	"github.com/txix-open/isp-kit/http/httpcli"
 	"github.com/txix-open/isp-kit/json"
 	"github.com/txix-open/isp-kit/retry"
@@ -312,6 +314,7 @@ func TestRequestBuilder_Middlewares(t *testing.T) {
 	url := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
 		assert.EqualValues("5", r.Header.Get("Content-Length"))
 		assert.NotEqual("chunked", r.Header.Get("Transfer-Encoding"))
+		assert.Empty(r.Header.Get("Content-Encoding"))
 		writer.WriteHeader(http.StatusOK)
 	})).URL
 	err := httpcli.New().Post(url).
@@ -320,6 +323,191 @@ func TestRequestBuilder_Middlewares(t *testing.T) {
 		Middlewares(httpcli.SetContentLength()).
 		DoWithoutResponse(t.Context())
 	require.NoError(err)
+}
+
+func TestRequestBuilder_EncodedRequest(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	assert := assert.New(t)
+
+	expectJson := `{"field": "value"}`
+	url := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
+		assert.Equal("zstd, identity", r.Header.Get("Accept-Encoding"))
+		assert.Equal("zstd", r.Header.Get("Content-Encoding"))
+
+		codec := codec.Default
+
+		req, err := codec.Decode(r.Body)
+		assert.NoError(err)
+		defer req.Close()
+
+		reqBody, err := io.ReadAll(req)
+		assert.NoError(err)
+		assert.JSONEq(expectJson, string(reqBody))
+
+		writer.WriteHeader(http.StatusOK)
+	})).URL
+
+	err := httpcli.New().Post(url).
+		RequestBody([]byte(expectJson)).
+		StatusCodeToError().
+		EncodeRequest(true).
+		EncodeThreshold(5).
+		DoWithoutResponse(t.Context())
+	require.NoError(err)
+}
+
+func TestRequestBuilder_ServerEncodedResponce(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	assert := assert.New(t)
+
+	expectJson := `{"field": "value"}`
+	url := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
+		assert.Empty(r.Header.Get("Content-Encoding"))
+		assert.Equal("zstd, identity", r.Header.Get("Accept-Encoding"))
+
+		codec := codec.Default
+
+		resp, err := codec.EncodeBytes([]byte(expectJson))
+		assert.NoError(err)
+		writer.Header().Add("Content-Encoding", "zstd")
+		writer.Write(resp)
+	})).URL
+
+	resp, _, err := httpcli.New().Post(url).
+		RequestBody([]byte("hello")).
+		StatusCodeToError().
+		DoAndReadBody(t.Context())
+	require.NoError(err)
+
+	require.JSONEq(expectJson, string(resp))
+}
+
+func TestRequestBuilder_StatusCodeToError(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	assert := assert.New(t)
+
+	url := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
+		assert.Empty(r.Header.Get("Content-Encoding"))
+		assert.Equal("zstd, identity", r.Header.Get("Accept-Encoding"))
+
+		apierrors.NewBusinessError(http.StatusBadRequest, "invalid request", errors.Errorf("invalid request")).WriteError(writer)
+	})).URL
+
+	err := httpcli.New().Post(url).
+		RequestBody([]byte("hello")).
+		StatusCodeToError().
+		DoWithoutResponse(t.Context())
+	require.Error(err)
+
+	errorResp := httpcli.ErrorResponse{}
+	require.True(errors.As(err, &errorResp))
+	require.Equal(http.StatusBadRequest, errorResp.StatusCode)
+
+	apiErr := apierrors.Error{}
+	err = json.Unmarshal(errorResp.Body, &apiErr)
+	require.NoError(err)
+
+	require.Equal(http.StatusBadRequest, apiErr.ErrorCode)
+	require.Equal("invalid request", apiErr.ErrorMessage)
+}
+
+func TestRequestBuilder_StatusCodeToError_NoDecode(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	assert := assert.New(t)
+
+	url := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
+		assert.Empty(r.Header.Get("Content-Encoding"))
+		assert.Equal("zstd, identity", r.Header.Get("Accept-Encoding"))
+
+		apierrors.NewBusinessError(http.StatusBadRequest, "invalid request", errors.Errorf("invalid request")).WriteError(writer)
+	})).URL
+
+	err := httpcli.New().Post(url).
+		RequestBody([]byte("hello")).
+		StatusCodeToError().
+		DecodeResponse(false).
+		DoWithoutResponse(t.Context())
+	require.Error(err)
+
+	errorResp := httpcli.ErrorResponse{}
+	require.True(errors.As(err, &errorResp))
+	require.Equal(http.StatusBadRequest, errorResp.StatusCode)
+
+	apiErr := apierrors.Error{}
+	err = json.Unmarshal(errorResp.Body, &apiErr)
+	require.NoError(err)
+
+	require.Equal(http.StatusBadRequest, apiErr.ErrorCode)
+	require.Equal("invalid request", apiErr.ErrorMessage)
+}
+
+func TestRequestBuilder_ServerEncodedResponce_NoDecode(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	assert := assert.New(t)
+
+	expectJson := `{"field": "value"}`
+	expectResp := ""
+	url := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
+		assert.Empty(r.Header.Get("Content-Encoding"))
+		assert.Equal("zstd, identity", r.Header.Get("Accept-Encoding"))
+
+		codec := codec.Default
+
+		resp, err := codec.EncodeBytes([]byte(expectJson))
+		expectResp = string(resp)
+		assert.NoError(err)
+		writer.Header().Add("Content-Encoding", "zstd")
+		writer.Write(resp)
+	})).URL
+
+	resp, _, err := httpcli.New().Post(url).
+		RequestBody([]byte("hello")).
+		StatusCodeToError().
+		DecodeResponse(false).
+		DoAndReadBody(t.Context())
+	require.NoError(err)
+	require.Equal(expectResp, string(resp))
+}
+
+func TestRequestBuilder_ServerEncodedResponce_NoDecodeFromClient(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+	assert := assert.New(t)
+
+	expectJson := `{"field": "value"}`
+	expectResp := ""
+	url := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
+		assert.Empty(r.Header.Get("Content-Encoding"))
+		assert.Equal("zstd, identity", r.Header.Get("Accept-Encoding"))
+
+		codec := codec.Default
+
+		resp, err := codec.EncodeBytes([]byte(expectJson))
+		expectResp = string(resp)
+		assert.NoError(err)
+		writer.Header().Add("Content-Encoding", "zstd")
+		writer.Write(resp)
+	})).URL
+
+	cli := httpcli.New()
+	cli.GlobalRequestConfig().DecodeResponse = false
+	resp, _, err := cli.Post(url).
+		RequestBody([]byte("hello")).
+		StatusCodeToError().
+		DoAndReadBody(t.Context())
+	require.NoError(err)
+	require.Equal(expectResp, string(resp))
 }
 
 func TestConcurrency(t *testing.T) {

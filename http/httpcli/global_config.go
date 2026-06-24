@@ -3,28 +3,58 @@ package httpcli
 import (
 	"net/http"
 	"time"
+
+	"github.com/txix-open/isp-kit/codec"
 )
 
 const (
-	defaultTimeout = 15 * time.Second
+	defaultTimeout         = 15 * time.Second
+	defaultEncodeThreshold = codec.DefaultEncodeThreshold
 )
 
 // GlobalRequestConfig holds default settings that apply to all requests
 // created by a Client.
 type GlobalRequestConfig struct {
-	Timeout   time.Duration
-	BaseUrl   string
+	// Timeout specifies the request timeout.
+	Timeout time.Duration
+
+	// BaseUrl specifies the base URL for requests.
+	BaseUrl string
+
+	// BasicAuth specifies HTTP Basic Authentication credentials.
 	BasicAuth *BasicAuth
-	Cookies   []*http.Cookie
-	Headers   map[string]string
+
+	// Cookies contains cookies sent with every request.
+	Cookies []*http.Cookie
+
+	// Headers contains headers sent with every request.
+	Headers map[string]string
+
+	// AcceptEncodedResponse enables automatic acceptance of encoded responses.
+	AcceptEncodedResponse bool
+
+	// EncodeRequest enables request body encoding.
+	EncodeRequest bool
+
+	// DecodeResponse enables response body decoding.
+	DecodeResponse bool
+
+	// EncodeThreshold specifies the request encoding threshold in bytes.
+	EncodeThreshold int
 }
 
 // NewGlobalRequestConfig creates a new GlobalRequestConfig with default values.
 //
 // Default timeout is 15 seconds.
+// Default EncodeThreshold - 128Kb
+// By default client accept encoded response.
 func NewGlobalRequestConfig() *GlobalRequestConfig {
 	return &GlobalRequestConfig{
-		Timeout: defaultTimeout,
+		Timeout:               defaultTimeout,
+		AcceptEncodedResponse: true,
+		DecodeResponse:        true,
+		EncodeRequest:         false,
+		EncodeThreshold:       defaultEncodeThreshold,
 	}
 }
 
@@ -37,4 +67,8 @@ func (c *GlobalRequestConfig) configure(req *RequestBuilder) {
 	for name, value := range c.Headers {
 		req.Header(name, value)
 	}
+	req.acceptEncodedResponse = c.AcceptEncodedResponse
+	req.decodeResponse = c.DecodeResponse
+	req.encodeRequest = c.EncodeRequest
+	req.encodeThreshold = c.EncodeThreshold
 }
