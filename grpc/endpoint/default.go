@@ -1,6 +1,7 @@
 package endpoint
 
 import (
+	"github.com/txix-open/isp-kit/codec"
 	"github.com/txix-open/isp-kit/grpc"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/metrics"
@@ -24,6 +25,36 @@ func DefaultWrapper(logger log.Logger, restMiddlewares ...grpc.Middleware) Wrapp
 			RequestId(),
 			Metrics(metricStorage),
 			server_tracing.NewConfig().Middleware(),
+			ErrorHandler(logger),
+			Recovery(),
+		},
+		restMiddlewares...,
+	)
+	return NewWrapper(
+		paramMappers,
+		JsonRequestExtractor{Validator: validator.Default},
+		JsonResponseMapper{},
+	).WithMiddlewares(middlewares...)
+}
+
+// DefaultCodecWrapper creates a Wrapper with pre-configured middleware for observability.
+// Includes request ID propagation, metrics collection, distributed tracing, error handling, encode response, decode request,
+// and panic recovery. Uses JSON for request extraction and response mapping.
+// Accepts additional middleware to be appended after the default ones.
+func DefaultCodecWrapper(logger log.Logger, restMiddlewares ...grpc.Middleware) Wrapper {
+	paramMappers := []ParamMapper{
+		ContextParam(),
+		AuthDataParam(),
+	}
+	metricStorage := grpc_metrics.NewServerStorage(metrics.DefaultRegistry)
+	codec := codec.Default
+	middlewares := append(
+		[]grpc.Middleware{
+			RequestId(),
+			DecodeRequest(codec),
+			Metrics(metricStorage),
+			server_tracing.NewConfig().Middleware(),
+			EncodeResponse(codec, defaultEncodeThreshold),
 			ErrorHandler(logger),
 			Recovery(),
 		},

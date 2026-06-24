@@ -81,22 +81,69 @@
 
 Конвертирует результат обработчика в gRPC-сообщение в формате JSON.
 
+## Middlewares
+
+### `MaxRequestBodySize`
+
+Ограничивает размер тела запроса (по умолчанию 64 МБ).
+
+### `RequestId`
+
+Добавляет в контекст requestId, который берет из заголовка x-request-id. Генерирует новый, если не находит.
+
+### `DecodeRequest`
+Декодирует запрос при помощи переданного codec, если заголовок `x-content-encoding` совпадает с типом codec.
+
+### `Metrics`
+
+Собирает метрики: время выполнения, статусы, размеры тел.
+
+### `Tracing`
+
+Интеграция с трейсингом (OpenTelemetry).
+
+### `EncodeResponse`
+
+Кодирует ответ при помощи переданного codec, если заголовок `x-accept-encoding` содержит строку с типом codec (пример значения заголовка `"zstd, identity"`) и размер ответа больше переданного threshold'а, по умолчанию 128 КБ (параметр в байтах).
+
+### `ErrorHandler`
+
+Перехватывает и обрабатывает ошибки. Ошибки типа `GrpcError` возвращают структурированный ответ.
+Остальные ошибки логируются и возвращаются как Internal Server Error с gRPC-кодом 13.
+
+### `Recovery`
+
+Предотвращает падение сервера при панике в обработчике, преобразуя ее в ошибку.
+
 ## Functions
 
 #### `DefaultWrapper(logger log.Logger, restMiddlewares ...grpc.Middleware) Wrapper`
 
-Создает предварительно настроенную обертку (`Wrapper`) для gRPC-обработчиков с базовыми middleware и параметрами.
-Упрощает создание эндпоинтов, включая валидацию, логирование, метрики и обработку ошибок "из коробки".
+Создает предварительно настроенную обертку (`Wrapper`) для gRPC-обработчиков с middleware и параметрами.
+Упрощает создание эндпоинтов, включая валидацию, метрики и обработку ошибок "из коробки".
 
-Стандартные middleware:
+Список Middleware:
 
-- `RequestId` – добавляет в контекст requestId, который берет из заголовка x-request-id. Генерирует
-  новый, если не находит.
-- `Metrics` – собирает метрики: время выполнения, статусы, размеры тел.
-- `Tracing` – интеграция с трейсингом (OpenTelemetry).
-- `ErrorHandler` – перехватывает и обрабатывает ошибки. Ошибки типа `GrpcError` возвращают структурированный ответ.
-  Остальные ошибки логируются и возвращаются как Internal Server Error с gRPC-кодом 13.
-- `Recovery` – предотвращает падение сервера при панике в обработчике, преобразуя ее в ошибку.
+- `RequestId`
+- `Metrics`
+- `Tracing`
+- `ErrorHandler`
+- `Recovery`
+
+#### `DefaultCodecWrapper(logger log.Logger, restMiddlewares ...grpc.Middleware) Wrapper`
+
+Создает предварительно настроенную обертку (`Wrapper`) для gRPC-обработчиков с middleware и параметрами.
+Упрощает создание эндпоинтов, включая валидацию, декодирование запросов, кодировение ответов, метрики и обработку ошибок "из коробки".
+
+Список Middleware:
+
+- `RequestId`
+- `DecodeRequest`
+- `Metrics`
+- `Tracing`
+- `EncodeResponse`
+- `ErrorHandler`
+- `Recovery`
 
 ## Usage
 
@@ -141,6 +188,66 @@ func main() {
 
 	mux := grpc.NewMux()
 	wrapper := endpoint.DefaultWrapper(logger)
+	mux.Handle("/get_user", wrapper.Endpoint(getUser))
+
+	srv := grpc.DefaultServer()
+	srv.Upgrade(mux)
+
+	shutdown.On(func() { /* waiting for SIGINT & SIGTERM signals */
+		log.Println("shutting down...")
+		srv.Shutdown()
+		log.Println("shutdown completed")
+	})
+
+	err = srv.ListenAndServe(":8080")
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+```
+
+### Codec usage flow
+
+```go
+package main
+
+import (
+	"context"
+	"log"
+
+	"github.com/txix-open/isp-kit/grpc"
+	"github.com/txix-open/isp-kit/grpc/endpoint"
+	log2 "github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/shutdown"
+)
+
+type getUserRequest struct {
+	Id string
+}
+
+type user struct {
+	Id   string
+	Name string
+}
+
+func getUser(ctx context.Context, authData grpc.AuthData, req getUserRequest) (*user, error) {
+	appId, _ := authData.ApplicationId()
+	log.Printf("Request from app with id %d", appId)
+
+	/* put here business logic */
+
+	return &user{Id: req.Id, Name: "Alice"}, nil
+}
+
+func main() {
+	logger, err := log2.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	mux := grpc.NewMux()
+	wrapper := endpoint.DefaultCodecWrapper(logger)
 	mux.Handle("/get_user", wrapper.Endpoint(getUser))
 
 	srv := grpc.DefaultServer()

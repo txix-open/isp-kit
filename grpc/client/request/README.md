@@ -37,6 +37,20 @@
 
 Добавить кастомные метаданные в запрос.
 
+#### `(b *RequestBuilder) EncodeRequest(encode bool) *RequestBuilder`
+
+Установить флаг кодирования запроса.
+Если включен и запрос по размеру больше заданного threshold, то в заголовки запроса будет добавлен `content-encoding` со значением типа codec и тело запроса будет закодировано.
+
+#### `(b *RequestBuilder) EncodeThreshold(threshold int) *RequestBuilder`
+
+Установить threshold в байтах, выше которого будет применяться кодирование запроса (при включённом флаге encodeRequest).
+
+#### `(b *RequestBuilder) AcceptEncodedResponse(accept bool) *RequestBuilder`
+
+Установить флаг приёма закодированных ответов.
+Если включен, то в заголовки запроса будет добавлен `accept-encoding` со значением типа codec + identity (пример `zstd, identity`).
+
 #### `(req *Builder) Do(ctx context.Context) error`
 
 Выполнить запрос. Автоматически:

@@ -24,6 +24,34 @@ func WithDialOptions(dialOptions ...grpc.DialOption) Option {
 	}
 }
 
+// WithAcceptEncodedResponse sets acceptEncodedResponse flag.
+func WithAcceptEncodedResponse(accept bool) Option {
+	return func(c *Client) {
+		c.acceptEncodedResponse = accept
+	}
+}
+
+// WithEncodeRequest sets encodeRequest flag.
+func WithEncodeRequest(encode bool) Option {
+	return func(c *Client) {
+		c.encodeRequest = encode
+	}
+}
+
+// WithEncodeThreshold sets the request encoding threshold in bytes.
+func WithEncodeThreshold(thresholdBytes int) Option {
+	return func(c *Client) {
+		c.encodeThreshold = thresholdBytes
+	}
+}
+
+// WithCodec sets codec.
+func WithCodec(codec Codec) Option {
+	return func(c *Client) {
+		c.codec = codec
+	}
+}
+
 // LogOption configures logging behavior for request middleware.
 type LogOption func(cfg *logConfig)
 
