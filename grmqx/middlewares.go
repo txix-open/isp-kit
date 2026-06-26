@@ -83,13 +83,13 @@ type PublisherMetricStorage interface {
 func PublisherMetrics(storage PublisherMetricStorage) publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
 		return publisher.RoundTripperFunc(func(ctx context.Context, exchange string, routingKey string, msg *amqp091.Publishing) error {
-			storage.ObservePublishMsgSize(exchange, routingKey, len(msg.Body))
 			start := time.Now()
 			err := next.Publish(ctx, exchange, routingKey, msg)
 			if err != nil {
 				storage.IncPublishError(exchange, routingKey)
 			}
 			storage.ObservePublishDuration(exchange, routingKey, time.Since(start))
+			storage.ObservePublishMsgSize(exchange, routingKey, len(msg.Body))
 			return err
 		})
 	}
