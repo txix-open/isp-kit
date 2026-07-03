@@ -9,6 +9,7 @@ package endpoint
 import (
 	"context"
 	"reflect"
+	"slices"
 
 	"github.com/txix-open/isp-kit/grpc"
 	"github.com/txix-open/isp-kit/grpc/isp"
@@ -88,7 +89,7 @@ func (m Wrapper) Endpoint(f any) grpc.HandlerFunc {
 	}
 
 	handler := caller.Handle
-	for i := len(m.Middlewares) - 1; i >= 0; i-- {
+	for i := range slices.Backward(m.Middlewares) {
 		handler = m.Middlewares[i](handler)
 	}
 	return handler

@@ -9,8 +9,8 @@ import (
 	"github.com/txix-open/isp-kit/observability/tracing/rabbitmq/consumer_tracing"
 )
 
-// NewResultHandler creates a ready-to-use synchronous RabbitMQ message handler with pre-configured
-// tools for logging, metrics collection, tracing, and panic recovery.
+// NewResultHandler creates a ready-to-use synchronous RabbitMQ message handler with
+// pre-configured tools for logging, metrics collection, tracing, and panic recovery.
 func NewResultHandler(logger log.Logger, adapter handler.SyncHandlerAdapter) handler.Sync {
 	return handler.NewSync(
 		logger,

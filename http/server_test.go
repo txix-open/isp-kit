@@ -2,6 +2,7 @@ package http_test
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"testing"
@@ -10,12 +11,14 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/txix-open/isp-kit/codec"
 	isphttp "github.com/txix-open/isp-kit/http"
 	"github.com/txix-open/isp-kit/http/apierrors"
 	"github.com/txix-open/isp-kit/http/endpoint"
 	"github.com/txix-open/isp-kit/http/endpoint/httplog"
 	"github.com/txix-open/isp-kit/json"
 	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/test/fake"
 )
 
 type Request struct {
@@ -26,6 +29,7 @@ type Response struct {
 	Result string
 }
 
+//nolint:funlen
 func TestService(t *testing.T) {
 	t.Parallel()
 
@@ -41,6 +45,66 @@ func TestService(t *testing.T) {
 	require.Equal(t, http.StatusOK, resp.StatusCode())
 
 	expected := Response{Result: "Hello_man"}
+	require.Equal(t, expected, response)
+
+	encodedReq, err := json.Marshal(Request{Id: "man_1"})
+	require.NoError(t, err)
+
+	codec := codec.Default
+
+	encodedReq, err = codec.EncodeBytes(encodedReq)
+	require.NoError(t, err)
+
+	resp, err = client.R().
+		SetBody(encodedReq).
+		SetHeader("Content-Encoding", codec.Type()).
+		SetResult(&response).
+		Post("/getIdEncoded")
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode())
+
+	expected = Response{Result: "Hello_man_1"}
+	require.Equal(t, expected, response)
+
+	resp, err = client.R().
+		SetBody(Request{Id: "man"}).
+		SetHeader("Accept-Encoding", codec.Type()).
+		SetResult(&response).
+		Post("/getIdEncoded")
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode())
+
+	expected = Response{Result: "Hello_man"}
+	require.Equal(t, expected, response)
+
+	bigRequest := Request{
+		Id: string(fake.It[[]byte](fake.MinSliceSize(1024), fake.MaxSliceSize(2*1024))),
+	}
+
+	resp, err = client.R().
+		SetBody(bigRequest).
+		SetHeader("Accept-Encoding", codec.Type()).
+		Post("/getIdEncoded")
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode())
+
+	expected = Response{Result: fmt.Sprintf("Hello_%s", bigRequest.Id)}
+
+	respDeEncoded, err := codec.DecodeBytes(resp.Body())
+	require.NoError(t, err)
+
+	err = json.Unmarshal(respDeEncoded, &response)
+	require.NoError(t, err)
+
+	require.Equal(t, expected, response)
+
+	resp, err = client.R().
+		SetBody(bigRequest).
+		SetResult(&response).
+		Post("/getIdEncoded")
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode())
+
 	require.Equal(t, expected, response)
 
 	resp, err = client.R().
@@ -129,6 +193,33 @@ func prepareServer(t *testing.T) string {
 	muxer := http.NewServeMux()
 	for _, descriptor := range endpoints {
 		muxer.Handle(descriptor.Path, mapper.EndpointV2(descriptor.Handler))
+	}
+
+	endpoints = []endpointDescriptor{
+		{
+			Path: "/getIdEncoded",
+			Handler: endpoint.New(func(ctx context.Context, req Request) (*Response, error) {
+				return &Response{Result: "Hello_" + req.Id}, nil
+			}),
+		},
+	}
+
+	codecMapper := endpoint.DefaultWrapper(
+		logger,
+		httplog.Log(logger, true),
+	)
+	codec := codec.Default
+	codecMapper.Middlewares = []isphttp.Middleware{
+		endpoint.MaxRequestBodySize(64 * 1024 * 1024),
+		endpoint.RequestId(),
+		endpoint.EncodeResponse(codec, 1024),
+		endpoint.DecodeRequest(codec),
+		isphttp.Middleware(httplog.Log(logger, true)),
+		endpoint.ErrorHandler(logger),
+		endpoint.Recovery(),
+	}
+	for _, descriptor := range endpoints {
+		muxer.Handle(descriptor.Path, codecMapper.EndpointV2(descriptor.Handler))
 	}
 
 	var lc net.ListenConfig

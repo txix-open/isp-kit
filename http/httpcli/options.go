@@ -10,3 +10,10 @@ func WithMiddlewares(mws ...Middleware) Option {
 		c.mws = append(c.mws, mws...)
 	}
 }
+
+// WithCodec sets codec.
+func WithCodec(codec Codec) Option {
+	return func(c *Client) {
+		c.codec = codec
+	}
+}

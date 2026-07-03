@@ -2,9 +2,11 @@ package endpoint
 
 import (
 	"context"
+	"strings"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/codec"
 	"github.com/txix-open/isp-kit/grpc"
 	"github.com/txix-open/isp-kit/grpc/isp"
 	"github.com/txix-open/isp-kit/log"
@@ -12,9 +14,14 @@ import (
 	sentry2 "github.com/txix-open/isp-kit/observability/sentry"
 	"github.com/txix-open/isp-kit/panic_recovery"
 	"github.com/txix-open/isp-kit/requestid"
+	grpc2 "google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+)
+
+const (
+	defaultEncodeThreshold = codec.DefaultEncodeThreshold
 )
 
 // Recovery creates a middleware that catches panics and converts them to errors.
@@ -90,6 +97,112 @@ func RequestId() grpc.Middleware {
 			return next(ctx, message)
 		}
 	}
+}
+
+type DecodeCodec interface {
+	Type() string
+	DecodeBytes(b []byte) ([]byte, error)
+}
+
+// DecodeRequest returns middleware that transparently handles decoded requests.
+//
+//	If x-content-encoding matches codec, request body is decoded.
+//
+// Important:
+//   - Should be placed before logging middleware if logs must see decoded data.
+func DecodeRequest(codec DecodeCodec) grpc.Middleware {
+	return func(next grpc.HandlerFunc) grpc.HandlerFunc {
+		return func(ctx context.Context, msg *isp.Message) (*isp.Message, error) {
+			md, ok := metadata.FromIncomingContext(ctx)
+			if !ok {
+				return nil, errors.New("metadata is expected in context")
+			}
+
+			contentEncoding, _ := grpc.StringFromMd(grpc.ContentEncodingHeader, md)
+			reqBody := msg.GetBytesBody()
+			if contentEncoding == codec.Type() {
+				decoded, err := codec.DecodeBytes(reqBody)
+				if err != nil {
+					return nil, err
+				}
+
+				msg.Body = &isp.Message_BytesBody{
+					BytesBody: decoded,
+				}
+				md.Delete(grpc.ContentEncodingHeader)
+				ctx = metadata.NewIncomingContext(ctx, md)
+			}
+
+			return next(ctx, msg)
+		}
+	}
+}
+
+type EncodeCodec interface {
+	Type() string
+	EncodeBytes(b []byte) ([]byte, error)
+}
+
+// EncodeResponse returns middleware that transparently handles response encoding.
+//
+// If client supports x-accept-encoding and response body size > encodeThresholdBytes,
+// the response is encoded using codec.
+//
+// Important:
+//   - Should be placed before logging middleware if logs must see plain data.
+func EncodeResponse(codec EncodeCodec, encodeThresholdBytes int) grpc.Middleware {
+	return func(next grpc.HandlerFunc) grpc.HandlerFunc {
+		return func(ctx context.Context, msg *isp.Message) (*isp.Message, error) {
+			md, ok := metadata.FromIncomingContext(ctx)
+			if !ok {
+				return nil, errors.New("metadata is expected in context")
+			}
+
+			resp, err := next(ctx, msg)
+			if err != nil {
+				return nil, err
+			}
+
+			// check accept
+			acceptEncoding, _ := grpc.StringFromMd(grpc.AcceptEncodingHeader, md)
+			if !acceptsEncoding(acceptEncoding, codec.Type()) {
+				return resp, nil
+			}
+
+			responseBody := resp.GetBytesBody()
+			if len(responseBody) <= encodeThresholdBytes {
+				return resp, nil
+			}
+
+			err = grpc2.SetHeader(ctx, metadata.Pairs(
+				grpc.ContentEncodingHeader, codec.Type(),
+			))
+			if err != nil {
+				return nil, err
+			}
+
+			encoded, err := codec.EncodeBytes(responseBody)
+			if err != nil {
+				return nil, err
+			}
+			resp.Body = &isp.Message_BytesBody{
+				BytesBody: encoded,
+			}
+
+			return resp, nil
+		}
+	}
+}
+
+// acceptsEncoding split header and check contains encoding in it.
+func acceptsEncoding(header, encoding string) bool {
+	for part := range strings.SplitSeq(header, ",") {
+		if strings.TrimSpace(part) == encoding {
+			return true
+		}
+	}
+
+	return false
 }
 
 // sentryRequest creates a Sentry request object from the gRPC context.

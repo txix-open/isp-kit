@@ -17,6 +17,7 @@
 Конструктор клиента с настройками по умолчанию. Принимает опции:
 
 - `WithMiddlewares(mws ...Middleware) Option` – добавляет цепочку middleware к запросам клиента.
+- `WithCodec(codec Codec) Option` – переопределяет codec для кодирования/декодирования, по умолчанию стоит `zstd`
 
 #### `NewWithClient(cli *http.Client, opts ...Option) *Client`
 
@@ -105,6 +106,25 @@ camelCase.
 #### `(b *RequestBuilder) Middlewares(middlewares ...Middleware) *RequestBuilder`
 
 Добавить middleware в цепочку запроса.
+
+#### `(b *RequestBuilder) EncodeRequest(encode bool) *RequestBuilder`
+
+Установить флаг кодирования запроса.
+Если включен и запрос по размеру больше заданного threshold, то в заголовки запроса будет добавлен `Content-Encoding` со значением типа codec и тело запроса будет закодировано.
+
+#### `(b *RequestBuilder) EncodeThreshold(threshold int) *RequestBuilder`
+
+Установить threshold в байтах, выше которого будет применяться кодирование запроса (при включённом флаге encodeRequest).
+
+#### `(b *RequestBuilder) AcceptEncodedResponse(accept bool) *RequestBuilder`
+
+Установить флаг приёма закодированных ответов.
+Если включен, то в заголовки запроса будет добавлен `Accept-Encoding` со значением типа codec + identity (пример `zstd, identity`).
+
+#### `(b *RequestBuilder) DecodeResponse(decode bool) *RequestBuilder`
+
+Установить флаг декодирования ответа. 
+Если включен, то ответ сервера с заголовком `Content-Encoding` типом codec в клиенте будет декодирован.
 
 #### `(b *RequestBuilder) Do(ctx context.Context) (*Response, error)`
 

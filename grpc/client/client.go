@@ -7,12 +7,17 @@ package client
 
 import (
 	"context"
+	"strings"
 	"sync/atomic"
 
 	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/codec"
+	grpc2 "github.com/txix-open/isp-kit/grpc"
 	"github.com/txix-open/isp-kit/grpc/client/request"
 	"github.com/txix-open/isp-kit/grpc/isp"
+
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/resolver"
 	"google.golang.org/grpc/resolver/manual"
 )
@@ -22,7 +27,15 @@ const (
 	resolverScheme = "isp"
 	// resolverUrl is the target URL for the manual resolver.
 	resolverUrl = resolverScheme + ":///"
+
+	defaultEncodeThreshold = codec.DefaultEncodeThreshold
 )
+
+type Codec interface {
+	Type() string
+	EncodeBytes(b []byte) ([]byte, error)
+	DecodeBytes(b []byte) ([]byte, error)
+}
 
 // Client is a gRPC client with support for middleware, load balancing, and dynamic host updates.
 // It provides a fluent API for building requests and automatically handles connection management.
@@ -37,13 +50,23 @@ type Client struct {
 	backendCli    isp.BackendServiceClient
 
 	currentHosts atomic.Value
+
+	codec                 Codec
+	encodeThreshold       int
+	acceptEncodedResponse bool
+	encodeRequest         bool
 }
 
 // New creates a new Client with the specified initial hosts and options.
 // Returns an error if the gRPC client cannot be initialized.
 // The client automatically connects to the provided hosts and applies all configured middleware.
 func New(initialHosts []string, opts ...Option) (*Client, error) {
-	cli := &Client{}
+	cli := &Client{
+		codec:                 codec.Default,
+		acceptEncodedResponse: true,
+		encodeRequest:         false,
+		encodeThreshold:       defaultEncodeThreshold,
+	}
 	for _, opt := range opts {
 		opt(cli)
 	}
@@ -84,7 +107,15 @@ func New(initialHosts []string, opts ...Option) (*Client, error) {
 // Invoke creates a request builder for the specified endpoint.
 // The builder provides a fluent API for configuring and executing the request.
 func (cli *Client) Invoke(endpoint string) *request.Builder {
-	return request.NewBuilder(cli.roundTripper, endpoint)
+	return request.NewBuilder(
+		cli.roundTripper,
+		endpoint,
+		request.EncodeSettings{
+			EncodeRequest:         cli.encodeRequest,
+			EncodeThreshold:       cli.encodeThreshold,
+			AcceptEncodedResponse: cli.acceptEncodedResponse,
+		},
+	)
 }
 
 // Upgrade updates the list of backend hosts for load balancing.
@@ -111,12 +142,59 @@ func (cli *Client) BackendClient() isp.BackendServiceClient {
 
 // do executes the actual gRPC request through the middleware chain.
 // Returns an error if the client is not properly initialized or the request fails.
-func (cli *Client) do(ctx context.Context, _ *request.Builder, message *isp.Message) (*isp.Message, error) {
+func (cli *Client) do(ctx context.Context, builder *request.Builder, message *isp.Message) (*isp.Message, error) {
 	currentHosts := cli.currentHosts.Load().([]string) // nolint:forcetypeassert
 	if len(currentHosts) == 0 {
 		return nil, errors.New("grpc client: client is not initialized properly: empty hosts array")
 	}
-	return cli.backendCli.Request(ctx, message)
+
+	encodeSettings := builder.EncodeSettings
+	if encodeSettings.AcceptEncodedResponse {
+		ctx = metadata.AppendToOutgoingContext(ctx,
+			grpc2.AcceptEncodingHeader,
+			strings.Join([]string{cli.codec.Type(), "identity"}, ", "),
+		)
+	}
+
+	requestBody := message.GetBytesBody()
+	if encodeSettings.EncodeRequest && len(requestBody) > encodeSettings.EncodeThreshold {
+		ctx = metadata.AppendToOutgoingContext(ctx,
+			grpc2.ContentEncodingHeader,
+			cli.codec.Type(),
+		)
+		requestBody, err := cli.codec.EncodeBytes(requestBody)
+		if err != nil {
+			return nil, err
+		}
+		message.Body = &isp.Message_BytesBody{
+			BytesBody: requestBody,
+		}
+	}
+
+	var header metadata.MD
+	resp, err := cli.backendCli.Request(
+		ctx,
+		message,
+		grpc.Header(&header),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	contentEncoding, _ := grpc2.StringFromMd(grpc2.ContentEncodingHeader, header)
+	if contentEncoding != cli.codec.Type() {
+		return resp, nil
+	}
+
+	decoded, err := cli.codec.DecodeBytes(resp.GetBytesBody())
+	if err != nil {
+		return nil, err
+	}
+	resp.Body = &isp.Message_BytesBody{
+		BytesBody: decoded,
+	}
+
+	return resp, nil
 }
 
 // toAddresses converts a slice of host strings to gRPC resolver addresses.

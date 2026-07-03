@@ -1,6 +1,7 @@
 package endpoint
 
 import (
+	"github.com/txix-open/isp-kit/codec"
 	"github.com/txix-open/isp-kit/http"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/metrics"
@@ -25,6 +26,39 @@ func DefaultWrapper(logger log.Logger, logMiddleware LogMiddleware, restMiddlewa
 			http.Middleware(logMiddleware),
 			Metrics(http_metrics.NewServerStorage(metrics.DefaultRegistry)),
 			server_tracing.NewConfig().Middleware(),
+			ErrorHandler(logger),
+			Recovery(),
+		},
+		restMiddlewares...,
+	)
+
+	return NewWrapper(
+		paramMappers,
+		JsonRequestExtractor{Validator: validator.Default},
+		JsonResponseMapper{},
+		logger,
+	).WithMiddlewares(middlewares...)
+}
+
+// DefaultCodecWrapper creates a pre-configured Wrapper with common middleware and settings.
+// It includes request logging, encode response, decode request, metrics collection, tracing, error handling, and recovery.
+// The default maximum request body size is 64MB.
+func DefaultCodecWrapper(logger log.Logger, logMiddleware LogMiddleware, restMiddlewares ...http.Middleware) Wrapper {
+	paramMappers := []ParamMapper{
+		ContextParam(),
+		ResponseWriterParam(),
+		RequestParam(),
+	}
+	codec := codec.Default
+	middlewares := append(
+		[]http.Middleware{
+			MaxRequestBodySize(defaultMaxRequestBodySize),
+			RequestId(),
+			DecodeRequest(codec),
+			Metrics(http_metrics.NewServerStorage(metrics.DefaultRegistry)),
+			server_tracing.NewConfig().Middleware(),
+			EncodeResponse(codec, defaultEncodeThreshold),
+			http.Middleware(logMiddleware),
 			ErrorHandler(logger),
 			Recovery(),
 		},

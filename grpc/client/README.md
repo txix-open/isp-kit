@@ -19,6 +19,10 @@
 - `WithMiddlewares(middlewares ...request.Middleware) Option` – добавить middleware в цепочку обработки запроса.
 - `WithDialOptions(dialOptions ...grpc.DialOption) Option` – опция для передачи параметров подключения gRPC (например,
   TLS, таймауты)
+- `WithCodec(codec Codec) Option` – переопределяет codec для кодирования/декодирования, по умолчанию `zstd`
+- `WithEncodeThreshold(threshold int) Option` – переопределяет значение выше которого будет применяться кодирование запроса (при включённом флаге encodeRequest), по умолчанию 128 КБ (параметр в байтах).
+- `WithEncodeRequest(encode bool) Option` – переопределить флаг кодирования запроса. Если включен и запрос по размеру больше заданного threshold, то в заголовки запроса будет добавлен `x-content-encoding` со значением типа codec и тело запроса будет закодировано, по умолчанию false.
+- `WithAcceptEncodedResponse(accept bool) Option` – переопределить флаг флаг приёма закодированных ответов. Если включен, то в заголовки запроса будет добавлен `x-accept-encoding` со значением типа codec + identity (пример `zstd, identity`), по умолчанию true.
 
 #### `(cli *Client) Invoke(endpoint string) *request.Builder`
 

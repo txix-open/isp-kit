@@ -9,12 +9,18 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/txix-open/isp-kit/codec"
 	"github.com/txix-open/isp-kit/grpc"
 	"github.com/txix-open/isp-kit/grpc/apierrors"
 	grpcCli "github.com/txix-open/isp-kit/grpc/client"
 	"github.com/txix-open/isp-kit/grpc/endpoint"
+	"github.com/txix-open/isp-kit/grpc/endpoint/grpclog"
 	"github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/metrics"
+	"github.com/txix-open/isp-kit/metrics/grpc_metrics"
 	"github.com/txix-open/isp-kit/requestid"
+	"github.com/txix-open/isp-kit/test"
+	"github.com/txix-open/isp-kit/test/fake"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -67,6 +73,121 @@ func TestGrpcBasic(t *testing.T) {
 		Do(ctx)
 	require.NoError(err)
 	require.True(resp.Ok)
+}
+
+//nolint:funlen
+func TestGrpcEncodeDecode(t *testing.T) {
+	t.Parallel()
+
+	test, _ := test.New(t)
+	require, srv, cli := prepareTestWithLog(t, test.Logger())
+	reqId := requestid.Next()
+	ctx := requestid.ToContext(t.Context(), reqId)
+
+	expectedReq := reqBody{
+		A: "string",
+		B: true,
+		C: 123,
+	}
+	type respBody struct {
+		Body string
+	}
+	expectedResp := respBody{Body: fake.It[string]()}
+
+	logger := test.Logger()
+	wrapper := endpoint.DefaultWrapper(logger)
+	codec := codec.Default
+	metricStorage := grpc_metrics.NewServerStorage(metrics.DefaultRegistry)
+
+	wrapper.Middlewares = []grpc.Middleware{
+		endpoint.RequestId(),
+		endpoint.DecodeRequest(codec),
+		endpoint.Metrics(metricStorage),
+		endpoint.EncodeResponse(codec, 5),
+		endpoint.ErrorHandler(logger),
+		endpoint.Recovery(),
+		grpclog.CombinedLog(logger, true),
+	}
+
+	mux := grpc.NewMux()
+	mux.Handle("endpoint", wrapper.Endpoint(
+		func(ctx context.Context, data grpc.AuthData, req reqBody) (*respBody, error) {
+			receivedReqId := requestid.FromContext(ctx)
+			require.EqualValues(reqId, receivedReqId)
+
+			md, ok := metadata.FromIncomingContext(ctx)
+			require.True(ok)
+
+			acceptEncoding, _ := grpc.StringFromMd(grpc.AcceptEncodingHeader, md)
+			require.Equal("zstd, identity", acceptEncoding)
+
+			contentEncoding, _ := grpc.StringFromMd(grpc.ContentEncodingHeader, md)
+			require.Empty(contentEncoding)
+
+			require.EqualValues(expectedReq, req)
+
+			return &expectedResp, nil
+		}),
+	)
+
+	mux.Handle("endpoint_empty_accept", wrapper.Endpoint(
+		func(ctx context.Context, data grpc.AuthData, req reqBody) (*respBody, error) {
+			receivedReqId := requestid.FromContext(ctx)
+			require.EqualValues(reqId, receivedReqId)
+
+			md, ok := metadata.FromIncomingContext(ctx)
+			require.True(ok)
+
+			acceptEncoding, _ := grpc.StringFromMd(grpc.AcceptEncodingHeader, md)
+			require.Empty(acceptEncoding)
+
+			contentEncoding, _ := grpc.StringFromMd(grpc.ContentEncodingHeader, md)
+			require.Empty(contentEncoding)
+
+			require.EqualValues(expectedReq, req)
+
+			return &expectedResp, nil
+		}),
+	)
+
+	srv.Upgrade(mux)
+
+	resp := respBody{}
+	err := cli.Invoke("endpoint").
+		JsonRequestBody(expectedReq).
+		AcceptEncodedResponse(true).
+		JsonResponseBody(&resp).
+		Do(ctx)
+	require.NoError(err)
+	require.Equal(expectedResp, resp)
+
+	err = cli.Invoke("endpoint").
+		JsonRequestBody(expectedReq).
+		EncodeRequest(true).
+		EncodeThreshold(5).
+		AcceptEncodedResponse(true).
+		JsonResponseBody(&resp).
+		Do(ctx)
+	require.NoError(err)
+	require.Equal(expectedResp, resp)
+
+	err = cli.Invoke("endpoint_empty_accept").
+		JsonRequestBody(expectedReq).
+		AcceptEncodedResponse(false).
+		JsonResponseBody(&resp).
+		Do(ctx)
+	require.NoError(err)
+	require.Equal(expectedResp, resp)
+
+	err = cli.Invoke("endpoint_empty_accept").
+		JsonRequestBody(expectedReq).
+		EncodeRequest(true).
+		EncodeThreshold(5).
+		AcceptEncodedResponse(false).
+		JsonResponseBody(&resp).
+		Do(ctx)
+	require.NoError(err)
+	require.Equal(expectedResp, resp)
 }
 
 func TestGrpcValidation(t *testing.T) {
@@ -210,6 +331,30 @@ func prepareTest(t *testing.T) (*require.Assertions, *grpc.Server, *grpcCli.Clie
 	required.NoError(err)
 	srv := grpc.NewServer()
 	cli, err := grpcCli.Default()
+	required.NoError(err)
+	t.Cleanup(func() {
+		err := cli.Close()
+		required.NoError(err)
+		srv.Shutdown()
+	})
+	go func() {
+		err := srv.Serve(listener)
+		assert.NoError(t, err)
+	}()
+
+	cli.Upgrade([]string{listener.Addr().String()})
+	return required, srv, cli
+}
+
+func prepareTestWithLog(t *testing.T, logger log.Logger) (*require.Assertions, *grpc.Server, *grpcCli.Client) {
+	t.Helper()
+	required := require.New(t)
+
+	var lc net.ListenConfig
+	listener, err := lc.Listen(t.Context(), "tcp", "127.0.0.1:")
+	required.NoError(err)
+	srv := grpc.NewServer()
+	cli, err := grpcCli.Default(grpcCli.Log(logger, true))
 	required.NoError(err)
 	t.Cleanup(func() {
 		err := cli.Close()

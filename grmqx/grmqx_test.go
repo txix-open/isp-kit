@@ -9,11 +9,14 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/txix-open/grmq/consumer"
+	"github.com/txix-open/isp-kit/codec"
 	"github.com/txix-open/isp-kit/grmqx"
 	"github.com/txix-open/isp-kit/grmqx/handler"
+	"github.com/txix-open/isp-kit/json"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/requestid"
 	"github.com/txix-open/isp-kit/test"
+	"github.com/txix-open/isp-kit/test/fake"
 	"github.com/txix-open/isp-kit/test/grmqt"
 )
 
@@ -302,4 +305,258 @@ func TestQueuesDeleteWithInspect(t *testing.T) {
 	require.Contains(results[nonExistentQueue].Error(), grmqx.ErrNotExistQueue.Error())
 	require.Error(results[""])
 	require.NoError(results[existingQueue])
+}
+
+func TestEncodedPublish_DefaultConsumer(t *testing.T) {
+	t.Parallel()
+	test, require := test.New(t)
+
+	codec := codec.Default
+
+	publish := map[string]any{
+		"field":  "value",
+		"field2": fake.It[string](),
+		"field3": fake.It[int](),
+	}
+	rawPublish, err := json.Marshal(publish)
+	require.NoError(err)
+
+	expectedPublish, err := codec.EncodeBytes(rawPublish)
+	require.NoError(err)
+
+	pub := grmqx.Publisher{
+		RoutingKey: "test",
+	}.DefaultPublisher(grmqx.PublisherLog(test.Logger(), true), grmqx.EncodeMessage(codec, 10))
+
+	callCount := atomic.Int32{}
+
+	handler := grmqx.NewResultHandler(
+		test.Logger(),
+		handler.SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) handler.Result {
+			callCount.Add(1)
+			require.Equal(codec.Type(), delivery.Source().ContentEncoding)
+			require.Equal(expectedPublish, delivery.Body)
+			return handler.Ack()
+		}),
+	)
+	consumerCfg := grmqx.Consumer{
+		Queue: "test",
+		RetryPolicy: &grmqx.RetryPolicy{
+			FinallyMoveToDlq: true,
+			Retries: []grmqx.RetryConfig{{
+				DelayInMs:   300,
+				MaxAttempts: 3,
+			}},
+		},
+	}
+	consumer := consumerCfg.DefaultConsumer(handler, grmqx.ConsumerLog(test.Logger(), true))
+	cli := grmqt.New(test)
+	config := grmqx.NewConfig("",
+		grmqx.WithConsumers(consumer),
+		grmqx.WithPublishers(pub),
+		grmqx.WithDeclarations(grmqx.TopologyFromConsumers(consumerCfg)),
+	)
+	cli.Upgrade(config)
+
+	err = pub.Publish(t.Context(), &amqp091.Publishing{Body: rawPublish})
+	require.NoError(err)
+
+	require.Eventually(func() bool {
+		return callCount.Load() == 1
+	}, 2*time.Second, 100*time.Millisecond)
+
+	require.EqualValues(1, callCount.Load())
+	require.Empty(cli.QueueLength("test"))
+	require.Empty(cli.QueueLength("test.DLQ"))
+}
+
+func TestEncodedPublish_DecodeConsumer(t *testing.T) {
+	t.Parallel()
+	test, require := test.New(t)
+
+	codec := codec.Default
+
+	publish := map[string]any{
+		"field":  "value",
+		"field2": fake.It[string](),
+		"field3": fake.It[int](),
+	}
+	rawPublish, err := json.Marshal(publish)
+	require.NoError(err)
+
+	pub := grmqx.Publisher{
+		RoutingKey: "test",
+	}.DefaultPublisher(grmqx.PublisherLog(test.Logger(), true), grmqx.EncodeMessage(codec, 10))
+
+	callCount := atomic.Int32{}
+
+	handler := grmqx.NewResultHandler(
+		test.Logger(),
+		handler.SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) handler.Result {
+			callCount.Add(1)
+			require.Equal(codec.Type(), delivery.Source().ContentEncoding)
+			require.JSONEq(string(rawPublish), string(delivery.Body))
+			return handler.Ack()
+		}),
+	)
+	consumerCfg := grmqx.Consumer{
+		Queue: "test",
+		RetryPolicy: &grmqx.RetryPolicy{
+			FinallyMoveToDlq: true,
+			Retries: []grmqx.RetryConfig{{
+				DelayInMs:   300,
+				MaxAttempts: 3,
+			}},
+		},
+	}
+	consumer := consumerCfg.DefaultConsumer(handler,
+		grmqx.DecodeMessage(codec, test.Logger()),
+		grmqx.ConsumerLog(test.Logger(), true),
+	)
+	cli := grmqt.New(test)
+	config := grmqx.NewConfig("",
+		grmqx.WithConsumers(consumer),
+		grmqx.WithPublishers(pub),
+		grmqx.WithDeclarations(grmqx.TopologyFromConsumers(consumerCfg)),
+	)
+	cli.Upgrade(config)
+
+	err = pub.Publish(t.Context(), &amqp091.Publishing{Body: rawPublish})
+	require.NoError(err)
+
+	require.Eventually(func() bool {
+		return callCount.Load() == 1
+	}, 2*time.Second, 100*time.Millisecond)
+
+	require.EqualValues(1, callCount.Load())
+	require.Empty(cli.QueueLength("test"))
+	require.Empty(cli.QueueLength("test.DLQ"))
+}
+
+func TestPlainPublish_DecodeConsumer(t *testing.T) {
+	t.Parallel()
+	test, require := test.New(t)
+
+	codec := codec.Default
+
+	publish := map[string]any{
+		"field":  "value",
+		"field2": fake.It[string](),
+		"field3": fake.It[int](),
+	}
+	rawPublish, err := json.Marshal(publish)
+	require.NoError(err)
+
+	pub := grmqx.Publisher{
+		RoutingKey: "test",
+	}.DefaultPublisher(grmqx.PublisherLog(test.Logger(), true))
+
+	callCount := atomic.Int32{}
+
+	handler := grmqx.NewResultHandler(
+		test.Logger(),
+		handler.SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) handler.Result {
+			callCount.Add(1)
+			require.Empty(delivery.Source().ContentEncoding)
+			require.JSONEq(string(rawPublish), string(delivery.Body))
+			return handler.Ack()
+		}),
+	)
+	consumerCfg := grmqx.Consumer{
+		Queue: "test",
+		RetryPolicy: &grmqx.RetryPolicy{
+			FinallyMoveToDlq: true,
+			Retries: []grmqx.RetryConfig{{
+				DelayInMs:   300,
+				MaxAttempts: 3,
+			}},
+		},
+	}
+	consumer := consumerCfg.DefaultConsumer(handler,
+		grmqx.DecodeMessage(codec, test.Logger()),
+		grmqx.ConsumerLog(test.Logger(), true),
+	)
+	cli := grmqt.New(test)
+	config := grmqx.NewConfig("",
+		grmqx.WithConsumers(consumer),
+		grmqx.WithPublishers(pub),
+		grmqx.WithDeclarations(grmqx.TopologyFromConsumers(consumerCfg)),
+	)
+	cli.Upgrade(config)
+
+	err = pub.Publish(t.Context(), &amqp091.Publishing{Body: rawPublish})
+	require.NoError(err)
+
+	require.Eventually(func() bool {
+		return callCount.Load() == 1
+	}, 2*time.Second, 100*time.Millisecond)
+
+	require.EqualValues(1, callCount.Load())
+	require.Empty(cli.QueueLength("test"))
+	require.Empty(cli.QueueLength("test.DLQ"))
+}
+
+func TestPlainPublish_DecodeConsumer_DecodeFailed(t *testing.T) {
+	t.Parallel()
+	test, require := test.New(t)
+
+	codec := codec.Default
+
+	publish := map[string]any{
+		"field":  "value",
+		"field2": fake.It[string](),
+		"field3": fake.It[int](),
+	}
+	rawPublish, err := json.Marshal(publish)
+	require.NoError(err)
+
+	pub := grmqx.Publisher{
+		RoutingKey: "test",
+	}.DefaultPublisher(grmqx.PublisherLog(test.Logger(), true))
+
+	handler := grmqx.NewResultHandler(
+		test.Logger(),
+		handler.SyncHandlerAdapterFunc(func(ctx context.Context, delivery *consumer.Delivery) handler.Result {
+			require.Fail("received delivery after failed decode")
+			return handler.Ack()
+		}),
+	)
+	consumerCfg := grmqx.Consumer{
+		Queue: "test",
+		RetryPolicy: &grmqx.RetryPolicy{
+			FinallyMoveToDlq: true,
+			Retries: []grmqx.RetryConfig{{
+				DelayInMs:   300,
+				MaxAttempts: 3,
+			}},
+		},
+	}
+	consumer := consumerCfg.DefaultConsumer(handler,
+		grmqx.DecodeMessage(codec, test.Logger()),
+		grmqx.ConsumerLog(test.Logger(), true),
+	)
+	cli := grmqt.New(test)
+	config := grmqx.NewConfig("",
+		grmqx.WithConsumers(consumer),
+		grmqx.WithPublishers(pub),
+		grmqx.WithDeclarations(grmqx.TopologyFromConsumers(consumerCfg)),
+	)
+	cli.Upgrade(config)
+
+	err = pub.Publish(t.Context(), &amqp091.Publishing{
+		ContentEncoding: codec.Type(),
+		Body:            rawPublish,
+	})
+	require.NoError(err)
+
+	require.Eventually(func() bool {
+		return cli.QueueLength("test.DLQ") == 1
+	}, 2*time.Second, 100*time.Millisecond)
+
+	require.Empty(cli.QueueLength("test"))
+	require.EqualValues(1, cli.QueueLength("test.DLQ"))
+
+	delivery := cli.DrainMessage("test.DLQ")
+	require.Equal(codec.Type(), delivery.ContentEncoding)
+	require.Equal(rawPublish, delivery.Body)
 }
