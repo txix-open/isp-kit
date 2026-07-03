@@ -19,12 +19,20 @@ const (
 	defaultTimeout = 15 * time.Second
 )
 
+type EncodeSettings struct {
+	EncodeRequest         bool
+	EncodeThreshold       int
+	AcceptEncodedResponse bool
+}
+
 // Builder provides a fluent API for constructing and executing gRPC requests.
 // It handles JSON marshaling, metadata management, and timeout configuration.
 // Builder is not safe for concurrent use; create a new instance for each request.
 type Builder struct {
-	Endpoint      string
-	MD            metadata.MD
+	Endpoint       string
+	MD             metadata.MD
+	EncodeSettings EncodeSettings
+
 	requestBody   any
 	responsePtr   any
 	applicationId int
@@ -34,12 +42,17 @@ type Builder struct {
 
 // NewBuilder creates a new Builder for the specified endpoint.
 // Initializes with default timeout and empty metadata.
-func NewBuilder(roundTripper RoundTripper, endpoint string) *Builder {
+func NewBuilder(
+	roundTripper RoundTripper,
+	endpoint string,
+	encodeSettings EncodeSettings,
+) *Builder {
 	return &Builder{
-		Endpoint:     endpoint,
-		MD:           metadata.New(make(map[string]string)),
-		roundTripper: roundTripper,
-		timeout:      defaultTimeout,
+		Endpoint:       endpoint,
+		MD:             metadata.New(make(map[string]string)),
+		roundTripper:   roundTripper,
+		timeout:        defaultTimeout,
+		EncodeSettings: encodeSettings,
 	}
 }
 
@@ -79,6 +92,28 @@ func (req *Builder) AppendMetadata(k string, v ...string) *Builder {
 	return req
 }
 
+// EncodeRequest sets encoding for request body.
+// It affects content-encoding and request body serialization.
+func (b *Builder) EncodeRequest(encode bool) *Builder {
+	b.EncodeSettings.EncodeRequest = encode
+	return b
+}
+
+// AcceptEncodedResponse enables transparent handling of encoded GRPC responses.
+//
+// When enabled, the client adds "accept-encoding" (e.g. zstd) to request headers,
+// allowing the server to return encoded payloads.
+func (b *Builder) AcceptEncodedResponse(accept bool) *Builder {
+	b.EncodeSettings.AcceptEncodedResponse = accept
+	return b
+}
+
+// EncodeThreshold sets the request encoding threshold in bytes.
+func (b *Builder) EncodeThreshold(thresholdBytes int) *Builder {
+	b.EncodeSettings.EncodeThreshold = thresholdBytes
+	return b
+}
+
 // Do executes the request and unmarshals the response if a response pointer was provided.
 // Returns an error if JSON marshaling, request execution, or response unmarshaling fails.
 // Automatically applies the configured timeout to the request context.
@@ -97,6 +132,7 @@ func (req *Builder) Do(ctx context.Context) error {
 		req.MD.Set(grpc.ApplicationIdHeader, strconv.Itoa(req.applicationId))
 	}
 	ctx = metadata.NewOutgoingContext(reqCtx, req.MD)
+
 	var body []byte
 	var err error
 	if req.requestBody != nil {

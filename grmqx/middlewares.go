@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/txix-open/grmq/consumer"
 	"github.com/txix-open/grmq/publisher"
@@ -59,8 +60,9 @@ type Retrier interface {
 }
 
 // PublisherRetry creates a middleware for retrying message publications.
-// It is recommended to use this middleware after logging middleware
-// to avoid duplicate logging of publication attempts.
+//
+// Place this middleware after logging and encoding middlewares so that
+// publication attempts are logged only once and payloads are encoded only once.
 func PublisherRetry(retrier Retrier) publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
 		return publisher.RoundTripperFunc(func(ctx context.Context, exchange string, routingKey string, msg *amqp091.Publishing) error {
@@ -83,14 +85,41 @@ type PublisherMetricStorage interface {
 func PublisherMetrics(storage PublisherMetricStorage) publisher.Middleware {
 	return func(next publisher.RoundTripper) publisher.RoundTripper {
 		return publisher.RoundTripperFunc(func(ctx context.Context, exchange string, routingKey string, msg *amqp091.Publishing) error {
-			storage.ObservePublishMsgSize(exchange, routingKey, len(msg.Body))
 			start := time.Now()
 			err := next.Publish(ctx, exchange, routingKey, msg)
 			if err != nil {
 				storage.IncPublishError(exchange, routingKey)
 			}
 			storage.ObservePublishDuration(exchange, routingKey, time.Since(start))
+			storage.ObservePublishMsgSize(exchange, routingKey, len(msg.Body))
 			return err
+		})
+	}
+}
+
+type EncoderCodec interface {
+	Type() string
+	EncodeBytes(body []byte) ([]byte, error)
+}
+
+// EncodeMessage creates a publisher middleware that transparently handles message encoding.
+//
+// If message body size > encodeThreshold, message body is encoded using codec.
+//
+// Important:
+//   - Should be placed after logging middleware if logs must see plain data.
+func EncodeMessage(codec EncoderCodec, encodeThresholdBytes int) publisher.Middleware {
+	return func(next publisher.RoundTripper) publisher.RoundTripper {
+		return publisher.RoundTripperFunc(func(ctx context.Context, exchange string, routingKey string, msg *amqp091.Publishing) error {
+			if len(msg.Body) > encodeThresholdBytes {
+				encoded, err := codec.EncodeBytes(msg.Body)
+				if err != nil {
+					return errors.WithMessagef(err, "encode by '%s' encoder", codec.Type())
+				}
+				msg.ContentEncoding = codec.Type()
+				msg.Body = encoded
+			}
+			return next.Publish(ctx, exchange, routingKey, msg)
 		})
 	}
 }
@@ -106,7 +135,7 @@ func ConsumerLog(logger log.Logger, logBody bool) consumer.Middleware {
 				log.Int("bodySize", len(delivery.Source().Body)),
 			}
 			if logBody {
-				fields = append(fields, log.ByteString("body", delivery.Source().Body))
+				fields = append(fields, log.ByteString("body", delivery.Body))
 			}
 			logger.Debug(
 				ctx,
@@ -137,6 +166,44 @@ func ConsumerRequestId() consumer.Middleware {
 			}
 			ctx = requestid.ToContext(ctx, requestId)
 			ctx = log.ToContext(ctx, log.String(requestid.LogKey, requestId))
+			next.Handle(ctx, delivery)
+		})
+	}
+}
+
+type DecodeCodec interface {
+	Type() string
+	DecodeBytes(body []byte) ([]byte, error)
+}
+
+// DecodeMessage creates a consumer middleware that transparently handles message encoding.
+//
+// If contentEncoding matches codec, message body is decoded.
+//
+// Important:
+//   - Should be placed before logging middleware if logs must see decoded data.
+func DecodeMessage(codec DecodeCodec, logger log.Logger) consumer.Middleware {
+	return func(next consumer.Handler) consumer.Handler {
+		return consumer.HandlerFunc(func(ctx context.Context, delivery *consumer.Delivery) {
+			if delivery.Source().ContentEncoding != codec.Type() {
+				next.Handle(ctx, delivery)
+				return
+			}
+
+			decoded, err := codec.DecodeBytes(delivery.Body)
+			if err != nil {
+				logger.Error(ctx, "failed to decode message",
+					log.String("contentEncoding", delivery.Source().ContentEncoding),
+					log.Any("error", err),
+				)
+				err := delivery.Nack(false)
+				if err != nil {
+					logger.Error(ctx, "rmq client: nack message error", log.Any("error", err))
+				}
+				return
+			}
+
+			delivery.Body = decoded
 			next.Handle(ctx, delivery)
 		})
 	}

@@ -25,6 +25,11 @@ type RequestBuilder struct {
 	statusCodeToError bool
 	middlewares       []Middleware
 
+	encodeRequest         bool
+	acceptEncodedResponse bool
+	decodeResponse        bool
+	encodeThreshold       int
+
 	execute func(ctx context.Context, req *RequestBuilder) (*Response, error)
 }
 
@@ -166,6 +171,36 @@ func (b *RequestBuilder) Timeout(timeout time.Duration) *RequestBuilder {
 // These are executed after the client's global middlewares.
 func (b *RequestBuilder) Middlewares(middlewares ...Middleware) *RequestBuilder {
 	b.middlewares = append(b.middlewares, middlewares...)
+	return b
+}
+
+// EncodeRequest sets encoding for request body.
+// It affects Content-Encoding and request body serialization.
+func (b *RequestBuilder) EncodeRequest(encode bool) *RequestBuilder {
+	b.encodeRequest = encode
+	return b
+}
+
+// EncodeThreshold sets the request encoding threshold in bytes.
+func (b *RequestBuilder) EncodeThreshold(thresholdBytes int) *RequestBuilder {
+	b.encodeThreshold = thresholdBytes
+	return b
+}
+
+// AcceptEncodedResponse sets transparent handling of encoded HTTP responses.
+//
+// When enabled, the client adds "Accept-Encoding" (e.g. zstd) to request headers,
+// allowing the server to return encoded payloads.
+func (b *RequestBuilder) AcceptEncodedResponse(accept bool) *RequestBuilder {
+	b.acceptEncodedResponse = accept
+	return b
+}
+
+// DecodeResponse sets response decoding.
+//
+// When disabled response body will be returned as-is.
+func (b *RequestBuilder) DecodeResponse(decode bool) *RequestBuilder {
+	b.decodeResponse = decode
 	return b
 }
 

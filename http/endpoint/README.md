@@ -15,9 +15,7 @@
 
 **Methods:**
 
-####
-
-`NewWrapper(paramMappers []ParamMapper, bodyExtractor RequestBodyExtractor, bodyMapper ResponseBodyMapper, logger log.Logger) Wrapper`
+#### `NewWrapper(paramMappers []ParamMapper, bodyExtractor RequestBodyExtractor, bodyMapper ResponseBodyMapper, logger log.Logger) Wrapper`
 
 Конструктор обертки с указанными параметрами.
 
@@ -68,25 +66,77 @@
 
 Вызывает функцию-обработчик, передавая ей аргументы, извлеченные из запроса.
 
+
+## Middlewares
+
+### `MaxRequestBodySize`
+
+Ограничивает размер тела запроса (по умолчанию 64 МБ).
+
+### `RequestId`
+
+Добавляет в контекст requestId, который берет из заголовка x-request-id. Генерирует новый, если не находит.
+
+### `DecodeRequest`
+Декодирует запрос при помощи переданного codec, если заголовок `Content-Encoding` совпадает с типом codec.
+
+### `LogMiddleware`
+
+Логирует данные запросов и ответов.
+
+### `Metrics`
+
+Собирает метрики: время выполнения, статус-коды, размеры тел.
+
+### `Tracing`
+
+Интеграция с трейсингом (OpenTelemetry).
+
+### `EncodeResponse`
+
+Кодирует ответ при помощи переданного codec, если заголовок `Accept-Encoding` содержит строку с типом codec (пример значения заголовка `"zstd, identity"`) и размер ответа больше переданного threshold'а, по умолчанию 128 КБ (параметр в байтах).
+
+### `ErrorHandler`
+
+Перехватывает и обрабатывает ошибки. Ошибки типа `HttpError` возвращают структурированный ответ.
+Остальные ошибки логируются и возвращаются как 500 Internal Server Error.
+
+### `Recovery`
+
+Предотвращает падение сервера при панике в обработчике, преобразуя ее в ошибку.
+
 ## Functions
 
 #### `DefaultWrapper(logger log.Logger, logMiddleware LogMiddleware, restMiddlewares ...http.Middleware) Wrapper`
 
-Создает предварительно настроенную обертку (`Wrapper`) для HTTP-обработчиков с базовыми middleware и параметрами.
+Создает предварительно настроенную обертку (`Wrapper`) для HTTP-обработчиков с middleware и параметрами.
 Упрощает создание эндпоинтов, включая валидацию, логирование, метрики и обработку ошибок "из коробки".
 
-Стандартные Middleware:
+Список Middleware:
 
-- `MaxRequestBodySize` – ограничивает размер тела запроса (по умолчанию 64 МБ).
-- `RequestId` – добавляет в контекст requestId, который берет из заголовка x-request-id. Генерирует
-  новый, если не находит.
-- `LogMiddleware` – логирует данные запросов и ответов.
-- `Metrics` – собирает метрики: время выполнения, статус-коды,
-  размеры тел.
-- `Tracing` – интеграция с трейсингом (OpenTelemetry).
-- `ErrorHandler` – перехватывает и обрабатывает ошибки. Ошибки типа `HttpError` возвращают структурированный ответ.
-  Остальные ошибки логируются и возвращаются как 500 Internal Server Error.
-- `Recovery` – предотвращает падение сервера при панике в обработчике, преобразуя ее в ошибку.
+- `MaxRequestBodySize`
+- `RequestId`
+- `LogMiddleware`
+- `Metrics`
+- `Tracing`
+- `ErrorHandler`
+- `Recovery`
+
+#### `DefaultCodecWrapper(logger log.Logger, logMiddleware LogMiddleware, restMiddlewares ...http.Middleware) Wrapper`
+
+Создает предварительно настроенную обертку (`Wrapper`) для HTTP-обработчиков с middleware и параметрами.
+Упрощает создание эндпоинтов, включая валидацию, логирование, метрики и обработку ошибок "из коробки".
+
+Список Middleware:
+- `MaxRequestBodySize`
+- `RequestId`
+- `DecodeRequest`
+- `LogMiddleware`
+- `Metrics`
+- `Tracing`
+- `EncodeResponse`
+- `ErrorHandler`
+- `Recovery`
 
 ## Usage
 
@@ -129,6 +179,64 @@ func main() {
 	srv := http.NewServer(logger)
 
 	wrapper := endpoint.DefaultWrapper(logger, httplog.Log(logger, true))
+	r := router.New()
+	r.POST("/foo", wrapper.Endpoint(foo))
+
+	srv.Upgrade(r)
+
+	shutdown.On(func() { /* waiting for SIGINT & SIGTERM signals */
+		log.Println("shutting down...")
+		_ = srv.Shutdown(context.Background())
+		log.Println("shutdown completed")
+	})
+
+	err = srv.ListenAndServe(":8080")
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+```
+
+### Codec usage flow
+
+```go
+package main
+
+import (
+	"context"
+	"log"
+
+	"github.com/txix-open/isp-kit/http"
+	"github.com/txix-open/isp-kit/http/endpoint"
+	"github.com/txix-open/isp-kit/http/endpoint/httplog"
+	"github.com/txix-open/isp-kit/http/router"
+	log2 "github.com/txix-open/isp-kit/log"
+	"github.com/txix-open/isp-kit/shutdown"
+)
+
+type userRequest struct {
+	Name string
+}
+
+type userResponse struct {
+	Id int
+}
+
+func foo(ctx context.Context, req userRequest) (userResponse, error) {
+	/* put here some business logic */
+	return userResponse{Id: 88}, nil
+}
+
+func main() {
+	logger, err := log2.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	srv := http.NewServer(logger)
+
+	wrapper := endpoint.DefaultCodecWrapper(logger, httplog.Log(logger, true))
 	r := router.New()
 	r.POST("/foo", wrapper.Endpoint(foo))
 

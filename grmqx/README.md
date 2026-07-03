@@ -92,6 +92,7 @@
   помощи объекта, реализующего интерфейс `Retrier`.
 - `PublisherMetrics(storage PublisherMetricStorage) publisher.Middleware` – добавить метрики при помощи объекта,
   реализующего интерфейс `PublisherMetricStorage` (установленно по-умолчанию).
+- `EncodeMessage(codec EncoderCodec, encodeThreshold int) publisher.Middleware` – кодировать публикуемые сообщения, при теле сообщения больше encodeThreshold тело сообщения сжимается и выставляется `contentEncoding` = типу codec.
 
 ### Consumer
 
@@ -109,6 +110,7 @@
   можно включить/выключить логирование тела сообщения.
 - `ConsumerRequestId() consumer.Middleware` – получить requestId из заголовка и сохранить его в контексте (установленно
   по-умолчанию).
+  - `DecodeMessage(codec DecodeCodec, logger log.Logger) consumer.Middleware` – декодирует тело сообщения, если `contentEncoding` совпадает с типом codec, результат записывает в `delivery.Body`.
 
 ### BatchConsumer
 

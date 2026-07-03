@@ -18,6 +18,7 @@ require (
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/json-iterator/go v1.1.12
 	github.com/julienschmidt/httprouter v1.3.0
+	github.com/klauspost/compress v1.18.6
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/modern-go/reflect2 v1.0.2
 	github.com/pkg/errors v0.9.1
@@ -33,7 +34,7 @@ require (
 	github.com/txix-open/bellows v1.2.0
 	github.com/txix-open/bgjob v1.6.0
 	github.com/txix-open/etp/v4 v4.1.1
-	github.com/txix-open/grmq v1.11.1
+	github.com/txix-open/grmq v1.12.0
 	github.com/txix-open/jsonschema v1.3.0
 	github.com/txix-open/validator/v10 v10.0.0-20250506161033-f8ce404fffdb
 	github.com/xeipuuv/gojsonschema v1.2.0
@@ -66,7 +67,6 @@ require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
-	github.com/klauspost/compress v1.18.6 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
