@@ -88,6 +88,18 @@
 
 Установка результата сообщений как неуспешно обработанных, с отправкой в DLQ и логированием ошибки.
 
+#### `(bs BatchItems) AckUnprocessed()`
+
+Установка результата сообщений, по которым еще не принято решение, как успешно обработанных.
+
+#### `(bs BatchItems) MoveToDlqUnprocessed(err error)`
+
+Установка результата сообщений, по которым еще не принято решение, как требующих повторной обработки, с логированием ошибки.
+
+#### `(bs BatchItems) RetryUnprocessed(err error)`
+
+Установка результата сообщений, по которым еще не принято решение, как неуспешно обработанных, с отправкой в DLQ и логированием ошибки.
+
 ## Usage
 
 ### Custom adapter
@@ -116,6 +128,61 @@ func (h customHandler) Handle(batch batch_handler.BatchItems) {
 			}
 		*/
 	}
+}
+
+func main() {
+	logger, err := log2.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var (
+		metricStorage = NewMetricStorage() /* ConsumerMetricStorage interface implementation */
+		adapter       customHandler
+	)
+	handler := batch_handler.NewSync(logger, adapter, []batch_handler.Middleware{
+		batch_handler.Metrics(metricStorage),
+		batch_handler.Log(logger),
+		batch_handler.Recovery(logger),
+	}...)
+
+	/* handler's call for example */
+	batch := make([]*batch_handler.BatchItem, 0) /* placeholder for example */
+	handler.Handle(batch)
+}
+
+```
+
+### Custom  adapter
+
+```go
+package main
+
+import (
+	"log"
+
+	"github.com/txix-open/grmq/consumer"
+	"github.com/txix-open/isp-kit/grmqx"
+	"github.com/txix-open/isp-kit/grmqx/batch_handler"
+	log2 "github.com/txix-open/isp-kit/log"
+)
+
+type customHandler struct{}
+
+func foo(item *BatchItem){
+	// ...
+	if err != nil {
+		item.MoveToDlq(err)
+    }
+} 
+
+func (h customHandler) Handle(batch batch_handler.BatchItems) {
+	for _, item := range batch {
+		foo(item)
+	}
+	
+	// после цикла часть записей уже имеет статус MoveToDlq, а остальные мы можем "акнуть".
+	batch.AckUnprecessed()
 }
 
 func main() {

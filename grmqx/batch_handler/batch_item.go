@@ -19,23 +19,23 @@ type BatchItem struct {
 // Ack sets the result to indicate successful message acknowledgment.
 func (b *BatchItem) Ack() {
 	b.Result = Result{
-		Ack: true,
+		status: Ack,
 	}
 }
 
 // MoveToDlq sets the result to indicate the message should be moved to the DLQ.
 func (b *BatchItem) MoveToDlq(err error) {
 	b.Result = Result{
-		MoveToDlq: true,
-		Err:       err,
+		status: MoveToDlq,
+		Err:    err,
 	}
 }
 
 // Retry sets the result to indicate the message should be retried.
 func (b *BatchItem) Retry(err error) {
 	b.Result = Result{
-		Retry: true,
-		Err:   err,
+		status: Retry,
+		Err:    err,
 	}
 }
 
@@ -46,7 +46,7 @@ type BatchItems []*BatchItem
 func (bs BatchItems) AckAll() {
 	for _, b := range bs {
 		b.Result = Result{
-			Ack: true,
+			status: Ack,
 		}
 	}
 }
@@ -55,8 +55,8 @@ func (bs BatchItems) AckAll() {
 func (bs BatchItems) MoveToDlqAll(err error) {
 	for _, b := range bs {
 		b.Result = Result{
-			MoveToDlq: true,
-			Err:       err,
+			status: MoveToDlq,
+			Err:    err,
 		}
 	}
 }
@@ -65,8 +65,40 @@ func (bs BatchItems) MoveToDlqAll(err error) {
 func (bs BatchItems) RetryAll(err error) {
 	for _, b := range bs {
 		b.Result = Result{
-			Retry: true,
-			Err:   err,
+			status: Retry,
+			Err:    err,
+		}
+	}
+}
+
+func (bs BatchItems) AckUnprocessed() {
+	for _, b := range bs {
+		if b.Result == Unknown {
+			b.Result = Result{
+				status: Ack,
+			}
+		}
+	}
+}
+
+func (bs BatchItems) MoveToDlqUnprocessed(err error) {
+	for _, b := range bs {
+		if b.Result == Unknown {
+			b.Result = Result{
+				status: MoveToDlq,
+				Err:    err,
+			}
+		}
+	}
+}
+
+func (bs BatchItems) RetryUnprocessed(err error) {
+	for _, b := range bs {
+		if b.Result == Unknown {
+			b.Result = Result{
+				status: Retry,
+				Err:    err,
+			}
 		}
 	}
 }

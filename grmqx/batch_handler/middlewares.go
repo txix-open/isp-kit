@@ -32,12 +32,12 @@ func Metrics(metricStorage ConsumerMetricStorage) Middleware {
 				metricStorage.ObserveConsumeDuration(exchange, routingKey, time.Since(start))
 				metricStorage.ObserveConsumeMsgSize(exchange, routingKey, len(item.Delivery.Source().Body))
 
-				switch {
-				case item.Result.Ack:
+				switch item.Result.status {
+				case Ack:
 					metricStorage.IncSuccessCount(exchange, routingKey)
-				case item.Result.Retry:
+				case Retry:
 					metricStorage.IncRetryCount(exchange, routingKey)
-				case item.Result.MoveToDlq:
+				case MoveToDlq:
 					metricStorage.IncDlqCount(exchange, routingKey)
 				}
 			}
@@ -56,24 +56,24 @@ func Log(logger log.Logger) Middleware {
 				exchange := item.Delivery.Source().Exchange
 				routingKey := item.Delivery.Source().RoutingKey
 
-				switch {
-				case item.Result.Ack:
+				switch item.Result.status {
+				case Ack:
 					logger.Debug(item.Context, "rmq client: batch message will be acknowledged",
 						log.String("exchange", exchange),
 						log.String("routingKey", routingKey),
 					)
-				case item.Result.Retry && item.Result.Err != nil:
+				case Retry && item.Result.Err != nil:
 					logger.Error(item.Context, "rmq client: batch message will be retried",
 						log.String("exchange", exchange),
 						log.String("routingKey", routingKey),
 						log.Any("error", item.Result.Err),
 					)
-				case item.Result.Retry:
+				case Retry:
 					logger.Debug(item.Context, "rmq client: batch message will be retried",
 						log.String("exchange", exchange),
 						log.String("routingKey", routingKey),
 					)
-				case item.Result.MoveToDlq:
+				case MoveToDlq:
 					logger.Error(item.Context, "rmq client: batch message will be moved to DLQ or dropped",
 						log.String("exchange", exchange),
 						log.String("routingKey", routingKey),

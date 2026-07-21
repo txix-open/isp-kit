@@ -49,18 +49,18 @@ func (r Sync) Handle(batch BatchItems) {
 	r.handler.Handle(batch)
 
 	for _, item := range batch {
-		switch {
-		case item.Result.Ack:
+		switch item.Result.status {
+		case Ack:
 			err := item.Delivery.Ack()
 			if err != nil {
 				r.logger.Error(item.Context, "rmq client: ack message error", log.Any("error", err))
 			}
-		case item.Result.Retry:
+		case Retry:
 			err := item.Delivery.Retry()
 			if err != nil {
 				r.logger.Error(item.Context, "rmq client: retry message error", log.Any("error", err))
 			}
-		case item.Result.MoveToDlq:
+		case MoveToDlq:
 			err := item.Delivery.Nack(false)
 			if err != nil {
 				r.logger.Error(item.Context, "rmq client: nack message error", log.Any("error", err))
