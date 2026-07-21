@@ -56,24 +56,24 @@ func Log(logger log.Logger) Middleware {
 				exchange := item.Delivery.Source().Exchange
 				routingKey := item.Delivery.Source().RoutingKey
 
-				switch item.Result.status {
-				case Ack:
+				switch {
+				case item.Result.status == Ack:
 					logger.Debug(item.Context, "rmq client: batch message will be acknowledged",
 						log.String("exchange", exchange),
 						log.String("routingKey", routingKey),
 					)
-				case Retry && item.Result.Err != nil:
+				case item.Result.status == Retry && item.Result.Err != nil:
 					logger.Error(item.Context, "rmq client: batch message will be retried",
 						log.String("exchange", exchange),
 						log.String("routingKey", routingKey),
 						log.Any("error", item.Result.Err),
 					)
-				case Retry:
+				case item.Result.status == Retry:
 					logger.Debug(item.Context, "rmq client: batch message will be retried",
 						log.String("exchange", exchange),
 						log.String("routingKey", routingKey),
 					)
-				case MoveToDlq:
+				case item.Result.status == MoveToDlq:
 					logger.Error(item.Context, "rmq client: batch message will be moved to DLQ or dropped",
 						log.String("exchange", exchange),
 						log.String("routingKey", routingKey),
