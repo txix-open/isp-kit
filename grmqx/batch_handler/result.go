@@ -1,7 +1,7 @@
 package batch_handler
 
 const (
-	Unknown = iota
+	Unknown = int8(iota)
 	Ack
 	Retry
 	MoveToDlq
