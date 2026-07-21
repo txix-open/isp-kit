@@ -73,7 +73,7 @@ func (bs BatchItems) RetryAll(err error) {
 
 func (bs BatchItems) AckUnprocessed() {
 	for _, b := range bs {
-		if b.Result == Unknown {
+		if b.Result.status == Unknown {
 			b.Result = Result{
 				status: Ack,
 			}
@@ -83,7 +83,7 @@ func (bs BatchItems) AckUnprocessed() {
 
 func (bs BatchItems) MoveToDlqUnprocessed(err error) {
 	for _, b := range bs {
-		if b.Result == Unknown {
+		if b.Result.status == Unknown {
 			b.Result = Result{
 				status: MoveToDlq,
 				Err:    err,
@@ -94,7 +94,7 @@ func (bs BatchItems) MoveToDlqUnprocessed(err error) {
 
 func (bs BatchItems) RetryUnprocessed(err error) {
 	for _, b := range bs {
-		if b.Result == Unknown {
+		if b.Result.status == Unknown {
 			b.Result = Result{
 				status: Retry,
 				Err:    err,
