@@ -35,10 +35,10 @@ type Test struct {
 // It automatically initializes configuration and logger, generates a
 // unique test identifier, and creates require assertions. The function
 // marks the calling test as a helper.
-func New(t testing.TB) (*Test, *require.Assertions) {
-	t.Helper()
+func New(tb testing.TB) (*Test, *require.Assertions) {
+	tb.Helper()
 
-	assert := require.New(t)
+	assert := require.New(tb)
 	cfg, err := config.New()
 	assert.NoError(err)
 
@@ -50,7 +50,7 @@ func New(t testing.TB) (*Test, *require.Assertions) {
 	assert.NoError(err)
 	return &Test{
 		id:         hex.EncodeToString(idBytes),
-		t:          t,
+		t:          tb,
 		cfg:        cfg,
 		logger:     logger,
 		assertions: assert,
