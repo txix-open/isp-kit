@@ -1,8 +1,8 @@
-// Package test provides a test helper that wraps testing.T and automatically
+// Package test provides a test helper that wraps testing.TB and automatically
 // initializes configuration and logger for unit and integration tests.
 //
 // The Test struct serves as a central container for commonly used test
-// dependencies including configuration, logger, testing.T context, and
+// dependencies including configuration, logger, testing.TB context, and
 // require.Assertions for assertions.
 package test
 
@@ -20,13 +20,13 @@ const (
 	testIdLength = 4
 )
 
-// Test is a test helper that wraps testing.T and provides access to
+// Test is a test helper that wraps testing.TB and provides access to
 // initialized configuration, logger, and assertion utilities.
 type Test struct {
 	id         string
 	cfg        *config.Config
 	logger     log.Logger
-	t          *testing.T
+	t          testing.TB
 	assertions *require.Assertions
 }
 
@@ -35,7 +35,7 @@ type Test struct {
 // It automatically initializes configuration and logger, generates a
 // unique test identifier, and creates require assertions. The function
 // marks the calling test as a helper.
-func New(t *testing.T) (*Test, *require.Assertions) {
+func New(t testing.TB) (*Test, *require.Assertions) {
 	t.Helper()
 
 	assert := require.New(t)
@@ -81,7 +81,7 @@ func (t *Test) Id() string {
 	return t.id
 }
 
-// T returns the underlying testing.T instance.
-func (t *Test) T() *testing.T {
+// T returns the underlying testing.TB instance.
+func (t *Test) T() testing.TB {
 	return t.t
 }
