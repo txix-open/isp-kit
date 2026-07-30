@@ -35,8 +35,8 @@ func TestWithMessage(t *testing.T) {
 func TestWithMessageNil(t *testing.T) {
 	t.Parallel()
 
-	require.NoError(t, errors.WithMessage(nil, "additional context"))
-	require.NoError(t, errors.WithMessagef(nil, "additional %s", "context"))
+	require.Error(t, errors.WithMessage(nil, "additional context"))
+	require.Error(t, errors.WithMessagef(nil, "additional %s", "context"))
 }
 
 func TestWithMessagef(t *testing.T) {
