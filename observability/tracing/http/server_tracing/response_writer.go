@@ -5,7 +5,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/errors"
 )
 
 // scSource is an interface for HTTP response writers that provide status code access.

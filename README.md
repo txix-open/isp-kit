@@ -71,6 +71,7 @@ A powerful and lightweight application lifecycle management framework and utilit
 | Package | Description |
 |---------|-------------|
 | [`healthcheck`](https://pkg.go.dev/github.com/txix-open/isp-kit/healthcheck) | Health check registry and JSON endpoint |
+| [`errors`](https://pkg.go.dev/github.com/txix-open/isp-kit/errors) | Error handling helpers based on the standard library |
 | [`requestid`](https://pkg.go.dev/github.com/txix-open/isp-kit/requestid) | Request ID management across contexts |
 | [`retry`](https://pkg.go.dev/github.com/txix-open/isp-kit/retry) | Exponential backoff retry utilities |
 | [`shutdown`](https://pkg.go.dev/github.com/txix-open/isp-kit/shutdown) | Process termination signal handling |

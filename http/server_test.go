@@ -8,10 +8,10 @@ import (
 	"testing"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/txix-open/isp-kit/codec"
+	"github.com/txix-open/isp-kit/errors"
 	isphttp "github.com/txix-open/isp-kit/http"
 	"github.com/txix-open/isp-kit/http/apierrors"
 	"github.com/txix-open/isp-kit/http/endpoint"

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/go-stomp/stomp/v3"
-	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/requestid"
 	"github.com/txix-open/isp-kit/stompx"

@@ -10,7 +10,7 @@ import (
 	"github.com/txix-open/isp-kit/metrics"
 	"github.com/txix-open/isp-kit/metrics/kafka_metrics"
 
-	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/kafkax/publisher"
 	"github.com/txix-open/isp-kit/log"
 )

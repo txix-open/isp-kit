@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/pkg/errors"
 	"github.com/txix-open/bellows"
+	"github.com/txix-open/isp-kit/errors"
 	"gopkg.in/yaml.v3"
 )
 

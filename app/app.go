@@ -36,8 +36,8 @@ package app
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/config"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/log"
 )
 

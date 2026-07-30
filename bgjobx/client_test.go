@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/txix-open/bgjob"
 	"github.com/txix-open/isp-kit/bgjobx"
 	"github.com/txix-open/isp-kit/bgjobx/handler"
 	"github.com/txix-open/isp-kit/dbx"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/test"
 	"github.com/txix-open/isp-kit/test/dbt"
 )

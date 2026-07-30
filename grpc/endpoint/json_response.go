@@ -1,7 +1,7 @@
 package endpoint
 
 import (
-	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/grpc/isp"
 	"github.com/txix-open/isp-kit/json"
 )

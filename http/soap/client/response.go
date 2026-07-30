@@ -3,7 +3,7 @@ package client
 import (
 	"encoding/xml"
 
-	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/http/httpcli"
 	"github.com/txix-open/isp-kit/http/soap"
 )

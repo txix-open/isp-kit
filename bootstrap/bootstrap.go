@@ -50,9 +50,9 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/app"
 	"github.com/txix-open/isp-kit/cluster"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/json"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/observability/sentry"

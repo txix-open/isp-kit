@@ -10,10 +10,10 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"github.com/txix-open/isp-kit/db"
 	"github.com/txix-open/isp-kit/dbx"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/test"
 )
 
@@ -81,7 +81,10 @@ func (db *TestDb) Close() error {
 		return errors.WithMessage(err, "drop schema")
 	}
 	err = db.Client.Close()
-	return errors.WithMessage(err, "close db")
+	if err != nil {
+		return errors.WithMessage(err, "close db")
+	}
+	return nil
 }
 
 // must provides database operations that automatically assert no errors.

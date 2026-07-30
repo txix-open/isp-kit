@@ -36,7 +36,7 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/requestid"
 )

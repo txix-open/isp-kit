@@ -23,8 +23,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/txix-open/etp/v4"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/json"
 	"github.com/txix-open/isp-kit/lb"
 	"github.com/txix-open/isp-kit/log"

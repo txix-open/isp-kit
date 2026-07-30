@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/go-logr/stdr"
-	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"

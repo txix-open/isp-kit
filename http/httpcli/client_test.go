@@ -16,10 +16,10 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/txix-open/isp-kit/codec"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/http/apierrors"
 	"github.com/txix-open/isp-kit/http/httpcli"
 	"github.com/txix-open/isp-kit/json"

@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/pkg/errors"
 	"github.com/pressly/goose/v3"
 	"github.com/txix-open/isp-kit/db"
+	"github.com/txix-open/isp-kit/errors"
 )
 
 // nolint:gochecknoglobals
