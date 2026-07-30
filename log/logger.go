@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

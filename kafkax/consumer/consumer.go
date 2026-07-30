@@ -11,7 +11,7 @@ import (
 
 	"github.com/twmb/franz-go/pkg/kgo"
 
-	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/errors"
 	"go.uber.org/atomic"
 )
 

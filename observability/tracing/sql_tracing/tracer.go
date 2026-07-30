@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/metrics/sql_metrics"
 	"github.com/txix-open/isp-kit/observability/tracing"
 	"github.com/txix-open/isp-kit/requestid"

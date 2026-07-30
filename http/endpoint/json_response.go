@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/json"
 	"github.com/txix-open/isp-kit/requestid"
 )

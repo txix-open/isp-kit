@@ -5,9 +5,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/txix-open/grmq/consumer"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/grmqx/handler"
 	"github.com/txix-open/isp-kit/observability/tracing"
 	"github.com/txix-open/isp-kit/observability/tracing/rabbitmq"

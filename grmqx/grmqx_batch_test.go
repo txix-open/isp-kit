@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/txix-open/isp-kit/codec"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/grmqx"
 	"github.com/txix-open/isp-kit/grmqx/batch_handler"
 	"github.com/txix-open/isp-kit/json"

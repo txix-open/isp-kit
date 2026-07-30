@@ -20,7 +20,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/panic_recovery"
 )
 
@@ -38,4 +38,3 @@ func testPanic() {
 	return
 }
 ```
-

@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/codec"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/grpc"
 	"github.com/txix-open/isp-kit/grpc/isp"
 	"github.com/txix-open/isp-kit/log"

@@ -13,9 +13,9 @@ import (
 
 	"github.com/txix-open/isp-kit/log"
 
-	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/db"
 	"github.com/txix-open/isp-kit/dbx"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/metrics"
 	"github.com/txix-open/isp-kit/metrics/pgx_metrics"
 	"github.com/txix-open/isp-kit/metrics/sql_metrics"

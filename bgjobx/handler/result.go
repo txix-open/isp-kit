@@ -3,8 +3,8 @@ package handler
 import (
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/robfig/cron/v3"
+	"github.com/txix-open/isp-kit/errors"
 )
 
 // Result defines the outcome of job processing.

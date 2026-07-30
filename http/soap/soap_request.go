@@ -6,7 +6,7 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/errors"
 )
 
 // Validator validates a value and returns an error if validation fails.

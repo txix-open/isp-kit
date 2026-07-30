@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/twmb/franz-go/plugin/kprom"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/kafkax/consumer"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/metrics"
