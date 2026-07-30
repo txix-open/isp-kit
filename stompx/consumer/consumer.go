@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/go-stomp/stomp/v3"
-	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/errors"
 )
 
 // Consumer manages a connection to a STOMP broker and processes messages from a queue.

@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/txix-open/grmq/consumer"
 	"github.com/txix-open/grmq/publisher"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/requestid"
 )

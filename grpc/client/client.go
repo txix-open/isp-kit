@@ -10,8 +10,8 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/codec"
+	"github.com/txix-open/isp-kit/errors"
 	grpc2 "github.com/txix-open/isp-kit/grpc"
 	"github.com/txix-open/isp-kit/grpc/client/request"
 	"github.com/txix-open/isp-kit/grpc/isp"

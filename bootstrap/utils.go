@@ -7,8 +7,8 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/config"
+	"github.com/txix-open/isp-kit/errors"
 )
 
 func isOnDevMode() bool {

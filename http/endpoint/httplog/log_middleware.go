@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/errors"
 	http2 "github.com/txix-open/isp-kit/http"
 	"github.com/txix-open/isp-kit/http/endpoint"
 	"github.com/txix-open/isp-kit/http/endpoint/buffer"

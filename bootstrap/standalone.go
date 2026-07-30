@@ -4,7 +4,7 @@ import (
 	stdlog "log"
 	"os"
 
-	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/json"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/observability/sentry"

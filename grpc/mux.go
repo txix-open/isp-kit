@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/grpc/isp"
 	"github.com/txix-open/isp-kit/log"
 	"google.golang.org/grpc/codes"

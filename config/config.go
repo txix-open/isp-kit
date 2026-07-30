@@ -36,8 +36,8 @@ import (
 	"strings"
 
 	"github.com/mitchellh/mapstructure"
-	"github.com/pkg/errors"
 	"github.com/txix-open/bellows"
+	"github.com/txix-open/isp-kit/errors"
 )
 
 // Validator defines an interface for validating configuration values.

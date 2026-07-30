@@ -12,7 +12,7 @@ import (
 	sentry2 "github.com/txix-open/isp-kit/observability/sentry"
 	"github.com/txix-open/isp-kit/panic_recovery"
 
-	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/requestid"
 )

@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/app"
 	"github.com/txix-open/isp-kit/config"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/healthcheck"
 	"github.com/txix-open/isp-kit/infra"
 	"github.com/txix-open/isp-kit/infra/pprof"

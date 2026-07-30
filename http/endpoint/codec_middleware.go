@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/txix-open/isp-kit/codec"
+	"github.com/txix-open/isp-kit/errors"
 	http2 "github.com/txix-open/isp-kit/http"
 )
 

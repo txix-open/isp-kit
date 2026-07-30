@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/errors"
 	"go.uber.org/zap"
 	"gopkg.in/natefinch/lumberjack.v2"
 )

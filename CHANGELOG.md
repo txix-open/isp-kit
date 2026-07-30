@@ -1,3 +1,6 @@
+## v1.72.0
+* Добавлен пакет `errors` с функциями на основе стандартных пакетов Go `errors` и `fmt`
+* Добавлены методы `New`, `Errorf`, `WithMessage`, `WithMessagef` для замены методов из `github.com/pkg/errors`
 ## v1.71.2
 * `test.New` теперь принимает более общий `testing.TB`, а не `*testing.T`
 ## v1.71.1

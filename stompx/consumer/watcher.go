@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/errors"
 	"go.uber.org/atomic"
 )
 

@@ -4,10 +4,10 @@ package kafkax
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"github.com/pkg/errors"
 	"github.com/twmb/franz-go/pkg/sasl"
 	"github.com/twmb/franz-go/pkg/sasl/plain"
 	"github.com/twmb/franz-go/pkg/sasl/scram"
+	"github.com/txix-open/isp-kit/errors"
 	"strings"
 )
 

@@ -3,8 +3,8 @@ package cluster
 import (
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/txix-open/bellows"
+	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/json"
 )
 

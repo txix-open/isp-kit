@@ -2,8 +2,8 @@ package consumer
 
 import (
 	"context"
-	"github.com/pkg/errors"
 	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/txix-open/isp-kit/errors"
 )
 
 var (

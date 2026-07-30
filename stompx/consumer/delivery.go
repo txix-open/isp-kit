@@ -2,7 +2,7 @@ package consumer
 
 import (
 	"github.com/go-stomp/stomp/v3"
-	"github.com/pkg/errors"
+	"github.com/txix-open/isp-kit/errors"
 )
 
 // ErrDeliveryAlreadyHandled is returned when attempting to acknowledge a delivery that has already been processed.
