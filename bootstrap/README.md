@@ -17,13 +17,13 @@
 
 Обработать критические ошибки с уведомлением в Sentry
 
-#### `New(moduleVersion string, remoteConfig any, endpoints []cluster.EndpointDescriptor, transport string) *Bootstrap`
+#### `New(moduleVersion string, remoteConfig any, endpointsResolver cluster.EndpointsResolver, transport string) *Bootstrap`
 
 Конструктор с параметрами:
 
 - `moduleVersion` - версия модуля
 - `remoteConfig` - структура для динамической конфигурации
-- `endpoints` - список эндпоинтов модуля, для транспорта `http` у каждого `endpoint`'а должен быть указан `HttpMethod`
+- `endpointsResolver` - резолвер эндпоинтов модуля; используйте `cluster.Endpoints(...)` для статического списка или реализуйте интерфейс `cluster.EndpointsResolver` для динамического; для транспорта `http` у каждого `endpoint`'а должен быть указан `HttpMethod`
 - `transport` - тип сервера, `grpc`, `http` или `empty`
 
 #### `NewStandalone(moduleVersion string) *StandaloneBootstrap`
@@ -82,7 +82,7 @@ type remoteConfig struct {
 func noopHandler() {}
 
 func main() {
-	endpoints := []cluster.EndpointDescriptor{{
+	endpointsResolver := cluster.Endpoints([]cluster.EndpointDescriptor{{
 		Path:    "/api/service/private",
 		Inner:   true,
 		Handler: noopHandler,
@@ -90,8 +90,8 @@ func main() {
 		Path:    "/api/service/public",
 		Inner:   false,
 		Handler: noopHandler,
-	}}
-	boot := bootstrap.New("1.0.0", remoteConfig{}, endpoints, cluster.GrpcTransport)
+	}})
+	boot := bootstrap.New("1.0.0", remoteConfig{}, endpointsResolver, cluster.GrpcTransport)
 
 	shutdown.On(func() { /* waiting for SIGINT & SIGTERM signals */
 		log.Println("shutting down...")

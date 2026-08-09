@@ -1,3 +1,6 @@
+## v1.73.0
+* В `cluster` и `bootstrap` вместо прямого списка `[]EndpointDescriptor` используется интерфейс `EndpointsResolver` для динамического получения эндпоинтов модуля
+* Добавлен хелпер `cluster.Endpoints(...)` для статического списка эндпоинтов
 ## v1.72.0
 * Добавлен пакет `errors` с функциями на основе стандартных пакетов Go `errors` и `fmt`
 * Добавлены методы `New`, `Errorf`, `WithMessage`, `WithMessagef` для замены методов из `github.com/pkg/errors`

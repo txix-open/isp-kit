@@ -26,13 +26,13 @@ func TestNew(t *testing.T) {
 	t.Setenv("APP_CONFIG_PATH", "test_data/config_test.yml")
 	t.Setenv("DefaultRemoteConfigPath", "test_data/default_remote_config_test.json")
 
-	_ = bootstrap.New("test", RemoteConfig{}, []cluster.EndpointDescriptor{{
+	_ = bootstrap.New("test", RemoteConfig{}, cluster.Endpoints([]cluster.EndpointDescriptor{{
 		Path:             "test/endpoint",
 		Inner:            true,
 		UserAuthRequired: false,
 		Extra:            cluster.RequireAdminPermission("perm"),
 		Handler:          nil,
-	}}, cluster.GrpcTransport)
+	}}), cluster.GrpcTransport)
 }
 
 type mockConfigReceiver struct {
@@ -51,13 +51,13 @@ func TestNew_Offline(t *testing.T) {
 	t.Setenv("CLUSTER_MODE", "offline")
 	t.Setenv("APP_CONFIG_PATH", "test_data/config_offline_test.yml")
 
-	boot := bootstrap.New("test", RemoteConfig{}, []cluster.EndpointDescriptor{{
+	boot := bootstrap.New("test", RemoteConfig{}, cluster.Endpoints([]cluster.EndpointDescriptor{{
 		Path:             "test/endpoint",
 		Inner:            true,
 		UserAuthRequired: false,
 		Extra:            cluster.RequireAdminPermission("perm"),
 		Handler:          nil,
-	}}, cluster.GrpcTransport)
+	}}), cluster.GrpcTransport)
 
 	expectedRemoteConfig, err := os.ReadFile("test_data/config_test.json")
 	require.NoError(t, err)
