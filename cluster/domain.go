@@ -27,14 +27,14 @@ type ConfigData struct {
 }
 
 // ModuleInfo describes a module's metadata, including its name, version, transport
-// configuration, exposed endpoints, and metrics autodiscovery settings.
+// configuration, endpoint resolver, and metrics autodiscovery settings.
 type ModuleInfo struct {
 	ModuleName           string
 	ModuleVersion        string
 	LibVersion           string
 	Transport            string
 	GrpcOuterAddress     AddressConfiguration
-	Endpoints            []EndpointDescriptor
+	EndpointsResolver    EndpointsResolver
 	MetricsAutodiscovery *MetricsAutodiscovery
 }
 

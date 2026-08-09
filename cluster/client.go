@@ -310,11 +310,17 @@ func (c *Client) notifyModuleReady(ctx context.Context, cli *clientWrapper, requ
 		}
 		moduleDependencies = append(moduleDependencies, dep)
 	}
+
+	endpoints := make([]EndpointDescriptor, 0)
+	if c.moduleInfo.EndpointsResolver != nil {
+		endpoints = c.moduleInfo.EndpointsResolver.Endpoints()
+	}
+
 	declaration := BackendDeclaration{
 		ModuleName:           c.moduleInfo.ModuleName,
 		Version:              c.moduleInfo.ModuleVersion,
 		LibVersion:           c.moduleInfo.LibVersion,
-		Endpoints:            c.moduleInfo.Endpoints,
+		Endpoints:            endpoints,
 		Transport:            c.moduleInfo.Transport,
 		RequiredModules:      moduleDependencies,
 		Address:              c.moduleInfo.GrpcOuterAddress,

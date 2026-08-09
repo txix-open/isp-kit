@@ -103,11 +103,11 @@ func main() {
 	moduleInfo := cluster.ModuleInfo{
 		ModuleName: "noop-service",
 		Version:    "1.0.0",
-		Endpoints: []cluster.EndpointDescriptor{{
+		EndpointsResolver: cluster.Endpoints([]cluster.EndpointDescriptor{{
 			Path:    "/api/foo",
 			Inner:   false,
 			Handler: noopHandler,
-		}},
+		}}),
 	}
 	defaultRemoteConfig := []byte{...}
 	configData := cluster.ConfigData{

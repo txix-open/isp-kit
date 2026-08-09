@@ -11,7 +11,7 @@
 //	boot := bootstrap.New(
 //	    "1.0.0",                                    // module version
 //	    &RemoteConfig{},                            // remote config struct
-//	    []cluster.EndpointDescriptor{},             // service endpoints
+//	    cluster.Endpoints([]cluster.EndpointDescriptor{}), // service endpoints
 //	    cluster.HttpTransport,                      // transport type
 //	)
 //
@@ -88,7 +88,7 @@ type Bootstrap struct {
 // Parameters:
 //   - moduleVersion: Version string of the module (e.g., "1.0.0")
 //   - remoteConfig: Pointer to a struct defining the remote configuration schema
-//   - endpoints: List of service endpoint descriptors for cluster discovery
+//   - endpointsResolver: Resolver providing service endpoint descriptors for cluster discovery
 //   - transport: Transport type (e.g., cluster.HttpTransport or cluster.GrpcTransport)
 //
 // Returns a fully initialized Bootstrap instance with:
@@ -107,15 +107,15 @@ type Bootstrap struct {
 //	boot := bootstrap.New(
 //	    "1.2.3",
 //	    &MyRemoteConfig{},
-//	    []cluster.EndpointDescriptor{
+//	    cluster.Endpoints([]cluster.EndpointDescriptor{
 //	        {Path: "/api/v1", HttpMethod: "GET"},
-//	    },
+//	    }),
 //	    cluster.HttpTransport,
 //	)
 func New(
 	moduleVersion string,
 	remoteConfig any,
-	endpoints []cluster.EndpointDescriptor,
+	endpointsResolver cluster.EndpointsResolver,
 	transport string,
 ) *Bootstrap {
 	isDev := isOnDevMode()
@@ -124,8 +124,8 @@ func New(
 		stdlog.Fatal(err)
 	}
 
-	if transport == cluster.HttpTransport {
-		for _, endpoint := range endpoints {
+	if transport == cluster.HttpTransport && endpointsResolver != nil {
+		for _, endpoint := range endpointsResolver.Endpoints() {
 			if endpoint.HttpMethod == "" {
 				app.Logger().Fatal(
 					app.Context(),
@@ -178,7 +178,7 @@ func New(
 		transport,
 		remoteConfig,
 		moduleVersion,
-		endpoints,
+		endpointsResolver,
 	)
 	if err != nil {
 		err = errors.WithMessage(err, "create bootstrap")
@@ -196,7 +196,7 @@ func newClustered(
 	transport string,
 	remoteConfig any,
 	moduleVersion string,
-	endpoints []cluster.EndpointDescriptor,
+	endpointsResolver cluster.EndpointsResolver,
 ) (*Bootstrap, error) {
 	broadcastHost, err := resolveBroadcastHost(localConfig)
 	if err != nil {
@@ -223,7 +223,7 @@ func newClustered(
 		moduleVersion,
 		transport,
 		broadcastHost,
-		endpoints,
+		endpointsResolver,
 		wrappedLogger,
 	)
 	if err != nil {
@@ -294,7 +294,7 @@ func initClusterClient(
 	moduleVersion string,
 	transport string,
 	broadcastHost string,
-	endpoints []cluster.EndpointDescriptor,
+	endpointsResolver cluster.EndpointsResolver,
 	logger log.Logger,
 ) (*cluster.Client, error) {
 	moduleInfo := cluster.ModuleInfo{
@@ -306,7 +306,7 @@ func initClusterClient(
 			IP:   broadcastHost,
 			Port: strconv.Itoa(localConfig.GrpcOuterAddress.Port),
 		},
-		Endpoints:            endpoints,
+		EndpointsResolver:    endpointsResolver,
 		MetricsAutodiscovery: metricsServiceDiscovery(localConfig, broadcastHost),
 	}
 
