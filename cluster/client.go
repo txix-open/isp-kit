@@ -135,6 +135,29 @@ func (c *Client) Close() error {
 	return nil
 }
 
+// SendModuleReady sends a ModuleReady event to the isp-config-service,
+// announcing the module's availability and its dependencies.
+func (c *Client) SendModuleReady(ctx context.Context) error {
+	cli := c.cli.Load()
+	if cli == nil {
+		return errors.New("client not connected")
+	}
+	if c.eventHandler == nil {
+		return errors.New("event handler not initialized")
+	}
+
+	requiredModules := make([]string, 0, len(c.eventHandler.requiredModules))
+	for moduleName := range c.eventHandler.requiredModules {
+		requiredModules = append(requiredModules, moduleName)
+	}
+	requirements := ModuleRequirements{
+		RequiredModules: requiredModules,
+		RequireRoutes:   c.eventHandler.routesReceiver != nil,
+	}
+
+	return c.notifyModuleReady(ctx, cli, requirements)
+}
+
 // Healthcheck returns an error if the session is inactive, otherwise returns nil.
 func (c *Client) Healthcheck(ctx context.Context) error {
 	if c.sessionIsActive.Load() {

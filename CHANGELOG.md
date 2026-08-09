@@ -1,3 +1,5 @@
+## v1.74.0
+* Добавлен метод `SendModuleReady` в `cluster.Client` для ручного уведомления `isp-config-service` о готовности модуля c обновленными эндпоинтами
 ## v1.73.0
 * В `cluster` и `bootstrap` вместо прямого списка `[]EndpointDescriptor` используется интерфейс `EndpointsResolver` для динамического получения эндпоинтов модуля
 * Добавлен хелпер `cluster.Endpoints(...)` для статического списка эндпоинтов
