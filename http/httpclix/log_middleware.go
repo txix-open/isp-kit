@@ -39,6 +39,17 @@ func LogDump(dumpRequest bool, dumpResponse bool) LogOption {
 	}
 }
 
+// LogBody enables logging of the HTTP request and/or response body.
+//
+// requestBody controls logging of the request body, and responseBody
+// controls logging of the response body.
+func LogBody(requestBody bool, responseBody bool) LogOption {
+	return func(cfg *logConfig) {
+		cfg.LogRequestBody = requestBody
+		cfg.LogResponseBody = responseBody
+	}
+}
+
 // LogHeaders enables logging of HTTP request and response headers.
 func LogHeaders(requestHeaders bool, responseHeaders bool) LogOption {
 	return func(cfg *logConfig) {
