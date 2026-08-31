@@ -1,3 +1,6 @@
+## v1.74.1
+* Добавлена опция `LogBody` для метода `LogWithOptions` в пакете `http/httpclix`
+* Обновлены зависимости
 ## v1.74.0
 * Добавлен метод `SendModuleReady` в `cluster.Client` для ручного уведомления `isp-config-service` о готовности модуля c обновленными эндпоинтами
 ## v1.73.0
