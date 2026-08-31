@@ -11,11 +11,11 @@ import (
 )
 
 type job struct {
-	call int32
+	call atomic.Int32
 }
 
 func (j *job) Do(ctx context.Context) {
-	atomic.AddInt32(&j.call, 1)
+	j.call.Add(1)
 }
 
 func TestWorker_Run(t *testing.T) {
@@ -25,6 +25,6 @@ func TestWorker_Run(t *testing.T) {
 	w := worker.New(job, worker.WithInterval(10*time.Second))
 	w.Run(t.Context())
 	time.Sleep(1 * time.Second)
-	require.EqualValues(t, 1, atomic.LoadInt32(&job.call))
+	require.EqualValues(t, 1, job.call.Load())
 	w.Shutdown()
 }

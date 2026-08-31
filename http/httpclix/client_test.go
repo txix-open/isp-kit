@@ -134,3 +134,31 @@ func TestLog_Encoded(t *testing.T) {
 	require.NoError(err)
 	require.True(resp.IsSuccess())
 }
+
+func TestLogBodies(t *testing.T) {
+	t.Parallel()
+	testEnv, require := test.New(t)
+
+	expectedId := requestid.Next()
+	ctx := requestid.ToContext(t.Context(), expectedId)
+	ctx = log.ToContext(ctx, log.String(requestid.LogKey, expectedId))
+
+	srv := httpt.NewMock(testEnv)
+	url := srv.POST("/api/save", endpoint.New(func(ctx context.Context, req example) (*example, error) {
+		return &req, nil
+	})).BaseURL()
+
+	cli := httpclix.Default(httpcli.WithMiddlewares(httpclix.LogWithOptions(testEnv.Logger(),
+		httpclix.LogBody(true, true),
+		httpclix.LogCombined(true),
+	)))
+
+	exp := example{}
+
+	resp, err := cli.Post(url + "/api/save").
+		JsonRequestBody(example{"test"}).
+		JsonResponseBody(&exp).
+		Do(ctx)
+	require.NoError(err)
+	require.True(resp.IsSuccess())
+}
