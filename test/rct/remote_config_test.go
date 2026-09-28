@@ -39,3 +39,26 @@ func TestFindTag(t *testing.T) {
 	assert.True(t, rct.FindTag([]Config{}, tag))
 	assert.True(t, rct.FindTag[[]map[string][]*s](nil, tag))
 }
+
+type recursiveNode struct {
+	Name  string `validate:"required"`
+	Items *recursiveNode
+	Props map[string]*recursiveNode
+	Vars  []map[string]*recursiveNode
+}
+
+type nonRecursiveNode struct {
+	Items *nonRecursiveNode `validate:"required"`
+}
+
+func TestFindTagRecursive(t *testing.T) {
+	t.Parallel()
+
+	tag := "validate"
+	assert.True(t, rct.FindTag(recursiveNode{}, tag))
+	assert.True(t, rct.FindTag(&recursiveNode{}, tag))
+	assert.True(t, rct.FindTag[*recursiveNode](nil, tag))
+	assert.True(t, rct.FindTag(map[string]*recursiveNode{}, tag))
+	assert.False(t, rct.FindTag(recursiveNode{}, "nonexistent"))
+	assert.False(t, rct.FindTag(nonRecursiveNode{}, "nonexistent"))
+}

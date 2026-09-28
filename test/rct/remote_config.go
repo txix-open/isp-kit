@@ -62,18 +62,24 @@ func Test[T any](t *testing.T, defaultRemoteConfigPath string, remoteConfig T) {
 // FindTag recursively searches a type for the specified struct tag.
 // It traverses structs, maps, arrays, and slices to find any field
 // that has the given tag. Returns true if the tag is found.
+// Recursive types are handled safely without infinite loops.
 func FindTag[T any](v T, tag string) bool {
 	t := reflect.TypeOf(v)
 	if t == nil {
 		return false
 	}
 	queue := []reflect.Type{t}
+	visited := make(map[reflect.Type]bool)
 	for len(queue) > 0 {
 		cur := queue[0]
 		queue = queue[1:]
-		if cur.Kind() == reflect.Ptr {
+		if cur.Kind() == reflect.Pointer {
 			cur = cur.Elem()
 		}
+		if visited[cur] {
+			continue
+		}
+		visited[cur] = true
 		// nolint:exhaustive
 		switch cur.Kind() {
 		case reflect.Struct:
