@@ -5,7 +5,6 @@ package rct
 
 import (
 	"os"
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -21,7 +20,6 @@ import (
 // validator tag validation.
 //
 // The function checks:
-//   - No deprecated 'valid' tags are present
 //   - The default configuration file is valid against the generated schema
 //   - The configuration can be unmarshaled from the file
 //   - The configuration passes validation
@@ -29,9 +27,6 @@ import (
 // nolint:lll
 func Test[T any](t *testing.T, defaultRemoteConfigPath string, remoteConfig T) {
 	require := require.New(t)
-
-	validatorTag := "valid"
-	require.Falsef(FindTag(remoteConfig, validatorTag), "'%s' tag is not longer supported, you must use https://github.com/go-playground/validator", validatorTag)
 
 	defaultRemoteConfig, err := os.ReadFile(defaultRemoteConfigPath)
 	require.NoError(err)
@@ -57,35 +52,4 @@ func Test[T any](t *testing.T, defaultRemoteConfigPath string, remoteConfig T) {
 	require.NoError(err)
 	err = validator.Default.ValidateToError(remoteConfig)
 	require.NoError(err)
-}
-
-// FindTag recursively searches a type for the specified struct tag.
-// It traverses structs, maps, arrays, and slices to find any field
-// that has the given tag. Returns true if the tag is found.
-func FindTag[T any](v T, tag string) bool {
-	t := reflect.TypeOf(v)
-	if t == nil {
-		return false
-	}
-	queue := []reflect.Type{t}
-	for len(queue) > 0 {
-		cur := queue[0]
-		queue = queue[1:]
-		if cur.Kind() == reflect.Ptr {
-			cur = cur.Elem()
-		}
-		// nolint:exhaustive
-		switch cur.Kind() {
-		case reflect.Struct:
-			for field := range cur.Fields() {
-				if field.Tag.Get(tag) != "" {
-					return true
-				}
-				queue = append(queue, field.Type)
-			}
-		case reflect.Map, reflect.Array, reflect.Slice:
-			queue = append(queue, cur.Elem())
-		}
-	}
-	return false
 }

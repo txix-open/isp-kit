@@ -235,10 +235,8 @@ func (c *Client) upgrade(ctx context.Context, config Config, justServe bool) err
 	cli := grmq.New(
 		config.Url,
 		grmq.WithDialConfig(grmq.DialConfig{
-			Config: amqp091.Config{
-				Heartbeat: DefaultHeartbeat,
-				Locale:    "en_US",
-			},
+			Heartbeat:   DefaultHeartbeat,
+			Locale:      "en_US",
 			DialTimeout: DefaultDialTimeout,
 		}),
 		grmq.WithPublishers(config.Publishers...),

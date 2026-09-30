@@ -6,6 +6,7 @@ package consumer
 
 import (
 	"context"
+	"slices"
 	"sync"
 	"time"
 
@@ -74,8 +75,8 @@ func New(client *kgo.Client, consumerGroupId string, handler Handler, concurrenc
 		opt(c)
 	}
 
-	for i := len(c.middlewares) - 1; i >= 0; i-- {
-		handler = c.middlewares[i](handler)
+	for _, v := range slices.Backward(c.middlewares) {
+		handler = v(handler)
 	}
 	c.handler = handler
 
@@ -184,15 +185,8 @@ func (c *Consumer) handleFetchErrors(ctx context.Context, errs []kgo.FetchError)
 // runWorker is a worker goroutine that processes messages from the deliveries
 // channel. It continues until the channel is closed.
 func (c *Consumer) runWorker(ctx context.Context) {
-	for {
-		select {
-		case delivery, isOpen := <-c.deliveries:
-			if !isOpen { // normal close
-				return
-			}
-
-			c.handleMessage(ctx, &delivery)
-		}
+	for delivery := range c.deliveries {
+		c.handleMessage(ctx, &delivery)
 	}
 }
 

@@ -6,6 +6,7 @@ package publisher
 import (
 	"context"
 	"github.com/twmb/franz-go/pkg/kgo"
+	"slices"
 	"sync"
 
 	"github.com/txix-open/isp-kit/errors"
@@ -60,8 +61,8 @@ func New(client *kgo.Client, topic string, opts ...Option) *Publisher {
 	}
 
 	roundTripper := RoundTripper(RoundTripperFunc(p.publish))
-	for i := len(p.middlewares) - 1; i >= 0; i-- {
-		roundTripper = p.middlewares[i](roundTripper)
+	for _, v := range slices.Backward(p.middlewares) {
+		roundTripper = v(roundTripper)
 	}
 	p.roundTripper = roundTripper
 

@@ -27,7 +27,12 @@ linters:
     - gochecknoglobals
     - ireturn
     - containedctx
+    - gomodguard # deprecated
+    - goconst # слишком агрессивный
   settings:
+    exhaustruct_v5:
+      allow-empty: true
+      explicit-mode: true
     cyclop:
       max-complexity: 15 # по умолчанию 10 мало
     funlen:

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"slices"
 
 	"github.com/txix-open/bgjob"
 )
@@ -38,8 +39,8 @@ type Sync struct {
 // will be the outermost wrapper.
 func NewSync(adapter SyncHandlerAdapter, middlewares ...Middleware) Sync {
 	s := Sync{}
-	for i := len(middlewares) - 1; i >= 0; i-- {
-		adapter = middlewares[i](adapter)
+	for _, middleware := range slices.Backward(middlewares) {
+		adapter = middleware(adapter)
 	}
 	s.handler = adapter
 	return s
