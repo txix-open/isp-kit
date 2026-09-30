@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -289,8 +290,8 @@ func defaultTransportDialContext(dialer *net.Dialer) func(context.Context, strin
 // nolint:ireturn
 func joinMiddlewares(root RoundTripper, mws ...Middleware) RoundTripper {
 	roundTripper := root
-	for i := len(mws) - 1; i >= 0; i-- {
-		roundTripper = mws[i](roundTripper)
+	for _, mw := range slices.Backward(mws) {
+		roundTripper = mw(roundTripper)
 	}
 	return roundTripper
 }

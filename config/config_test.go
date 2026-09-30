@@ -49,12 +49,10 @@ func Test(t *testing.T) {
 	require.NoError(err)
 
 	expected := Example{
-		Int:  7,
-		Bool: true,
-		Dur:  5 * time.Second,
-		Subst: Subst{
-			Value: "subst",
-		},
+		Int:         7,
+		Bool:        true,
+		Dur:         5 * time.Second,
+		Value:       "subst",
 		SetExplicit: 1,
 		SomeStruct: Subst{
 			Value: "someStruct",

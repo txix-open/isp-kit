@@ -5,6 +5,7 @@ package handler
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	"github.com/txix-open/isp-kit/kafkax/consumer"
@@ -47,8 +48,8 @@ func NewSync(logger log.Logger, adapter SyncHandlerAdapter, middlewares ...Middl
 		logger: logger,
 	}
 
-	for i := len(middlewares) - 1; i >= 0; i-- {
-		adapter = middlewares[i](adapter)
+	for _, middleware := range slices.Backward(middlewares) {
+		adapter = middleware(adapter)
 	}
 	s.handler = adapter
 	return s

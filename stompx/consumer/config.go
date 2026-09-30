@@ -4,6 +4,7 @@ package consumer
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/go-stomp/stomp/v3"
@@ -67,8 +68,8 @@ func NewConfig(address string, queue string, handler Handler, opts ...Option) Co
 		opt(c)
 	}
 
-	for i := len(c.Middlewares) - 1; i >= 0; i-- {
-		handler = c.Middlewares[i](handler)
+	for _, v := range slices.Backward(c.Middlewares) {
+		handler = v(handler)
 	}
 	c.handler = handler
 

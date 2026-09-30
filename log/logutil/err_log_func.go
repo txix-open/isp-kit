@@ -27,7 +27,7 @@ func LogLevelForError(err error) log.Level {
 // It uses LogLevelForError to determine the log level and returns the corresponding Logger method.
 func LogLevelFuncForError(err error, logger log.Logger) func(ctx context.Context, message any, fields ...log.Field) {
 	logLevel := LogLevelForError(err)
-	switch logLevel {
+	switch logLevel { //nolint:exhaustive
 	case log.ErrorLevel:
 		return logger.Error
 	case log.WarnLevel:
