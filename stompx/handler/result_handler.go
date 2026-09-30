@@ -6,6 +6,7 @@ import (
 	"github.com/go-stomp/stomp/v3"
 	"github.com/txix-open/isp-kit/log"
 	"github.com/txix-open/isp-kit/stompx/consumer"
+	"slices"
 )
 
 // HandlerAdapter defines the interface for adapting message processing logic.
@@ -29,8 +30,8 @@ type ResultHandler struct {
 
 // NewHandler creates a new ResultHandler with the provided logger, adapter, and optional middleware.
 func NewHandler(logger log.Logger, adapter HandlerAdapter, middlewares ...Middleware) ResultHandler {
-	for i := len(middlewares) - 1; i >= 0; i-- {
-		adapter = middlewares[i](adapter)
+	for _, middleware := range slices.Backward(middlewares) {
+		adapter = middleware(adapter)
 	}
 	return ResultHandler{
 		logger:  logger,

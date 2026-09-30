@@ -3,6 +3,7 @@ package publisher
 
 import (
 	"context"
+	"slices"
 	"sync"
 
 	"github.com/go-stomp/stomp/v3"
@@ -58,8 +59,8 @@ func NewPublisher(address string, queue string, opts ...Option) *Publisher {
 	}
 
 	roundTripper := RoundTripper(RoundTripperFunc(p.publish))
-	for i := len(p.Middlewares) - 1; i >= 0; i-- {
-		roundTripper = p.Middlewares[i](roundTripper)
+	for _, v := range slices.Backward(p.Middlewares) {
+		roundTripper = v(roundTripper)
 	}
 	p.roundTripper = roundTripper
 

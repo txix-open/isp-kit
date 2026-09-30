@@ -10,10 +10,10 @@ import (
 
 const (
 	// ActionHeader is the HTTP header name for the SOAP action.
-	ActionHeader = "SOAPAction"
+	ActionHeader = "SoapAction"
 )
 
-// ActionMux routes SOAP requests based on the SOAPAction HTTP header.
+// ActionMux routes SOAP requests based on the SoapAction HTTP header.
 // It provides a simple multiplexer for handling multiple SOAP operations.
 type ActionMux struct {
 	handlers map[string]http.Handler

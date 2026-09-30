@@ -6,6 +6,7 @@ package consumer
 
 import (
 	"context"
+	"slices"
 	"sync"
 	"time"
 
@@ -74,8 +75,8 @@ func New(client *kgo.Client, consumerGroupId string, handler Handler, concurrenc
 		opt(c)
 	}
 
-	for i := len(c.middlewares) - 1; i >= 0; i-- {
-		handler = c.middlewares[i](handler)
+	for _, v := range slices.Backward(c.middlewares) {
+		handler = v(handler)
 	}
 	c.handler = handler
 

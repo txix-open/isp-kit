@@ -7,6 +7,7 @@ package client
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"sync/atomic"
 
@@ -96,8 +97,8 @@ func New(initialHosts []string, opts ...Option) (*Client, error) {
 	cli.grpcCli = grpcCli
 
 	roundTripper := cli.do
-	for i := len(cli.middlewares) - 1; i >= 0; i-- {
-		roundTripper = cli.middlewares[i](roundTripper)
+	for _, v := range slices.Backward(cli.middlewares) {
+		roundTripper = v(roundTripper)
 	}
 	cli.roundTripper = roundTripper
 
