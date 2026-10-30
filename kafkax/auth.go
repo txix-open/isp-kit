@@ -111,16 +111,22 @@ func setupTLS(cfg *TLS) (*tls.Config, error) {
 		return nil, nil // nolint:nilnil
 	}
 
+	if (cfg.Certificate == nil) != (cfg.PrivateKey == nil) {
+		return nil, errors.Errorf("either both certificate and key must be set or neither")
+	}
+
 	caCertPool := x509.NewCertPool()
 	if cfg.RootCA != nil {
-		caCertPool.AppendCertsFromPEM([]byte(*cfg.RootCA))
+		if !caCertPool.AppendCertsFromPEM([]byte(*cfg.RootCA)) {
+			return nil, errors.Errorf("failed to parse root ca certificate")
+		}
 	}
 
 	var certificates []tls.Certificate
-	if cfg.Certificate != nil && cfg.PrivateKey != nil {
-		cert := tls.Certificate{
-			Certificate: [][]byte{[]byte(*cfg.Certificate)},
-			PrivateKey:  *cfg.PrivateKey,
+	if cfg.Certificate != nil {
+		cert, err := tls.X509KeyPair([]byte(*cfg.Certificate), []byte(*cfg.PrivateKey))
+		if err != nil {
+			return nil, errors.WithMessage(err, "load client certificate")
 		}
 		certificates = append(certificates, cert)
 	}

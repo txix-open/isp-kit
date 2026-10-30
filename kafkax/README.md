@@ -233,3 +233,27 @@ publisherCfg := kafkax.PublisherConfig{
 	Auth:      auth,
 }
 ```
+
+#### TLS и mTLS
+
+Блок `TLS` задаётся независимо от `Auth`. Чистое mTLS-соединение — это `TLS`
+без `Auth` (или `Auth.Mechanism = NO_AUTH`). Все значения — строки в PEM-формате:
+
+```go
+rootCA := "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+cert := "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+key := "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+
+publisherCfg := kafkax.PublisherConfig{
+	Addresses: []string{"localhost:9093"},
+	Topic:     "topic",
+	TLS: &kafkax.TLS{
+		RootCA:      &rootCA,
+		Certificate: &cert,
+		PrivateKey:  &key,
+	},
+}
+```
+
+`Certificate` и `PrivateKey` задаются вместе: если задан только один из них,
+создание клиента завершится ошибкой.
