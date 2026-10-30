@@ -197,3 +197,39 @@ func main() {
 }
 
 ```
+
+### Authentication
+
+#### No-auth
+
+Без аутентификации блок `Auth` не задаётся (SASL не подключается):
+
+```go
+publisherCfg := kafkax.PublisherConfig{
+	Addresses: []string{"localhost:9092"},
+	Topic:     "topic",
+}
+```
+
+#### SASL/PLAIN и SASL/SCRAM
+
+`SASL/PLAIN` — механизм по умолчанию, `Mechanism` можно не указывать. Для `SASL/SCRAM`
+обязательно задать `ScramType`:
+
+```go
+mechanism := kafkax.AuthTypeSCRAM
+scramType := kafkax.ScramTypeSHA256
+
+auth := &kafkax.Auth{
+	Mechanism: &mechanism,
+	ScramType: &scramType,
+	Username:  "user",
+	Password:  "password",
+}
+
+publisherCfg := kafkax.PublisherConfig{
+	Addresses: []string{"localhost:9092"},
+	Topic:     "topic",
+	Auth:      auth,
+}
+```

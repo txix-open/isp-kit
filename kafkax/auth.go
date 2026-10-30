@@ -4,26 +4,28 @@ package kafkax
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"strings"
+
 	"github.com/twmb/franz-go/pkg/sasl"
 	"github.com/twmb/franz-go/pkg/sasl/plain"
 	"github.com/twmb/franz-go/pkg/sasl/scram"
 	"github.com/txix-open/isp-kit/errors"
-	"strings"
 )
 
 const (
 	AuthTypePlain   = "SASL/PLAIN"
 	AuthTypeSCRAM   = "SASL/SCRAM"
+	AuthTypeNoAuth  = "NO_AUTH"
 	ScramTypeSHA256 = "SHA256"
 	ScramTypeSHA512 = "SHA512"
 )
 
 // Auth holds authentication configuration for connecting to Kafka.
 type Auth struct {
-	Mechanism *string `validate:"oneof=SASL/PLAIN SASL/SCRAM" schema:"Механизм аутентификации может принимать значения 'SASL/PLAIN' или 'SASL/SCRAM'"`
+	Mechanism *string `validate:"oneof=SASL/PLAIN SASL/SCRAM NO_AUTH" schema:"Механизм аутентификации может принимать значения 'SASL/PLAIN', 'SASL/SCRAM' или 'NO_AUTH' (без аутентификации)"`
 	ScramType *string `validate:"oneof=SHA256 SHA512" schema:"Алгоритм используемый в механизме SASL/SCRAM, может принимать значения 'SHA256' или 'SHA512'"`
-	Username  string  `validate:"required" schema:"Логин"`
-	Password  string  `validate:"required" schema:"Пароль"`
+	Username  string  `schema:"Логин"`
+	Password  string  `schema:"Пароль"`
 }
 
 // TLS holds TLS configuration for secure connections to Kafka.
@@ -76,22 +78,30 @@ func ScramAuth(auth *Auth) (sasl.Mechanism, error) {
 // setupSASLMechanism creates the appropriate SASL mechanism based on the
 // specified mechanism type and authentication configuration.
 func setupSASLMechanism(mechanismType string, auth *Auth) (sasl.Mechanism, error) {
-	var saslMechanism sasl.Mechanism
+	if auth == nil || mechanismType == AuthTypeNoAuth {
+		return nil, nil // nolint:nilnil
+	}
+
+	if auth.Username == "" {
+		return nil, errors.Errorf("username is required")
+	}
+
+	if auth.Password == "" {
+		return nil, errors.Errorf("password is required")
+	}
 
 	switch mechanismType {
 	case AuthTypePlain:
-		saslMechanism = PlainAuth(auth)
+		return PlainAuth(auth), nil
 	case AuthTypeSCRAM:
-		var err error
-		saslMechanism, err = ScramAuth(auth)
+		saslMechanism, err := ScramAuth(auth)
 		if err != nil {
 			return nil, errors.WithMessage(err, "get scram auth mechanism")
 		}
+		return saslMechanism, nil
 	default:
 		return nil, errors.Errorf("unexpected sasl mechanism: %s", mechanismType)
 	}
-
-	return saslMechanism, nil
 }
 
 // setupTLS creates a TLS configuration from the provided TLS settings. Returns
