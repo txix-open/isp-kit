@@ -92,11 +92,14 @@ func (c ConsumerConfig) DefaultConsumer(
 		kgo.ConsumeTopics(c.Topic),
 		kgo.DialTLSConfig(tls),
 		kgo.DialTimeout(c.GetDialTimeout()),
-		kgo.SASL(saslMechanism),
 		kgo.FetchMinBytes(1),
 		kgo.FetchMaxBytes(c.GetMaxBatchSizeMb() * bytesInMb),
 		kgo.AutoCommitInterval(c.GetCommitInterval()),
 		kgo.WithLogger(NewLogger(logCtx, "kafka consumer", kgo.LogLevelError, logger)),
+	}
+
+	if saslMechanism != nil {
+		opts = append(opts, kgo.SASL(saslMechanism))
 	}
 
 	middlewares := []consumer.Middleware{

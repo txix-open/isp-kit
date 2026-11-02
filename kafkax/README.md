@@ -197,3 +197,63 @@ func main() {
 }
 
 ```
+
+### Authentication
+
+#### No-auth
+
+Без аутентификации блок `Auth` не задаётся (SASL не подключается):
+
+```go
+publisherCfg := kafkax.PublisherConfig{
+	Addresses: []string{"localhost:9092"},
+	Topic:     "topic",
+}
+```
+
+#### SASL/PLAIN и SASL/SCRAM
+
+`SASL/PLAIN` — механизм по умолчанию, `Mechanism` можно не указывать. Для `SASL/SCRAM`
+обязательно задать `ScramType`:
+
+```go
+mechanism := kafkax.AuthTypeSCRAM
+scramType := kafkax.ScramTypeSHA256
+
+auth := &kafkax.Auth{
+	Mechanism: &mechanism,
+	ScramType: &scramType,
+	Username:  "user",
+	Password:  "password",
+}
+
+publisherCfg := kafkax.PublisherConfig{
+	Addresses: []string{"localhost:9092"},
+	Topic:     "topic",
+	Auth:      auth,
+}
+```
+
+#### TLS и mTLS
+
+Блок `TLS` задаётся независимо от `Auth`. Чистое mTLS-соединение — это `TLS`
+без `Auth` (или `Auth.Mechanism = NO_AUTH`). Все значения — строки в PEM-формате:
+
+```go
+rootCA := "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+cert := "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+key := "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+
+publisherCfg := kafkax.PublisherConfig{
+	Addresses: []string{"localhost:9093"},
+	Topic:     "topic",
+	TLS: &kafkax.TLS{
+		RootCA:      &rootCA,
+		Certificate: &cert,
+		PrivateKey:  &key,
+	},
+}
+```
+
+`Certificate` и `PrivateKey` задаются вместе: если задан только один из них,
+создание клиента завершится ошибкой.

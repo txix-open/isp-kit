@@ -130,9 +130,12 @@ func (p PublisherConfig) DefaultPublisher(
 		kgo.MaxBufferedRecords(p.GetBatchSizePerPartition()),
 		kgo.ProducerLinger(p.GetBatchTimeoutPerPartition()),
 		kgo.DialTimeout(p.GetDialTimeout()),
-		kgo.SASL(saslMechanism),
 		kgo.DialTLSConfig(tls),
 		kgo.WithLogger(NewLogger(logCtx, "kafka publisher", kgo.LogLevelError, logger)),
+	}
+
+	if saslMechanism != nil {
+		opts = append(opts, kgo.SASL(saslMechanism))
 	}
 
 	middlewares := []publisher.Middleware{
