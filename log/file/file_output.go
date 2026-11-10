@@ -34,8 +34,14 @@ type Output struct {
 	// File is the path to the log file.
 	File string
 	// MaxSizeMb is the maximum file size in megabytes before rotation.
+	// Used when PartSizeKb is not set.
 	MaxSizeMb int
+	// PartSizeKb is the size of a log part in kilobytes. When set (> 0)
+	// it takes precedence over MaxSizeMb and enables byte-precise
+	// rotation limits (e.g. 218 for VictoriaLogs).
+	PartSizeKb int
 	// MaxDays is the maximum number of days to retain old log files.
+	// Used only when PartSizeKb is not set.
 	MaxDays int
 	// MaxBackups is the maximum number of old log files to retain.
 	MaxBackups int
@@ -48,6 +54,7 @@ func ConfigToUrl(r Output) *url.URL {
 	values := url.Values{
 		"file":       {r.File},
 		"maxSizeMb":  {strconv.Itoa(r.MaxSizeMb)},
+		"partSizeKb": {strconv.Itoa(r.PartSizeKb)},
 		"maxDays":    {strconv.Itoa(r.MaxDays)},
 		"maxBackups": {strconv.Itoa(r.MaxBackups)},
 		"compress":   {strconv.FormatBool(r.Compress)},
@@ -70,6 +77,15 @@ func fileOutputConfigFromUrl(u *url.URL) (*Output, error) {
 	if err != nil {
 		return nil, errors.WithMessage(err, "parse maxSizeMb")
 	}
+	// partSizeKb is parsed leniently to stay compatible with URLs built
+	// before the parameter was introduced.
+	partSizeKb := 0
+	if v := values.Get("partSizeKb"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err == nil && n > 0 {
+			partSizeKb = n
+		}
+	}
 	maxDays, err := strconv.Atoi(values.Get("maxDays"))
 	if err != nil {
 		return nil, errors.WithMessage(err, "parse maxDays")
@@ -85,6 +101,7 @@ func fileOutputConfigFromUrl(u *url.URL) (*Output, error) {
 	return &Output{
 		File:       file,
 		MaxSizeMb:  maxSizeMb,
+		PartSizeKb: partSizeKb,
 		MaxDays:    maxDays,
 		MaxBackups: maxBackups,
 		Compress:   compress,
@@ -92,7 +109,12 @@ func fileOutputConfigFromUrl(u *url.URL) (*Output, error) {
 }
 
 // NewFileWriter creates a new log file writer with rotation.
+// When PartSizeKb is set a byte-precise rotation writer is used, because
+// lumberjack only supports whole-megabyte size limits.
 func NewFileWriter(r Output) io.WriteCloser {
+	if r.PartSizeKb > 0 {
+		return newRotatingFileWriter(r.File, int64(r.PartSizeKb)*kilobytes, r.MaxBackups, r.Compress)
+	}
 	return &lumberjack.Logger{
 		Filename:   r.File,
 		MaxSize:    r.MaxSizeMb,

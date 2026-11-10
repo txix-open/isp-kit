@@ -47,7 +47,7 @@ isp-kit                        Microservice framework
 │   └── publisher              Kafka message publisher
 ├── lb                         Round-robin load balancer
 ├── log                        Logger (zap adapter)
-│   ├── file                   Log rotation (lumberjack)
+│   ├── file                   Log rotation (lumberjack + byte-precise parts)
 │   └── logutil                Log level utilities
 ├── metrics                    Prometheus metrics utilities
 │   ├── app_metrics            App-level log sampling metrics

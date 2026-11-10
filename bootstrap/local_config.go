@@ -68,11 +68,13 @@ type Logs struct {
 //
 // Fields:
 //   - Path: Path to the log file
+//   - PartSizeKb: Size of a log part in kilobytes; takes precedence over MaxSizeMb (default: 0, disabled)
 //   - MaxSizeMb: Maximum file size in megabytes before rotation (default: 512)
 //   - MaxBackups: Maximum number of backup files to keep (default: 4)
 //   - Compress: Whether to compress rotated log files (default: true)
 type LogFile struct {
 	Path       string
+	PartSizeKb int
 	MaxSizeMb  int
 	MaxBackups int
 	Compress   bool

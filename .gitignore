@@ -69,3 +69,5 @@ fabric.properties
 
 /node_modules/
 /vendor/
+# CocoIndex Code (ccc)
+/.cocoindex_code/

@@ -27,6 +27,7 @@ import (
 const (
 	postShutdownWait = 500 * time.Millisecond
 
+	defaultLogPartSizeKb     = 0 // 0 means no log splitting; the MaxSizeMb path is used
 	defaultLogFileMaxSizeMb  = 512
 	defaultLogFileMaxBackups = 4
 	defaultLogFileCompress   = true
@@ -245,6 +246,7 @@ func appConfig(isDev bool) (*app.Config, error) {
 		if !isDev && logFilePath != "" {
 			fileOutput := file.Output{
 				File:       logFilePath,
+				PartSizeKb: cfg.Optional().Int("LOGFILE.PARTSIZEKB", defaultLogPartSizeKb),
 				MaxSizeMb:  cfg.Optional().Int("LOGFILE.MAXSIZEMB", defaultLogFileMaxSizeMb),
 				MaxDays:    0,
 				MaxBackups: cfg.Optional().Int("LOGFILE.MAXBACKUPS", defaultLogFileMaxBackups),
