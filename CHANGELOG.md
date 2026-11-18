@@ -1,3 +1,7 @@
+## v1.76.0
+* Добавлен локальный ключ конфигурации `moduleLeaderMode` и поле `cluster.BackendDeclaration.ModuleLeaderMode` — режим выбора лидера модуля, объявляемый модулем в `MODULE:READY` (`REQUEST_ELECTION`, зарезервированы значения `IM_LEADER` и `IM_FOLLOWER`)
+* Добавлено поле `cluster.AddressConfiguration.IsModuleLeader` — факт лидерства экземпляра в `{module}_MODULE_CONNECTED` и `CONFIG:SEND_ROUTES_*`; отправляется явно, для standby-экземпляра `false`
+* Содержимое подтверждения `MODULE:READY` клиентом не разбирается — текст подтверждения используется только как диагностика
 ## v1.75.0
 * Добавлено подключение к кафке без авторизации - `NO_AUTH`
 * Исправлено построение mTLS (пара клиентского сертификата и закрытого ключа) в `kafkax`
