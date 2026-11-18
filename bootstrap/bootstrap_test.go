@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/txix-open/isp-kit/bootstrap"
 	"github.com/txix-open/isp-kit/cluster"
+	"github.com/txix-open/isp-kit/config"
+	"github.com/txix-open/isp-kit/validator"
 )
 
 type RemoteConfig struct {
@@ -68,6 +70,23 @@ func TestNew_Offline(t *testing.T) {
 	err = boot.ClusterCli.Run(t.Context(), handler)
 	require.NoError(t, err)
 	assert.Equal(t, 1, receiver.callCount)
+}
+
+func TestClusteredLocalConfigModuleLeaderMode(t *testing.T) {
+	t.Parallel()
+
+	appConfig, err := config.New(
+		config.WithEnvPrefix("module-leader-test"),
+		config.WithValidator(validator.Default),
+		config.WithExtraSource(config.NewYamlConfig("test_data/config_module_leader_test.yml")),
+	)
+	require.NoError(t, err)
+
+	var localConfig bootstrap.ClusteredLocalConfig
+	err = appConfig.Read(&localConfig)
+	require.NoError(t, err)
+
+	require.Equal(t, cluster.ModuleLeaderModeRequestElection, localConfig.ModuleLeaderMode)
 }
 
 func TestNewStandalone(t *testing.T) {

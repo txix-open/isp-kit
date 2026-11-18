@@ -10,12 +10,19 @@ const (
 	GrpcTransport  = "grpc"
 	HttpTransport  = "http"
 	EmptyTransport = "empty"
+
+	ModuleLeaderModeNone            = ""
+	ModuleLeaderModeRequestElection = "REQUEST_ELECTION"
+	ModuleLeaderModeImLeader        = "IM_LEADER"
+	ModuleLeaderModeImFollower      = "IM_FOLLOWER"
 )
 
-// AddressConfiguration represents the IP address and port for a service endpoint.
+// AddressConfiguration represents the IP address and port for a service endpoint,
+// and whether this instance is the module leader.
 type AddressConfiguration struct {
-	IP   string `json:"ip"`
-	Port string `json:"port"`
+	IP             string `json:"ip"`
+	Port           string `json:"port"`
+	IsModuleLeader bool
 }
 
 // ConfigData contains configuration data for a module, including version information
@@ -36,6 +43,7 @@ type ModuleInfo struct {
 	GrpcOuterAddress     AddressConfiguration
 	EndpointsResolver    EndpointsResolver
 	MetricsAutodiscovery *MetricsAutodiscovery
+	ModuleLeaderMode     string
 }
 
 // RoutingConfig represents a list of backend declarations for routing configuration.
@@ -52,6 +60,7 @@ type BackendDeclaration struct {
 	RequiredModules      []ModuleDependency
 	Address              AddressConfiguration
 	MetricsAutodiscovery *MetricsAutodiscovery
+	ModuleLeaderMode     string
 }
 
 // EndpointDescriptor describes an HTTP endpoint, including its path, method, authentication
