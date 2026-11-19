@@ -2,6 +2,8 @@
 * Добавлен локальный ключ конфигурации `moduleLeaderMode` и поле `cluster.BackendDeclaration.ModuleLeaderMode` — режим выбора лидера модуля, объявляемый модулем в `MODULE:READY` (`REQUEST_ELECTION`, зарезервированы значения `IM_LEADER` и `IM_FOLLOWER`)
 * Добавлено поле `cluster.AddressConfiguration.IsModuleLeader` — факт лидерства экземпляра в `{module}_MODULE_CONNECTED` и `CONFIG:SEND_ROUTES_*`; отправляется явно, для standby-экземпляра `false`
 * Содержимое подтверждения `MODULE:READY` клиентом не разбирается — текст подтверждения используется только как диагностика
+* Обновлены зависимости
+* Обновление `github.com/txix-open/validator/v10`: текст сообщения `max` для слайсов — `must contain at most N item` вместо `must contain at maximum N item`
 ## v1.75.0
 * Добавлено подключение к кафке без авторизации - `NO_AUTH`
 * Исправлено построение mTLS (пара клиентского сертификата и закрытого ключа) в `kafkax`

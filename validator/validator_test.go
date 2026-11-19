@@ -108,8 +108,8 @@ func TestCompositeDataType(t *testing.T) {
 	}
 	ok, details := validator.Default.Validate(obj)
 	expectedDetails := map[string]string{
-		"array":                 "Array must contain at maximum 1 item",
-		"map[key].arr":          "Arr must contain at maximum 1 item",
+		"array":                 "Array must contain at most 1 item",
+		"map[key].arr":          "Arr must contain at most 1 item",
 		"map[sub][map].a":       "A is a required field",
 		"someStruct.optional.a": "A is a required field",
 	}
