@@ -11,7 +11,6 @@ require (
 	github.com/go-logr/stdr v1.2.2
 	github.com/go-playground/locales v0.14.2
 	github.com/go-playground/universal-translator v0.18.2
-	github.com/go-resty/resty/v2 v2.17.2
 	github.com/go-stomp/stomp/v3 v3.2.1
 	github.com/iancoleman/strcase v0.3.0
 	github.com/jackc/pgx/v5 v5.13.0

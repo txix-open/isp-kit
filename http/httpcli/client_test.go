@@ -14,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-resty/resty/v2"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -575,30 +574,6 @@ func BenchmarkClient_Post(b *testing.B) {
 				b.Fatal(err)
 			}
 			resp.Close()
-		}
-	})
-}
-
-func BenchmarkGoResty(b *testing.B) {
-	b.ResetTimer()
-	b.ReportAllocs()
-	b.SetParallelism(32)
-	b.RunParallel(func(pb *testing.PB) {
-		srv := echoServer()
-		cli := resty.New()
-		cli.JSONMarshal = json.Marshal
-		cli.JSONUnmarshal = json.Unmarshal
-		for pb.Next() {
-			data := make([]byte, 4200)
-			_, _ = rand.Read(data)
-			_, err := cli.R().
-				SetBody(example{Data: hex.EncodeToString(data)}).
-				SetResult(&example{}).
-				SetContext(b.Context()).
-				Post(srv.URL)
-			if err != nil {
-				b.Fatal(err)
-			}
 		}
 	})
 }
