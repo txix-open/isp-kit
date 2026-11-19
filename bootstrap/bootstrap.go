@@ -308,6 +308,7 @@ func initClusterClient(
 		},
 		EndpointsResolver:    endpointsResolver,
 		MetricsAutodiscovery: metricsServiceDiscovery(localConfig, broadcastHost),
+		ModuleLeaderMode:     localConfig.ModuleLeaderMode,
 	}
 
 	schema := rc.GenerateConfigSchema(remoteConfig)
