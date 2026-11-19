@@ -1,0 +1,12 @@
+configServiceAddress:
+  ip: 127.0.0.1
+  port: 9001
+grpcOuterAddress:
+  ip: 127.0.0.1
+  port: 9003
+grpcInnerAddress:
+  ip: 0.0.0.0
+  port: 9003
+moduleName: isp-test-service
+
+moduleLeaderMode: REQUEST_ELECTION

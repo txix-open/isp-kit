@@ -41,6 +41,7 @@ type LocalConfig struct {
 //   - DefaultRemoteConfigPath: Custom path for default remote configuration file (optional)
 //   - RemoteConfigReceiverTimeout: Timeout for receiving remote configuration updates
 //   - MetricsAutodiscovery: Configuration for Prometheus metrics auto-discovery
+//   - ModuleLeaderMode: Module leader election mode announced in MODULE:READY (optional)
 type ClusteredLocalConfig struct {
 	LocalConfig
 
@@ -48,6 +49,7 @@ type ClusteredLocalConfig struct {
 	DefaultRemoteConfigPath     string
 	RemoteConfigReceiverTimeout time.Duration
 	MetricsAutodiscovery        MetricsAutodiscovery
+	ModuleLeaderMode            string
 }
 
 // Logs configures log sampling and rate limiting.

@@ -348,6 +348,7 @@ func (c *Client) notifyModuleReady(ctx context.Context, cli *clientWrapper, requ
 		RequiredModules:      moduleDependencies,
 		Address:              c.moduleInfo.GrpcOuterAddress,
 		MetricsAutodiscovery: c.moduleInfo.MetricsAutodiscovery,
+		ModuleLeaderMode:     c.moduleInfo.ModuleLeaderMode,
 	}
 	_, err := cli.EmitJsonWithAck(ctx, ModuleReady, declaration)
 	if err != nil {
