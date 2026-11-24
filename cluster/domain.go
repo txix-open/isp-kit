@@ -6,6 +6,7 @@ import (
 
 const (
 	RequiredAdminPermission = "reqAdminPerm"
+	RequiredUserPermission  = "reqUserPerm"
 
 	GrpcTransport  = "grpc"
 	HttpTransport  = "http"
@@ -102,6 +103,14 @@ func RequireAdminPermission(perm string) map[string]any {
 	}
 }
 
+// RequireUserPermission creates endpoint metadata that specifies a user permission
+// requirement for the endpoint. The permission string is stored under the RequiredUserPermission key.
+func RequireUserPermission(perm string) map[string]any {
+	return map[string]any{
+		RequiredUserPermission: perm,
+	}
+}
+
 // GetRequiredAdminPermission extracts the admin permission requirement from an
 // EndpointDescriptor. Returns the permission string and a boolean indicating whether
 // the permission requirement was found.
@@ -110,5 +119,16 @@ func GetRequiredAdminPermission(desc EndpointDescriptor) (string, bool) {
 		return "", false
 	}
 	value, ok := desc.Extra[RequiredAdminPermission].(string)
+	return value, ok
+}
+
+// GetRequiredUserPermission extracts the user permission requirement from an
+// EndpointDescriptor. Returns the permission string and a boolean indicating whether
+// the permission requirement was found.
+func GetRequiredUserPermission(desc EndpointDescriptor) (string, bool) {
+	if len(desc.Extra) == 0 {
+		return "", false
+	}
+	value, ok := desc.Extra[RequiredUserPermission].(string)
 	return value, ok
 }
