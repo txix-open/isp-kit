@@ -1,10 +1,9 @@
 package log
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"strconv"
 	"unicode/utf8"
+	"uuid"
 
 	"github.com/txix-open/isp-kit/errors"
 	"github.com/txix-open/isp-kit/requestid"
@@ -32,8 +31,6 @@ const (
 	DefaultMaxLineKb = 218
 	// DefaultMaxLineBytes is [DefaultMaxLineKb] in bytes.
 	DefaultMaxLineBytes = DefaultMaxLineKb * 1024
-	// packageIdBytes is the size of a random package id before hex encoding.
-	packageIdBytes = 16
 	// probePartNumber is the maximum part number reserved when the overhead of
 	// a part is measured. It has 9 digits.
 	probePartNumber = 999999999
@@ -239,10 +236,7 @@ func (c *splittingCore) writeSplit(
 		return c.writeWhole(entry, fields, oversizedLine)
 	}
 
-	logPackageId, err := newPackageId()
-	if err != nil {
-		return c.writeWhole(entry, fields, oversizedLine)
-	}
+	logPackageId := uuid.New().String()
 
 	packable, packableSizes, requestIdField, hasRequestId := c.extractRequestId(fields, sizes)
 	parts := c.planParts(entry, packable, packableSizes, logPackageId, requestIdField, hasRequestId)
@@ -671,16 +665,6 @@ func metaFields(
 		zap.Int(SplitFieldPackageTotal, total),
 	)
 	return fields
-}
-
-// newPackageId returns a random id shared by all parts of one record.
-func newPackageId() (string, error) {
-	value := make([]byte, packageIdBytes)
-	_, err := rand.Read(value)
-	if err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(value), nil
 }
 
 // findRequestId returns the request id from the log fields.

@@ -2,7 +2,6 @@ package log_test
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -13,6 +12,7 @@ import (
 	"sync/atomic"
 	"testing"
 	"unicode/utf8"
+	"uuid"
 
 	"github.com/stretchr/testify/require"
 	"github.com/txix-open/isp-kit/log"
@@ -106,9 +106,8 @@ func TestSplitOversizedField(t *testing.T) {
 		require.EqualValues(t, len(lines), record[log.SplitFieldPackageTotal])
 
 		currentPackageId := recordString(t, record, log.SplitFieldPackageId)
-		_, err := hex.DecodeString(currentPackageId)
+		_, err := uuid.Parse(currentPackageId)
 		require.NoError(t, err)
-		require.Len(t, currentPackageId, 32)
 
 		currentStartedAt := recordString(t, record, envelopeTimeKey)
 		require.Equal(t, "http handler: response", record[envelopeMsgKey])
