@@ -312,6 +312,37 @@ func TestSplitKeepsSamplingDisabledByDefault(t *testing.T) {
 	require.Len(t, lines, records)
 }
 
+func TestSplitDisabledInDevMode(t *testing.T) {
+	t.Parallel()
+
+	adapter, path := newTestAdapter(t, log.Config{
+		IsInDevMode:  true,
+		InitialLevel: log.InfoLevel,
+		Split:        &log.SplitConfig{Enabled: true, MaxLineKb: testMaxLineKb},
+	})
+	adapter.Info(context.Background(), "message", log.String("responseBody", strings.Repeat("x", 4096)))
+
+	lines := readTestLines(t, path)
+	require.Len(t, lines, 1)
+	require.Greater(t, len(lines[0]), testMaxLineBytes)
+	require.NotContains(t, lines[0], log.SplitFieldPackageId)
+}
+
+func TestSplitInactiveWithoutLimit(t *testing.T) {
+	t.Parallel()
+
+	adapter, path := newTestAdapter(t, log.Config{
+		InitialLevel: log.InfoLevel,
+		Split:        &log.SplitConfig{Enabled: true},
+	})
+	adapter.Info(context.Background(), "message", log.String("responseBody", strings.Repeat("x", 4096)))
+
+	lines := readTestLines(t, path)
+	require.Len(t, lines, 1)
+	require.Greater(t, len(lines[0]), testMaxLineBytes)
+	require.NotContains(t, lines[0], log.SplitFieldPackageId)
+}
+
 func TestSplitWithoutRequestId(t *testing.T) {
 	t.Parallel()
 
