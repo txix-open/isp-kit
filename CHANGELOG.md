@@ -1,3 +1,5 @@
+## v1.77.0
+* Добавлены хелперы `cluster.RequireUserPermission` и `cluster.GetRequiredUserPermission` — декларация и чтение требуемого пользовательского права в `EndpointDescriptor` (хранится в `Extra` под ключом `cluster.RequiredUserPermission`, аналог `RequireAdminPermission`/`GetRequiredAdminPermission`)
 ## v1.76.0
 * Добавлен локальный ключ конфигурации `moduleLeaderMode` и поле `cluster.BackendDeclaration.ModuleLeaderMode` — режим выбора лидера модуля, объявляемый модулем в `MODULE:READY` (`REQUEST_ELECTION`, зарезервированы значения `IM_LEADER` и `IM_FOLLOWER`)
 * Добавлено поле `cluster.AddressConfiguration.IsModuleLeader` — факт лидерства экземпляра в `{module}_MODULE_CONNECTED` и `CONFIG:SEND_ROUTES_*`; отправляется явно, для standby-экземпляра `false`
