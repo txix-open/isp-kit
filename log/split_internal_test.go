@@ -8,6 +8,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 	"unicode/utf8"
@@ -458,6 +459,115 @@ func TestSplittingCoreReturnsSinkError(t *testing.T) {
 	require.ErrorIs(t, err, errTestSink)
 }
 
+// TestSplitSamplerAndHooksAtErrorLevel protects the core order split core ->
+// sampler -> hooks: the sampler decision and the hooks must be applied to the
+// original record once, at every level, not only at info level.
+func TestSplitSamplerAndHooksAtErrorLevel(t *testing.T) {
+	t.Parallel()
+
+	logger, recorder := newTestLogger(SplitConfig{Enabled: true, MaxLineKb: 1})
+	logger = logger.WithOptions(samplerOption(&SamplingConfig{Initial: 1, Thereafter: 0}))
+	var calls atomic.Int32
+	logger = logger.WithOptions(zap.Hooks(func(_ zapcore.Entry) error {
+		calls.Add(1)
+		return nil
+	}))
+
+	for range 5 {
+		logger.Error("boom", zap.String("responseBody", strings.Repeat("x", 4096)))
+	}
+
+	lines := recorder.collected()
+	require.Greater(t, len(lines), 1)
+	require.Len(t, uniquePackageIds(t, lines), 1)
+	require.EqualValues(t, 1, calls.Load())
+}
+
+func TestSplitConcurrentWrites(t *testing.T) {
+	t.Parallel()
+
+	logger, recorder := newTestLogger(SplitConfig{Enabled: true, MaxLineKb: 1})
+
+	var wg sync.WaitGroup
+	for i := range 8 {
+		wg.Add(1)
+		go func(worker int) {
+			defer wg.Done()
+			for range 50 {
+				logger.Info("concurrent message",
+					zap.String("responseBody", strings.Repeat("x", 3000)),
+					zap.Int("worker", worker),
+				)
+			}
+		}(i)
+	}
+	wg.Wait()
+
+	require.Len(t, uniquePackageIds(t, recorder.collected()), 400)
+}
+
+// TestSplittingCoreRequestIdFromLoggerAndCall checks that a request id attached
+// by With and a request id in the record are not written twice: the call field
+// is removed and the logger field is used.
+func TestSplittingCoreRequestIdFromLoggerAndCall(t *testing.T) {
+	t.Parallel()
+
+	logger, recorder := newTestLogger(SplitConfig{Enabled: true, MaxLineKb: 1})
+	logger = logger.With(zap.String(requestid.LogKey, "req-7"))
+	logger.Info("message",
+		zap.String(requestid.LogKey, "req-42"),
+		zap.String("responseBody", strings.Repeat("x", 4096)),
+	)
+
+	lines := recorder.collected()
+	require.Greater(t, len(lines), 1)
+	for _, line := range lines {
+		require.Equal(t, "req-7", parseInternalLine(t, line)[requestid.LogKey])
+		require.Equal(t, 1, strings.Count(line, `"`+requestid.LogKey+`"`))
+	}
+}
+
+// TestChunkFieldChunksPlainError covers the error chunking success path: an
+// error without causes is cut like a string.
+func TestChunkFieldChunksPlainError(t *testing.T) {
+	t.Parallel()
+
+	core := newTestSplitCore(1)
+	value := strings.Repeat("ошибка ", 500)
+	field := zap.Error(plainError(value))
+
+	size := testFieldSize(t, core, field)
+	chunks := core.chunkField(field, size, core.maxLineBytes)
+	require.NotEmpty(t, chunks)
+
+	var joined strings.Builder
+	for _, chunk := range chunks {
+		require.Len(t, chunk, 1)
+		require.Equal(t, field.Key, chunk[0].Key)
+		joined.WriteString(chunk[0].String)
+	}
+	require.Equal(t, value, joined.String())
+}
+
+func uniquePackageIds(t *testing.T, lines []string) []string {
+	t.Helper()
+
+	ids := make(map[string]struct{}, len(lines))
+	for _, line := range lines {
+		record := parseInternalLine(t, line)
+		value, ok := record[SplitFieldPackageId]
+		require.True(t, ok, "part must have %q", SplitFieldPackageId)
+		id, isString := value.(string)
+		require.True(t, isString, "%q must be a string", SplitFieldPackageId)
+		ids[id] = struct{}{}
+	}
+	result := make([]string, 0, len(ids))
+	for id := range ids {
+		result = append(result, id)
+	}
+	return result
+}
+
 func TestChunkFieldChunksStringAndByteString(t *testing.T) {
 	t.Parallel()
 
@@ -580,6 +690,14 @@ var (
 	errTestCause = errors.New("cause")
 	errTestSink  = errors.New("sink is broken")
 )
+
+// plainError is a plain error text without causes: zap encodes it as a single
+// string field.
+type plainError string
+
+func (e plainError) Error() string {
+	return string(e)
+}
 
 type causesError struct {
 	text   string
