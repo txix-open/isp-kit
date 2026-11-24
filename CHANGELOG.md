@@ -1,3 +1,5 @@
+## v1.77.0
+* log: разбиение больших JSON-записей на части — части несут `logPackageId`/`logPackageIndex`/`logPackageTotal`, `level`/`ts`/`requestId` и исходные имена полей, включается через `LOGS.SPLIT.ENABLED`/`LOGS.SPLIT.MAXLINEKB` (по умолчанию выключено)
 ## v1.76.0
 * Добавлен локальный ключ конфигурации `moduleLeaderMode` и поле `cluster.BackendDeclaration.ModuleLeaderMode` — режим выбора лидера модуля, объявляемый модулем в `MODULE:READY` (`REQUEST_ELECTION`, зарезервированы значения `IM_LEADER` и `IM_FOLLOWER`)
 * Добавлено поле `cluster.AddressConfiguration.IsModuleLeader` — факт лидерства экземпляра в `{module}_MODULE_CONNECTED` и `CONFIG:SEND_ROUTES_*`; отправляется явно, для standby-экземпляра `false`
