@@ -284,6 +284,16 @@ func TestChunkFieldRejectsErrorWithCauses(t *testing.T) {
 	require.Nil(t, core.chunkField(field, size, core.maxLineBytes), "an error with causes must not lose them")
 }
 
+func TestChunkFieldRejectsPanickingStringer(t *testing.T) {
+	t.Parallel()
+
+	core := newTestSplitCore(1)
+	field := zap.Stringer("responseBody", panickingStringer{})
+
+	size := testFieldSize(t, core, field)
+	require.Nil(t, core.chunkField(field, size, core.maxLineBytes), "a panicking stringer must not be cut")
+}
+
 func TestChunkFieldRejectsInvalidUTF8(t *testing.T) {
 	t.Parallel()
 
@@ -550,6 +560,29 @@ func TestChunkFieldChunksPlainError(t *testing.T) {
 	require.Equal(t, value, joined.String())
 }
 
+// TestChunkFieldChunksStringer covers the stringer chunking success path: a
+// type that implements fmt.Stringer is cut like a string.
+func TestChunkFieldChunksStringer(t *testing.T) {
+	t.Parallel()
+
+	core := newTestSplitCore(1)
+	value := strings.Repeat("значение ", 500)
+	field := zap.Stringer("responseBody", testStringer(value))
+
+	size := testFieldSize(t, core, field)
+	chunks := core.chunkField(field, size, core.maxLineBytes)
+	require.NotEmpty(t, chunks)
+
+	var joined strings.Builder
+	for _, chunk := range chunks {
+		require.Len(t, chunk, 1)
+		require.Equal(t, field.Key, chunk[0].Key)
+		require.Equal(t, zapcore.StringType, chunk[0].Type)
+		joined.WriteString(chunk[0].String)
+	}
+	require.Equal(t, value, joined.String())
+}
+
 func uniquePackageIds(t *testing.T, lines []string) []string {
 	t.Helper()
 
@@ -711,6 +744,21 @@ func (e causesError) Error() string {
 
 func (e causesError) Errors() []error {
 	return e.causes
+}
+
+// testStringer implements fmt.Stringer with a plain string value.
+type testStringer string
+
+func (s testStringer) String() string {
+	return string(s)
+}
+
+// panickingStringer panics in String: the field cannot be cut and is written
+// as is.
+type panickingStringer struct{}
+
+func (panickingStringer) String() string {
+	panic("stringer")
 }
 
 // memoryRecorder collects the lines written by the splitting core.

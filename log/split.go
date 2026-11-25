@@ -1,6 +1,7 @@
 package log
 
 import (
+	"fmt"
 	"strconv"
 	"unicode/utf8"
 	"uuid"
@@ -474,10 +475,11 @@ func (c *splittingCore) chunkField(field zapcore.Field, fieldSize int, budget in
 	}
 
 	keyOverhead := fieldKeyOverhead(field.Key)
-	// A string field is encoded as a JSON string by definition. An error field
-	// is encoded as a string only when its size matches the key and the escaped
-	// message: an error with causes or a verbose message adds extra fields.
-	if field.Type == zapcore.ErrorType &&
+	// A string field is encoded as a JSON string by definition. An error and a
+	// stringer field are encoded as a string only when their size matches the
+	// key and the escaped value: an error with causes, a verbose message or a
+	// panicking stringer adds extra fields.
+	if (field.Type == zapcore.ErrorType || field.Type == zapcore.StringerType) &&
 		fieldSize != keyOverhead+fieldValueQuotesWidth+escapedWidth(value) {
 		return nil
 	}
@@ -721,8 +723,8 @@ func hasNamespaceField(fields []zapcore.Field) bool {
 }
 
 // stringValue returns the raw value of a string field: a string field, a byte
-// string or an error. The value of other fields is encoded as JSON and cannot
-// be restored by a simple concatenation.
+// string, an error or a stringer. The value of other fields is encoded as JSON
+// and cannot be restored by a simple concatenation.
 func stringValue(field zapcore.Field) (value string, ok bool) {
 	if field.Type == zapcore.StringType {
 		return field.String, true
@@ -741,6 +743,13 @@ func stringValue(field zapcore.Field) (value string, ok bool) {
 		}
 		return errorValue(err)
 	}
+	if field.Type == zapcore.StringerType {
+		stringer, isStringer := field.Interface.(fmt.Stringer)
+		if !isStringer {
+			return "", false
+		}
+		return stringerValue(stringer)
+	}
 	return "", false
 }
 
@@ -753,6 +762,18 @@ func errorValue(err error) (value string, ok bool) {
 		}
 	}()
 	return err.Error(), true
+}
+
+// stringerValue returns the text of a stringer. The String method may panic,
+// for example when the value is a typed nil pointer; such a field cannot be
+// cut.
+func stringerValue(stringer fmt.Stringer) (value string, ok bool) {
+	defer func() {
+		if recover() != nil {
+			value, ok = "", false
+		}
+	}()
+	return stringer.String(), true
 }
 
 // escapedByteWidth maps a byte of a raw string to the number of bytes it takes

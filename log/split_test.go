@@ -125,7 +125,55 @@ func TestSplitOversizedField(t *testing.T) {
 		require.Contains(t, record, "responseBody")
 	}
 
-	require.Equal(t, responseBody, collectField(t, lines, "responseBody"))
+	require.Equal(t, responseBody, collectResponseBody(t, lines))
+}
+
+// TestSplitOversizedByteString checks that an oversized byte string field is
+// split and the parts restore the original bytes.
+func TestSplitOversizedByteString(t *testing.T) {
+	t.Parallel()
+
+	adapter, path := newTestAdapter(t, log.Config{
+		InitialLevel: log.InfoLevel,
+		Split:        &log.SplitConfig{Enabled: true, MaxLineKb: testMaxLineKb},
+	})
+	body := []byte(strings.Repeat("response ", 500))
+	adapter.Info(context.Background(), "http handler: response",
+		log.ByteString("responseBody", body),
+	)
+
+	lines := readTestLines(t, path)
+	require.Greater(t, len(lines), 1)
+	requirePartsFitLimit(t, lines)
+	require.Equal(t, string(body), collectResponseBody(t, lines))
+}
+
+// adapterStringer implements fmt.Stringer: logged via log.Any it becomes a
+// zapcore.StringerType field.
+type adapterStringer string
+
+func (s adapterStringer) String() string {
+	return string(s)
+}
+
+// TestSplitOversizedStringer checks that an oversized fmt.Stringer field is
+// split and the parts restore the original string.
+func TestSplitOversizedStringer(t *testing.T) {
+	t.Parallel()
+
+	adapter, path := newTestAdapter(t, log.Config{
+		InitialLevel: log.InfoLevel,
+		Split:        &log.SplitConfig{Enabled: true, MaxLineKb: testMaxLineKb},
+	})
+	value := strings.Repeat("значение ", 500)
+	adapter.Info(context.Background(), "http handler: response",
+		log.Any("responseBody", adapterStringer(value)),
+	)
+
+	lines := readTestLines(t, path)
+	require.Greater(t, len(lines), 1)
+	requirePartsFitLimit(t, lines)
+	require.Equal(t, value, collectResponseBody(t, lines))
 }
 
 func TestSplitKeepsMessageInEveryPart(t *testing.T) {
@@ -220,7 +268,7 @@ func TestSplitPartsFitLimit(t *testing.T) {
 		for _, line := range lines {
 			require.True(t, utf8.ValidString(line))
 		}
-		require.Equal(t, value.String(), collectField(t, lines, "responseBody"))
+		require.Equal(t, value.String(), collectResponseBody(t, lines))
 	}
 }
 
@@ -290,7 +338,7 @@ func TestSplitMixOfSmallAndLargeFields(t *testing.T) {
 	require.Contains(t, lines[len(lines)-1], `"after"`)
 	require.NotContains(t, lines[0], `"responseBody"`)
 
-	require.Equal(t, responseBody, collectField(t, lines, "responseBody"))
+	require.Equal(t, responseBody, collectResponseBody(t, lines))
 	require.Equal(t, "first", parseTestLine(t, lines[0])["before"])
 	require.Equal(t, "last", parseTestLine(t, lines[len(lines)-1])["after"])
 }
@@ -507,17 +555,19 @@ func requirePartsFitLimit(t *testing.T, lines []string) {
 	}
 }
 
-func collectField(t *testing.T, lines []string, key string) string {
+// collectResponseBody joins the responseBody field value of the parts in the
+// order they were written.
+func collectResponseBody(t *testing.T, lines []string) string {
 	t.Helper()
 
 	var collected strings.Builder
 	for _, line := range lines {
-		value, ok := parseTestLine(t, line)[key]
+		value, ok := parseTestLine(t, line)["responseBody"]
 		if !ok {
 			continue
 		}
 		text, ok := value.(string)
-		require.True(t, ok, "field %q must be a string", key)
+		require.True(t, ok, "field %q must be a string", "responseBody")
 		collected.WriteString(text)
 	}
 	return collected.String()
