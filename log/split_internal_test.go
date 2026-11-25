@@ -457,6 +457,7 @@ func TestSplittingCoreReturnsSinkError(t *testing.T) {
 		zap.String("responseBody", strings.Repeat("x", 4096)),
 	})
 	require.ErrorIs(t, err, errTestSink)
+	require.ErrorContains(t, err, "cannot write log part")
 }
 
 // TestSplitSamplerAndHooksAtErrorLevel protects the core order split core ->

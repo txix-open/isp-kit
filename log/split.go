@@ -251,7 +251,8 @@ func (c *splittingCore) writeSplit(
 }
 
 // writeParts encodes and writes every part with the same encoder as a whole
-// record.
+// record. It stops at the first error: the remaining parts are not written
+// when the encoder or the sink has failed.
 func (c *splittingCore) writeParts(
 	entry zapcore.Entry,
 	parts [][]zapcore.Field,
@@ -259,7 +260,6 @@ func (c *splittingCore) writeParts(
 	requestIdField zapcore.Field,
 	hasRequestId bool,
 ) error {
-	var writeErr error
 	for i, part := range parts {
 		partFields := make([]zapcore.Field, 0, len(part)+metaFieldsCapacity)
 		partFields = append(partFields,
@@ -268,17 +268,14 @@ func (c *splittingCore) writeParts(
 
 		line, err := c.encoder.EncodeEntry(entry, partFields)
 		if err != nil {
-			if writeErr == nil {
-				writeErr = err
-			}
-			continue
+			return errors.WithMessage(err, "cannot encode log part")
 		}
 		err = c.writeBuffer(line)
-		if err != nil && writeErr == nil {
-			writeErr = err
+		if err != nil {
+			return errors.WithMessage(err, "cannot write log part")
 		}
 	}
-	return writeErr
+	return nil
 }
 
 // writeWhole writes the record as is. The encoded line is reused when it is
