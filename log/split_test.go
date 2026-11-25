@@ -581,9 +581,6 @@ func newTestAdapter(t *testing.T, cfg log.Config) (*log.Adapter, string) {
 
 	adapter, err := log.NewFromConfig(cfg)
 	require.NoError(t, err)
-	t.Cleanup(func() {
-		require.NoError(t, adapter.Sync())
-	})
 	return adapter, path
 }
 
