@@ -58,7 +58,7 @@ type ClusteredLocalConfig struct {
 //   - Sampling.Enable: Enable log sampling to prevent log flooding
 //   - Sampling.MaxPerSecond: Maximum log entries per second when sampling is enabled
 //   - Sampling.PassEvery: Number of log entries to pass before sampling again
-//   - Split.Enabled: Split JSON log records bigger than the limit into parts (default: false, disabled)
+//   - Split.Enable: Split JSON log records bigger than the limit into parts (default: false, disabled)
 //   - Split.MaxLineKb: Size of one part in kilobytes (default: 218)
 type Logs struct {
 	Sampling struct {
@@ -67,7 +67,7 @@ type Logs struct {
 		PassEvery    int
 	}
 	Split struct {
-		Enabled   bool
+		Enable    bool
 		MaxLineKb int
 	}
 }

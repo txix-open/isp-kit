@@ -269,7 +269,7 @@ func appConfig(isDev bool) (*app.Config, error) {
 		}
 
 		var split *log.SplitConfig
-		isSplitEnabled := cfg.Optional().Bool("LOGS.SPLIT.ENABLED", defaultLogSplitEnabled)
+		isSplitEnabled := cfg.Optional().Bool("LOGS.SPLIT.ENABLE", defaultLogSplitEnabled)
 		if !isDev && isSplitEnabled {
 			maxLineKb := cfg.Optional().Int("LOGS.SPLIT.MAXLINEKB", defaultLogSplitMaxLineKb)
 			if maxLineKb <= 0 {

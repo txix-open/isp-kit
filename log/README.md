@@ -156,11 +156,11 @@ func main() {
 ```yaml
 logs:
   split:
-    enabled: true    # по умолчанию false
+    enable: true    # по умолчанию false
     maxLineKb: 218   # размер одной части в килобайтах, 218 × 1024 = 223 232 байта
 ```
 
-Ключи конфига: `LOGS.SPLIT.ENABLED` (по умолчанию `false`) и `LOGS.SPLIT.MAXLINEKB`
+Ключи конфига: `LOGS.SPLIT.ENABLE` (по умолчанию `false`) и `LOGS.SPLIT.MAXLINEKB`
 (по умолчанию `218`). Одного `maxLineKb` без `enabled: true` недостаточно. В dev-режиме
 разбиение не работает: вывод не JSON.
 
