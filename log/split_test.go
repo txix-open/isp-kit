@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
@@ -578,7 +577,7 @@ func newTestAdapter(t *testing.T, cfg log.Config) (*log.Adapter, string) {
 
 	path := filepath.Join(t.TempDir(), "log.json")
 	cfg.DisableDefaultOutput = true
-	cfg.OutputPaths = []string{(&url.URL{Scheme: "file", Path: path}).String()}
+	cfg.OutputPaths = []string{path}
 
 	adapter, err := log.NewFromConfig(cfg)
 	require.NoError(t, err)
