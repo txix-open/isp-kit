@@ -34,3 +34,14 @@ func WithLevel(level Level) Option {
 		a.InitialLevel = level
 	}
 }
+
+// WithSplit enables splitting of oversized JSON log records into parts of at
+// most maxLineKb kilobytes each. It is ignored in development mode.
+func WithSplit(maxLineKb int) Option {
+	return func(a *Config) {
+		a.Split = &SplitConfig{
+			Enabled:   true,
+			MaxLineKb: maxLineKb,
+		}
+	}
+}

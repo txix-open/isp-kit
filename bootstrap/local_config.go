@@ -11,7 +11,7 @@ import "time"
 //   - MigrationsDirPath: Path to database migrations directory (optional)
 //   - RemoteConfigOverride: Override content for remote configuration (optional)
 //   - LogFile: File-based logging configuration
-//   - Logs: Log sampling and rate limiting configuration
+//   - Logs: Log sampling and splitting configuration
 //   - Observability: Sentry and tracing configuration
 //   - InfraServerPort: Custom port for infrastructure server (optional, defaults to GrpcInnerAddress.Port + 1)
 //   - HealthcheckHandlerTimeout: Timeout for health check requests
@@ -52,17 +52,23 @@ type ClusteredLocalConfig struct {
 	ModuleLeaderMode            string
 }
 
-// Logs configures log sampling and rate limiting.
+// Logs configures log sampling and splitting.
 //
 // Fields:
 //   - Sampling.Enable: Enable log sampling to prevent log flooding
 //   - Sampling.MaxPerSecond: Maximum log entries per second when sampling is enabled
 //   - Sampling.PassEvery: Number of log entries to pass before sampling again
+//   - Split.Enable: Split JSON log records bigger than the limit into parts (default: false, disabled)
+//   - Split.MaxLineKb: Size of one part in kilobytes (default: 218)
 type Logs struct {
 	Sampling struct {
 		Enable       bool
 		MaxPerSecond int
 		PassEvery    int
+	}
+	Split struct {
+		Enable    bool
+		MaxLineKb int
 	}
 }
 
