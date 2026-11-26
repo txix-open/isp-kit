@@ -34,6 +34,9 @@ const (
 	defaultEnableLogSampling       = false
 	defaultMaxLogSamplingPerSecond = 1000
 	defaulLogSamplingPassEvery     = 100
+
+	defaultLogSplitEnabled   = false
+	defaultLogSplitMaxLineKb = log.DefaultMaxLineKb
 )
 
 // BaseBootstrap provides the core initialization context for all application types.
@@ -265,11 +268,25 @@ func appConfig(isDev bool) (*app.Config, error) {
 			}
 		}
 
+		var split *log.SplitConfig
+		isSplitEnabled := cfg.Optional().Bool("LOGS.SPLIT.ENABLE", defaultLogSplitEnabled)
+		if !isDev && isSplitEnabled {
+			maxLineKb := cfg.Optional().Int("LOGS.SPLIT.MAXLINEKB", defaultLogSplitMaxLineKb)
+			if maxLineKb <= 0 {
+				maxLineKb = defaultLogSplitMaxLineKb
+			}
+			split = &log.SplitConfig{
+				Enabled:   true,
+				MaxLineKb: maxLineKb,
+			}
+		}
+
 		return log.Config{
 			IsInDevMode:  isDev,
 			OutputPaths:  outputPaths,
 			Sampling:     sampling,
 			InitialLevel: initialLevel,
+			Split:        split,
 			Hooks: []func(entry zapcore.Entry) error{
 				logCounter.SampledLogCounter(),
 			},

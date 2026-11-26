@@ -21,6 +21,9 @@ type Config struct {
 	Hooks []func(entry zapcore.Entry) error
 	// InitialLevel sets the minimum log level.
 	InitialLevel Level
+	// Split enables splitting of oversized JSON log records into several parts.
+	// It is ignored in development mode because the output is not JSON there.
+	Split *SplitConfig
 }
 
 // SamplingConfig is an alias for zap.SamplingConfig.
