@@ -167,6 +167,8 @@ github.com/txix-open/etp/v4 v4.1.3 h1:u9ZyU2yKGgoQ1/DSaElhazWm8xASdqGEdWjoJ2xQlf
 github.com/txix-open/etp/v4 v4.1.3/go.mod h1:9GK+Aje8BmLFq8Hk4j6Qb976LdU9WECCWAuLK1vAKgM=
 github.com/txix-open/grmq v1.12.0 h1:lSPYvwLfTL0+b0xDQmuuN6RaKS3NCEJNK9ccWpOWa8Y=
 github.com/txix-open/grmq v1.12.0/go.mod h1:6m9CCTQao/HAFalu5rFOZGJ5KLEP6WzzIwj80Ml3KGE=
+github.com/txix-open/isp-kit v1.75.0 h1:0/qJoDTyjsVkQTCsQ7FAilKo7a5Y5pDI4tfMXloHYCg=
+github.com/txix-open/isp-kit v1.75.0/go.mod h1:LEBYertzXLJ3gSuxjeJTUcSGLtf28PZWDHFH9lccCHk=
 github.com/txix-open/jsonschema v1.3.0 h1:XGuOTg22G7PdqfKypjajM20/i5FyGfFYsJKmheebKi4=
 github.com/txix-open/jsonschema v1.3.0/go.mod h1:l8YDZ1nvJrw6uxWowSVOxCV/ebiMJyapffW87ZEqH00=
 github.com/txix-open/validator/v10 v10.0.0-20261027072444-85f3391fc5c3 h1:1jE11HLmMHDYYAcE+UmQ5VHgz4stzz0+daJbDWS+sEs=
