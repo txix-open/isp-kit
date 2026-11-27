@@ -15,7 +15,8 @@ import (
 // preserved.
 func TransformStringLeaves(input []byte, fn func(path, value string) string) ([]byte, error) {
 	var root any
-	if err := json.Unmarshal(input, &root); err != nil {
+	err := json.Unmarshal(input, &root)
+	if err != nil {
 		return nil, errors.WithMessage(err, "unmarshal config value")
 	}
 

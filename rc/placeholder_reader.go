@@ -21,7 +21,8 @@ func IsCompositeJSONString(value string) bool {
 		return false
 	}
 	var node any
-	if err := json.Unmarshal([]byte(trimmed), &node); err != nil {
+	err := json.Unmarshal([]byte(trimmed), &node)
+	if err != nil {
 		return false
 	}
 	switch node.(type) {

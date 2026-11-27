@@ -19,9 +19,11 @@ var boolKeywordTags = map[string]string{
 	SensitiveTag: SensitiveKeyword,
 }
 
-func init() {
+// registerBoolKeywordGenerators registers the built-in bool-keyword
+// generators (uiExposed, sensitive) into c.
+func registerBoolKeywordGenerators(c *customSchema) {
 	for tag, keyword := range boolKeywordTags {
-		CustomGenerators.Register(tag, func(_ reflect.StructField, s *jsonschema.Schema) {
+		c.Register(tag, func(_ reflect.StructField, s *jsonschema.Schema) {
 			if s.Extras == nil {
 				s.Extras = make(map[string]any)
 			}

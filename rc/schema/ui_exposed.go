@@ -13,7 +13,8 @@ func SensitivePaths(data []byte) ([]string, error) { return keywordReader(data, 
 
 func keywordReader(data []byte, keyword string) ([]string, error) {
 	var root any
-	if err := json.Unmarshal(data, &root); err != nil {
+	err := json.Unmarshal(data, &root)
+	if err != nil {
 		return nil, errors.WithMessage(err, "unmarshal schema")
 	}
 

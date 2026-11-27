@@ -1,13 +1,17 @@
-package rc
+package rc_test
 
 import (
 	"encoding/json"
 	"reflect"
 	"sort"
 	"testing"
+
+	"github.com/txix-open/isp-kit/rc"
 )
 
 func TestPlaceHolderReader(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`{
 		"secrets": "_Var(secret_token)",
 		"plain": "no references here",
@@ -16,7 +20,7 @@ func TestPlaceHolderReader(t *testing.T) {
 		"nested": {"arr": [{"e": "_Var(d)"}, {"e": "x"}]}
 	}`)
 
-	refs, err := PlaceHolderReader(data)
+	refs, err := rc.PlaceHolderReader(data)
 	if err != nil {
 		t.Fatalf("PlaceHolderReader: %v", err)
 	}
@@ -56,7 +60,9 @@ func TestPlaceHolderReader(t *testing.T) {
 }
 
 func TestPlaceHolderReaderEmpty(t *testing.T) {
-	refs, err := PlaceHolderReader([]byte(`{"a": "1", "b": {"c": []}}`))
+	t.Parallel()
+
+	refs, err := rc.PlaceHolderReader([]byte(`{"a": "1", "b": {"c": []}}`))
 	if err != nil {
 		t.Fatalf("PlaceHolderReader: %v", err)
 	}
@@ -66,6 +72,8 @@ func TestPlaceHolderReaderEmpty(t *testing.T) {
 }
 
 func TestPlaceHolderReaderSkipsCompositeStrings(t *testing.T) {
+	t.Parallel()
+
 	// composite values are JSON documents stored as plain strings
 	compositeObj, err := json.Marshal(map[string]any{"a": "_Var(secret_token)"})
 	if err != nil {
@@ -86,7 +94,7 @@ func TestPlaceHolderReaderSkipsCompositeStrings(t *testing.T) {
 		t.Fatalf("marshal test data: %v", err)
 	}
 
-	refs, err := PlaceHolderReader(data)
+	refs, err := rc.PlaceHolderReader(data)
 	if err != nil {
 		t.Fatalf("PlaceHolderReader: %v", err)
 	}
@@ -106,6 +114,8 @@ func TestPlaceHolderReaderSkipsCompositeStrings(t *testing.T) {
 }
 
 func TestVariableRefReportIncludesCompositeStrings(t *testing.T) {
+	t.Parallel()
+
 	compositeObj, err := json.Marshal(map[string]any{"a": "_Var(secret_token)"})
 	if err != nil {
 		t.Fatalf("marshal composite object: %v", err)
@@ -123,7 +133,7 @@ func TestVariableRefReportIncludesCompositeStrings(t *testing.T) {
 		t.Fatalf("marshal test data: %v", err)
 	}
 
-	refs, err := VariableRefReport(data)
+	refs, err := rc.VariableRefReport(data)
 	if err != nil {
 		t.Fatalf("VariableRefReport: %v", err)
 	}
@@ -144,6 +154,8 @@ func TestVariableRefReportIncludesCompositeStrings(t *testing.T) {
 }
 
 func TestSingleVariableRef(t *testing.T) {
+	t.Parallel()
+
 	tests := map[string]struct {
 		value string
 		name  string
@@ -160,7 +172,9 @@ func TestSingleVariableRef(t *testing.T) {
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			gotName, gotRef := SingleVariableRef(test.value)
+			t.Parallel()
+
+			gotName, gotRef := rc.SingleVariableRef(test.value)
 			if gotRef != test.isRef || gotName != test.name {
 				t.Fatalf("SingleVariableRef(%q) = (%q, %v), want (%q, %v)",
 					test.value, gotName, gotRef, test.name, test.isRef)
@@ -170,6 +184,8 @@ func TestSingleVariableRef(t *testing.T) {
 }
 
 func TestIsCompositeJSONString(t *testing.T) {
+	t.Parallel()
+
 	tests := map[string]struct {
 		value string
 		want  bool
@@ -189,7 +205,9 @@ func TestIsCompositeJSONString(t *testing.T) {
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			if got := IsCompositeJSONString(test.value); got != test.want {
+			t.Parallel()
+
+			if got := rc.IsCompositeJSONString(test.value); got != test.want {
 				t.Fatalf("IsCompositeJSONString(%q) = %v, want %v", test.value, got, test.want)
 			}
 		})

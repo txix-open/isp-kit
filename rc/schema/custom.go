@@ -20,8 +20,14 @@ type customSchema struct {
 
 // CustomGenerators is the global registry for custom schema generators.
 // Use Register to add custom generators and Remove to delete them.
-var CustomGenerators = &customSchema{
-	mapSchema: make(map[string]CustomGenerator),
+var CustomGenerators = newCustomSchema()
+
+// newCustomSchema creates a registry with the built-in keyword generators
+// pre-registered.
+func newCustomSchema() *customSchema {
+	c := &customSchema{mapSchema: make(map[string]CustomGenerator)}
+	registerBoolKeywordGenerators(c)
+	return c
 }
 
 // Register adds a custom schema generator to the registry.

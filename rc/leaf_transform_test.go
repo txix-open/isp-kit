@@ -1,12 +1,16 @@
-package rc
+package rc_test
 
 import (
 	"strings"
 	"testing"
+
+	"github.com/txix-open/isp-kit/rc"
 )
 
 func TestTransformStringLeavesPaths(t *testing.T) {
-	out, err := TransformStringLeaves(
+	t.Parallel()
+
+	out, err := rc.TransformStringLeaves(
 		[]byte(`{"a":"x","nested":{"b":"y"},"list":["z","w"]}`),
 		func(path, value string) string { return path + ":" + value },
 	)
@@ -21,9 +25,11 @@ func TestTransformStringLeavesPaths(t *testing.T) {
 }
 
 func TestTransformNonStringLeaves(t *testing.T) {
+	t.Parallel()
+
 	var calls int
 	var seenPath, seenValue string
-	out, err := TransformStringLeaves(
+	out, err := rc.TransformStringLeaves(
 		[]byte(`{"n":5,"b":true,"z":null,"s":"x"}`),
 		func(path, value string) string {
 			calls++
@@ -46,7 +52,9 @@ func TestTransformNonStringLeaves(t *testing.T) {
 }
 
 func TestTransformKeysUntouched(t *testing.T) {
-	out, err := TransformStringLeaves(
+	t.Parallel()
+
+	out, err := rc.TransformStringLeaves(
 		[]byte(`{"_Var(k)":"v"}`),
 		func(path, value string) string { return path + ":" + value },
 	)
@@ -61,7 +69,9 @@ func TestTransformKeysUntouched(t *testing.T) {
 }
 
 func TestTransformInvalidJSON(t *testing.T) {
-	_, err := TransformStringLeaves(
+	t.Parallel()
+
+	_, err := rc.TransformStringLeaves(
 		[]byte(`{"a":`),
 		func(path, value string) string { return value },
 	)
@@ -71,8 +81,10 @@ func TestTransformInvalidJSON(t *testing.T) {
 }
 
 func TestTransformEscapes(t *testing.T) {
+	t.Parallel()
+
 	var seen string
-	out, err := TransformStringLeaves(
+	out, err := rc.TransformStringLeaves(
 		[]byte(`{"a":"line1\nline2"}`),
 		func(path, value string) string {
 			seen = value

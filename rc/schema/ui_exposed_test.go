@@ -1,9 +1,11 @@
-package schema
+package schema_test
 
 import (
 	"encoding/json"
 	"reflect"
 	"testing"
+
+	"github.com/txix-open/isp-kit/rc/schema"
 )
 
 type uiExposedSetting struct {
@@ -30,16 +32,19 @@ type uiExposedTestConfig struct {
 }
 
 func TestUIExposedGenerator(t *testing.T) {
-	data, err := json.Marshal(NewGenerator().Generate(&uiExposedTestConfig{}))
+	t.Parallel()
+
+	data, err := json.Marshal(schema.NewGenerator().Generate(&uiExposedTestConfig{}))
 	if err != nil {
 		t.Fatalf("marshal schema: %v", err)
 	}
 
-	var schema map[string]any
-	if err := json.Unmarshal(data, &schema); err != nil {
+	var schemaDoc map[string]any
+	err = json.Unmarshal(data, &schemaDoc)
+	if err != nil {
 		t.Fatalf("unmarshal schema: %v", err)
 	}
-	leaf, ok := schema["properties"].(map[string]any)["secrets"].(map[string]any)
+	leaf, ok := schemaDoc["properties"].(map[string]any)["secrets"].(map[string]any)
 	if !ok {
 		t.Fatalf("secrets leaf not found in schema: %s", data)
 	}
@@ -48,7 +53,7 @@ func TestUIExposedGenerator(t *testing.T) {
 	}
 
 	// The keyword must not clobber other extras of the same field.
-	extras, ok := schema["properties"].(map[string]any)["extras"].(map[string]any)
+	extras, ok := schemaDoc["properties"].(map[string]any)["extras"].(map[string]any)
 	if !ok {
 		t.Fatalf("extras leaf not found in schema: %s", data)
 	}
@@ -56,7 +61,7 @@ func TestUIExposedGenerator(t *testing.T) {
 		t.Fatalf("extras leaf lost its other extras: %v", extras)
 	}
 
-	plain, ok := schema["properties"].(map[string]any)["plain"].(map[string]any)
+	plain, ok := schemaDoc["properties"].(map[string]any)["plain"].(map[string]any)
 	if !ok {
 		t.Fatalf("plain leaf not found in schema: %s", data)
 	}
@@ -66,14 +71,16 @@ func TestUIExposedGenerator(t *testing.T) {
 }
 
 func TestKeywordReader(t *testing.T) {
-	data, err := json.Marshal(NewGenerator().Generate(&uiExposedTestConfig{}))
+	t.Parallel()
+
+	data, err := json.Marshal(schema.NewGenerator().Generate(&uiExposedTestConfig{}))
 	if err != nil {
 		t.Fatalf("marshal schema: %v", err)
 	}
 
-	paths, err := keywordReader(data, UIExposedKeyword)
+	paths, err := schema.UIExposedPaths(data)
 	if err != nil {
-		t.Fatalf("keywordReader: %v", err)
+		t.Fatalf("UIExposedPaths: %v", err)
 	}
 
 	want := []string{
@@ -88,17 +95,19 @@ func TestKeywordReader(t *testing.T) {
 }
 
 func TestKeywordReaderUnmarked(t *testing.T) {
+	t.Parallel()
+
 	type plain struct {
 		Value string `schema:"value"`
 	}
-	data, err := json.Marshal(NewGenerator().Generate(&plain{}))
+	data, err := json.Marshal(schema.NewGenerator().Generate(&plain{}))
 	if err != nil {
 		t.Fatalf("marshal schema: %v", err)
 	}
 
-	paths, err := keywordReader(data, UIExposedKeyword)
+	paths, err := schema.UIExposedPaths(data)
 	if err != nil {
-		t.Fatalf("keywordReader: %v", err)
+		t.Fatalf("UIExposedPaths: %v", err)
 	}
 	if len(paths) != 0 {
 		t.Fatalf("paths = %v, want empty", paths)
@@ -109,17 +118,19 @@ func TestKeywordReaderUnmarked(t *testing.T) {
 // the exposed values, so the canonical path must match PlaceHolderReader's
 // $.arr[] element paths.
 func TestKeywordReaderStringArray(t *testing.T) {
+	t.Parallel()
+
 	type arr struct {
 		Tags []string `schemaGen:"uiExposed" schema:"tags"`
 	}
-	data, err := json.Marshal(NewGenerator().Generate(&arr{}))
+	data, err := json.Marshal(schema.NewGenerator().Generate(&arr{}))
 	if err != nil {
 		t.Fatalf("marshal schema: %v", err)
 	}
 
-	paths, err := keywordReader(data, UIExposedKeyword)
+	paths, err := schema.UIExposedPaths(data)
 	if err != nil {
-		t.Fatalf("keywordReader: %v", err)
+		t.Fatalf("UIExposedPaths: %v", err)
 	}
 	want := []string{"$.tags[]"}
 	if !reflect.DeepEqual(paths, want) {
@@ -145,7 +156,9 @@ type sensitiveTestConfig struct {
 }
 
 func TestSensitiveGenerator(t *testing.T) {
-	data, err := json.Marshal(NewGenerator().Generate(&sensitiveTestConfig{}))
+	t.Parallel()
+
+	data, err := json.Marshal(schema.NewGenerator().Generate(&sensitiveTestConfig{}))
 	if err != nil {
 		t.Fatalf("marshal schema: %v", err)
 	}
@@ -156,10 +169,10 @@ func TestSensitiveGenerator(t *testing.T) {
 	if !ok {
 		t.Fatalf("token leaf not found in schema: %s", data)
 	}
-	if token[SensitiveKeyword] != true {
+	if token[schema.SensitiveKeyword] != true {
 		t.Fatalf("token leaf is not marked: %v", token)
 	}
-	if _, exposed := token[UIExposedKeyword]; exposed {
+	if _, exposed := token[schema.UIExposedKeyword]; exposed {
 		t.Fatalf("token leaf must not carry the ui-exposed keyword: %v", token)
 	}
 
@@ -167,18 +180,20 @@ func TestSensitiveGenerator(t *testing.T) {
 	if !ok {
 		t.Fatalf("plain leaf not found in schema: %s", data)
 	}
-	if _, marked := plain[SensitiveKeyword]; marked {
+	if _, marked := plain[schema.SensitiveKeyword]; marked {
 		t.Fatalf("plain leaf must not be marked: %v", plain)
 	}
 }
 
 func TestSensitivePaths(t *testing.T) {
-	data, err := json.Marshal(NewGenerator().Generate(&sensitiveTestConfig{}))
+	t.Parallel()
+
+	data, err := json.Marshal(schema.NewGenerator().Generate(&sensitiveTestConfig{}))
 	if err != nil {
 		t.Fatalf("marshal schema: %v", err)
 	}
 
-	paths, err := SensitivePaths(data)
+	paths, err := schema.SensitivePaths(data)
 	if err != nil {
 		t.Fatalf("SensitivePaths: %v", err)
 	}
@@ -196,12 +211,14 @@ func TestSensitivePaths(t *testing.T) {
 // The generic reader is keyed by the keyword: a schema carrying both marks
 // must yield each wrapper only its own paths, with no cross-leak.
 func TestKeywordReaderIsolation(t *testing.T) {
-	data, err := json.Marshal(NewGenerator().Generate(&sensitiveTestConfig{}))
+	t.Parallel()
+
+	data, err := json.Marshal(schema.NewGenerator().Generate(&sensitiveTestConfig{}))
 	if err != nil {
 		t.Fatalf("marshal schema: %v", err)
 	}
 
-	uiPaths, err := UIExposedPaths(data)
+	uiPaths, err := schema.UIExposedPaths(data)
 	if err != nil {
 		t.Fatalf("UIExposedPaths: %v", err)
 	}
@@ -213,7 +230,7 @@ func TestKeywordReaderIsolation(t *testing.T) {
 		t.Fatalf("ui-exposed paths = %v, want %v", uiPaths, wantUI)
 	}
 
-	sensitivePaths, err := SensitivePaths(data)
+	sensitivePaths, err := schema.SensitivePaths(data)
 	if err != nil {
 		t.Fatalf("SensitivePaths: %v", err)
 	}
@@ -232,11 +249,12 @@ func TestKeywordReaderIsolation(t *testing.T) {
 func schemaProperties(t *testing.T, data []byte) map[string]any {
 	t.Helper()
 
-	var schema map[string]any
-	if err := json.Unmarshal(data, &schema); err != nil {
+	var schemaDoc map[string]any
+	err := json.Unmarshal(data, &schemaDoc)
+	if err != nil {
 		t.Fatalf("unmarshal schema: %v", err)
 	}
-	props, ok := schema["properties"].(map[string]any)
+	props, ok := schemaDoc["properties"].(map[string]any)
 	if !ok {
 		t.Fatalf("schema has no properties: %s", data)
 	}
